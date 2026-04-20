@@ -1,0 +1,41 @@
+# Internal planning artifacts (Kiro spec workflow) — not part of public talks
+.kiro/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Env / secrets
+.env
+.env.local
+
+# macOS cruft
+.DS_Store
+._*
+
+# Built artifacts — we keep deck.pdf checked in so the slide link works without
+# a build step, but everything else built is ignored
+*.log
+build.log
+resp.json
+r1.json
+debug_tmp.py
+
+# Node (for Marp CLI if anyone caches it locally)
+node_modules/
+.npm/
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo

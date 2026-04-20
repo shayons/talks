@@ -1,0 +1,480 @@
+/* @theme postgres-dark
+ *
+ * Pure-black dark theme for stage projection.
+ * Palette: black background, cream text, amber + postgres-blue accents.
+ * Matches the warm-dev aesthetic of the live demo UI.
+ */
+
+@import "default";
+
+:root {
+  --pg-bg: #000000; /* pure black */
+  --pg-bg-raised: #111111; /* panels, code blocks */
+  --pg-line: #2a2a2a; /* subtle borders */
+  --pg-ink: #f5eadb; /* primary cream */
+  --pg-ink-dim: #c9b89a; /* secondary */
+  --pg-ink-mut: #8a8a8a; /* captions, page numbers */
+  --pg-blue: #5ea5d9; /* postgres brand tint */
+  --pg-amber: #f0b877; /* highlights, heading accents */
+  --pg-amber-d: #c97f2a; /* heading underline */
+  --pg-ok: #8bc34a; /* success */
+  --pg-warn: #f0b877;
+  --pg-err: #e07a6a;
+  --pg-quote: #2bd1a1;
+}
+
+section {
+  background-color: var(--pg-bg);
+  color: var(--pg-ink);
+  font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  font-size: 26px;
+  line-height: 1.45;
+  padding: 44px 72px 56px;
+  letter-spacing: 0.1px;
+}
+
+/* ------ Typography ------ */
+h1,
+h2,
+h3,
+h4 {
+  color: var(--pg-ink);
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  margin: 0 0 0.4em;
+}
+h1 {
+  font-size: 58px;
+  line-height: 1.1;
+  border-bottom: 3px solid var(--pg-amber);
+  padding-bottom: 18px;
+  margin-bottom: 28px;
+}
+h2 {
+  font-size: 42px;
+  color: var(--pg-amber);
+}
+h3 {
+  font-size: 30px;
+  color: var(--pg-blue);
+}
+strong {
+  color: var(--pg-amber);
+  font-weight: 700;
+}
+em {
+  color: var(--pg-ink-dim);
+  font-style: italic;
+}
+
+p {
+  margin: 0 0 0.6em;
+}
+
+a {
+  color: var(--pg-blue);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--pg-blue);
+}
+
+/* ------ Lists ------ */
+ul,
+ol {
+  margin: 0.2em 0 0.6em 1.2em;
+}
+li {
+  margin-bottom: 0.35em;
+}
+li::marker {
+  color: var(--pg-amber);
+}
+
+/* ------ Code blocks ------ */
+code {
+  font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
+  font-size: 0.9em;
+  color: var(--pg-amber);
+  background: var(--pg-bg-raised);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+pre {
+  background: var(--pg-bg-raised);
+  border: 1px solid var(--pg-line);
+  border-radius: 8px;
+  padding: 20px 24px;
+  overflow-x: auto;
+  font-size: 20px;
+  line-height: 1.45;
+  margin: 14px 0;
+}
+pre code {
+  background: transparent;
+  padding: 0;
+  color: var(--pg-ink);
+  font-size: inherit;
+}
+
+/* Marp / highlight.js token colors against the dark backdrop */
+.hljs-keyword,
+.hljs-built_in,
+.hljs-type {
+  color: var(--pg-amber);
+  font-weight: 600;
+}
+.hljs-string,
+.hljs-number {
+  color: var(--pg-quote);
+}
+.hljs-comment {
+  color: var(--pg-ink-mut);
+  font-style: italic;
+}
+.hljs-function,
+.hljs-title,
+.hljs-name {
+  color: var(--pg-blue);
+}
+.hljs-operator,
+.hljs-punctuation {
+  color: var(--pg-ink-dim);
+}
+.hljs-variable,
+.hljs-attr,
+.hljs-literal {
+  color: var(--pg-ink);
+}
+
+/* ------ Tables ------ */
+/* Force transparent cells with !important — Marp's default theme ships with
+   light-bg table rules that beat ours due to @import cascade order. */
+section table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0 14px;
+  font-size: 0.78em;
+  background: transparent !important;
+}
+section table th,
+section table td {
+  border: 1px solid var(--pg-line);
+  padding: 9px 12px;
+  text-align: left;
+  vertical-align: top;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--pg-ink) !important;
+}
+section table th {
+  color: var(--pg-amber) !important;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  font-size: 0.82em;
+  border-bottom: 2px solid var(--pg-amber);
+}
+section table tr,
+section table tbody tr,
+section table tbody tr:nth-child(even),
+section table tbody tr:nth-child(odd),
+section table tr:nth-child(even),
+section table tr:nth-child(odd) {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+section table tr:nth-child(even) td,
+section table tr:nth-child(odd) td {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+section table td code,
+section table th code,
+section table td strong {
+  background: transparent !important;
+  color: var(--pg-amber) !important;
+  padding: 0;
+}
+section table td strong {
+  color: var(--pg-amber) !important;
+  font-weight: 700;
+}
+
+/* ------ Blockquotes (used for key-takeaways) ------ */
+blockquote {
+  border-left: 4px solid var(--pg-amber);
+  background: var(--pg-bg-raised);
+  color: var(--pg-ink);
+  margin: 14px 0;
+  padding: 18px 24px;
+  border-radius: 0 8px 8px 0;
+  font-size: 0.95em;
+}
+blockquote p:last-child {
+  margin-bottom: 0;
+}
+blockquote strong {
+  color: var(--pg-amber);
+}
+
+/* ------ Horizontal rule ------ */
+hr {
+  border: 0;
+  height: 1px;
+  background: var(--pg-line);
+  margin: 24px 0;
+}
+
+/* ------ Footer / page numbers (Marp auto-injects) ------ */
+section::after {
+  color: var(--pg-ink-mut);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 14px;
+  font-weight: 500;
+}
+footer {
+  color: var(--pg-ink-mut);
+  font-size: 14px;
+  font-family: "JetBrains Mono", monospace;
+  letter-spacing: 1px;
+}
+
+/* ------ Special slide layouts ------ */
+section.title {
+  justify-content: center;
+  text-align: center;
+  background: linear-gradient(140deg, #000000 0%, #0b0b0b 60%, #181818 100%);
+}
+section.title h1 {
+  font-size: 54px;
+  line-height: 1.12;
+  border: 0;
+  color: var(--pg-ink);
+  padding: 0;
+  margin: 0 auto 18px;
+  max-width: 90%;
+}
+section.title h2 {
+  color: var(--pg-amber);
+  font-size: 28px;
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.4;
+  max-width: 80%;
+  margin: 0 auto;
+}
+section.title .meta {
+  color: var(--pg-ink-mut);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 18px;
+  letter-spacing: 2px;
+  margin-top: 44px;
+}
+section.title .byline {
+  color: var(--pg-ink);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  margin-top: 36px;
+  opacity: 0.92;
+}
+
+section.bio {
+  background: linear-gradient(140deg, #000000 0%, #111111 100%);
+  justify-content: center;
+  padding: 48px 72px;
+}
+section.bio .bio-grid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 52px;
+  align-items: center;
+  width: 100%;
+}
+section.bio .bio-photo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+section.bio .bio-photo img {
+  width: 100%;
+  max-width: 340px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 2px solid var(--pg-amber);
+  /* Stronger, multi-layer glow so the effect survives slideshow renderers
+     that flatten subtle shadows. Combines a tight inner amber halo, a mid
+     soft glow, and a wider warm atmosphere. */
+  box-shadow:
+    0 0 0 4px rgba(240, 184, 119, 0.18),
+    0 0 24px rgba(240, 184, 119, 0.45),
+    0 0 60px rgba(240, 184, 119, 0.25),
+    0 12px 48px rgba(240, 184, 119, 0.20);
+}
+section.bio .bio-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+section.bio h2 {
+  font-size: 20px;
+  color: var(--pg-blue);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+section.bio h1 {
+  border: 0;
+  padding: 0;
+  font-size: 54px;
+  color: var(--pg-amber);
+  margin: 0 0 14px;
+  line-height: 1.05;
+}
+section.bio .bio-text strong {
+  color: var(--pg-ink);
+  font-size: 22px;
+  font-weight: 600;
+  display: block;
+  margin-top: 2px;
+}
+section.bio .bio-text p {
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--pg-ink-dim);
+  margin: 12px 0;
+}
+section.bio .bio-links {
+  color: var(--pg-ink-mut);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 16px;
+  letter-spacing: 1.5px;
+  margin-top: 18px;
+}
+
+section.takeaway {
+  background: linear-gradient(140deg, #000000 0%, #141414 100%);
+  justify-content: center;
+}
+section.takeaway h2 {
+  font-size: 26px;
+  color: var(--pg-blue);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+section.takeaway h1 {
+  border: 0;
+  padding: 0;
+  font-size: 54px;
+  line-height: 1.15;
+  color: var(--pg-amber);
+  max-width: 80%;
+  margin: 0 auto 24px;
+}
+section.takeaway p {
+  color: var(--pg-ink-dim);
+  font-size: 28px;
+  max-width: 78%;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+section.section-divider {
+  justify-content: center;
+  text-align: center;
+  background: linear-gradient(140deg, #000000 0%, #121212 100%);
+}
+section.section-divider h2 {
+  font-size: 28px;
+  color: var(--pg-blue);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+section.section-divider h1 {
+  font-size: 72px;
+  border: 0;
+  padding: 0;
+  color: var(--pg-ink);
+}
+
+section.code-first pre {
+  font-size: 22px;
+}
+section.code-first h2 {
+  font-size: 32px;
+  margin-bottom: 16px;
+}
+
+/* Dense slides — used when a slide legitimately has a lot of content and
+   would otherwise collide with the paginate footer. Shrinks the base font,
+   tightens margins, and compresses code-block font. */
+section.dense {
+  font-size: 22px;
+  line-height: 1.4;
+  padding: 36px 64px 48px;
+}
+section.dense h2 {
+  font-size: 34px;
+  margin-bottom: 14px;
+}
+section.dense h1 {
+  font-size: 46px;
+  padding-bottom: 14px;
+  margin-bottom: 22px;
+}
+section.dense pre {
+  font-size: 18px;
+  padding: 14px 18px;
+  line-height: 1.4;
+  margin: 10px 0;
+}
+section.dense ul,
+section.dense ol {
+  margin: 0.15em 0 0.45em 1.2em;
+}
+section.dense li {
+  margin-bottom: 0.25em;
+}
+section.dense p {
+  margin: 0 0 0.4em;
+}
+
+/* Architecture diagram — rendered as an SVG image; the Marp image syntax
+   gives us full width, centered automatically. */
+section img[alt*="Architecture"] {
+  display: block;
+  max-width: 100%;
+  max-height: 74vh;
+  margin: 4px auto 0;
+  background: transparent;
+}
+.arch-caption {
+  text-align: center;
+  font-family: "Instrument Serif", Georgia, serif;
+  font-style: italic;
+  color: var(--pg-ink-dim);
+  font-size: 18px;
+  margin-top: 2px;
+}
+
+section.thanks {
+  justify-content: center;
+  text-align: center;
+  background: linear-gradient(140deg, #000000 0%, #141414 100%);
+}
+section.thanks h1 {
+  border: 0;
+  font-size: 88px;
+  color: var(--pg-amber);
+  padding: 0;
+}
+section.thanks p {
+  color: var(--pg-ink-dim);
+  font-size: 24px;
+  letter-spacing: 1px;
+}

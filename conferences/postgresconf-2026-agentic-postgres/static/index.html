@@ -1,0 +1,1112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+<title>AI Coffee Roastery · Agentic AI on PostgreSQL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream:     #F5EADB;
+    --cream-2:   #EFE2CE;
+    --cream-3:   #FBF5EB;
+    --paper:     #FFFDF9;
+    --coffee:    #B87A3E;
+    --coffee-d:  #6B4321;
+    --coffee-l:  #D49561;
+    --coffee-xl: #E8C9A3;
+    --coffee-mid:#A0632C;
+    --tan:       #D4A574;
+    --ink:       #2A1C10;
+    --ink-mut:   #6B5D4F;
+    --ink-dim:   #9C8B76;
+    --line-w:    #E5D5BD;
+    --line-d:    #D3BF9F;
+    --amber-chat:#C97F2A;
+    --surface:   #FFFCF5;
+    --surface-2: #F3E8D3;
+    --accent-hi: #F0B877;
+    --ok:        #6B8E4A;
+    --warn:      #C97F2A;
+    --err:       #B94A3B;
+
+    --f-display: 'Instrument Serif', ui-serif, Georgia, serif;
+    --f-ui:      'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+    --f-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; font-family: var(--f-ui); }
+  body {
+    background: var(--cream);
+    color: var(--ink);
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font-family: inherit; }
+  input, textarea { font-family: inherit; }
+
+  .app {
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    height: 100vh;
+    background: var(--cream);
+    padding: 16px;
+    gap: 0;
+  }
+  .shell {
+    background: var(--paper);
+    border: 1px solid var(--line-d);
+    border-radius: 14px;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    box-shadow: 0 2px 0 rgba(107,67,33,0.04), 0 18px 50px -30px rgba(107,67,33,0.25);
+  }
+  .main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); min-height: 0; }
+  @media (max-width: 1100px) { .main { grid-template-columns: 1fr; } .chat { border-right: 0 !important; } .side { border-top: 1px solid var(--line-w); } }
+
+  .topbar {
+    background: linear-gradient(135deg, #B87A3E 0%, #9A6131 100%);
+    color: var(--cream);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 22px 28px;
+  }
+  .brand { display: flex; align-items: baseline; gap: 14px; }
+  .brand .bean {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #F1D3A8, #5A3818);
+    position: relative; align-self: center;
+    box-shadow: inset 0 -4px 8px rgba(0,0,0,0.18);
+  }
+  .brand .bean::after {
+    content: ''; position: absolute; left: 50%; top: 10%;
+    width: 2px; height: 80%; background: #3A2110;
+    transform: translateX(-50%) rotate(14deg); border-radius: 2px;
+  }
+  .brand-text { display: flex; flex-direction: column; gap: 4px; }
+  .brand .name {
+    font-family: var(--f-ui); font-weight: 700;
+    font-size: 22px; letter-spacing: 3px; text-transform: uppercase;
+    line-height: 1;
+  }
+  .brand .sub {
+    font-family: var(--f-display); font-style: italic;
+    font-size: 15px; color: rgba(255,248,236,0.82);
+    line-height: 1;
+  }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .new-session {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(255,248,236,0.14);
+    border: 1px solid rgba(255,248,236,0.25);
+    color: var(--cream);
+    font-family: var(--f-ui); font-size: 13px; font-weight: 500;
+    padding: 9px 16px; border-radius: 999px;
+    cursor: pointer; transition: background 0.15s, border-color 0.15s;
+  }
+  .new-session:hover { background: rgba(255,248,236,0.22); border-color: rgba(255,248,236,0.45); }
+  .new-session svg { width: 14px; height: 14px; }
+
+  .meta-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    padding: 18px 28px 20px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line-w);
+  }
+  .meta-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .meta-field .lbl {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--f-mono); font-size: 10.5px;
+    color: var(--ink-dim); letter-spacing: 2.5px; text-transform: uppercase;
+  }
+  .meta-field .lbl svg { width: 12px; height: 12px; opacity: 0.7; }
+  .endpoint-wrap { position: relative; display: flex; align-items: center; gap: 10px; }
+  .endpoint-wrap input {
+    flex: 1;
+    border: 1px solid var(--line-w);
+    background: var(--cream-3);
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 11px 14px;
+    font-family: var(--f-mono); font-size: 13px; letter-spacing: 2px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .endpoint-wrap input:focus { border-color: var(--coffee-l); }
+  .endpoint-wrap .eye {
+    width: 42px; height: 42px;
+    border: 1px solid var(--line-w); background: var(--cream-3);
+    border-radius: 8px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--ink-mut); transition: border-color 0.15s, color 0.15s;
+  }
+  .endpoint-wrap .eye:hover { border-color: var(--coffee-l); color: var(--coffee-d); }
+  .endpoint-wrap .eye svg { width: 16px; height: 16px; }
+  .user-select {
+    display: flex; align-items: center; gap: 10px;
+    min-width: 200px;
+    border: 1px solid var(--line-w); background: var(--cream-3);
+    border-radius: 8px;
+    padding: 8px 14px;
+  }
+  .user-select .avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, var(--coffee-xl), var(--coffee-mid));
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: var(--f-ui); font-weight: 600; font-size: 12px; color: var(--paper);
+    flex-shrink: 0;
+  }
+  .user-select select {
+    flex: 1;
+    border: 0; background: transparent;
+    font-family: var(--f-ui); font-size: 14px; font-weight: 500;
+    color: var(--ink); outline: none;
+    cursor: pointer; appearance: none; -webkit-appearance: none;
+    padding-right: 18px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%236B5D4F' d='M5 6 0 0h10z'/></svg>");
+    background-repeat: no-repeat; background-position: right center;
+  }
+
+  .chat {
+    background: var(--paper);
+    color: var(--ink);
+    border-right: 1px solid var(--line-w);
+    display: flex; flex-direction: column;
+    min-height: 0;
+  }
+  .chat-body {
+    flex: 1; overflow-y: auto; padding: 24px 28px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .chat-body::-webkit-scrollbar { width: 6px; }
+  .chat-body::-webkit-scrollbar-thumb { background: var(--line-w); border-radius: 3px; }
+
+  .msg {
+    max-width: 92%;
+    padding: 16px 20px;
+    border-radius: 14px;
+    line-height: 1.6;
+    font-size: 15px;
+    animation: msg-in 0.3s ease-out both;
+  }
+  @keyframes msg-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .msg.user {
+    align-self: flex-end;
+    background: var(--coffee);
+    color: var(--cream);
+    border-bottom-right-radius: 4px;
+    font-weight: 500;
+    box-shadow: 0 4px 14px -8px rgba(111,67,33,0.45);
+  }
+  .msg.agent {
+    align-self: flex-start;
+    background: var(--cream-3);
+    border: 1px solid var(--line-w);
+    color: var(--ink);
+    border-bottom-left-radius: 4px;
+  }
+  .msg.agent .label {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--f-ui); font-size: 11px;
+    color: var(--coffee-mid); text-transform: uppercase;
+    letter-spacing: 2.5px;
+    margin-bottom: 9px;
+    font-weight: 600;
+  }
+  .msg.agent .label::before {
+    content: '';
+    width: 14px; height: 14px;
+    background:
+      linear-gradient(var(--coffee-mid),var(--coffee-mid)) center/14px 2px no-repeat,
+      linear-gradient(var(--coffee-mid),var(--coffee-mid)) center/14px 2px no-repeat,
+      linear-gradient(var(--coffee-mid),var(--coffee-mid)) center/2px 14px no-repeat,
+      linear-gradient(var(--coffee-mid),var(--coffee-mid)) center/2px 14px no-repeat;
+    mask: conic-gradient(#000 0 0);
+    background:
+      radial-gradient(circle at 4px 4px, var(--coffee-mid) 2px, transparent 2.5px),
+      radial-gradient(circle at 10px 4px, var(--coffee-mid) 2px, transparent 2.5px),
+      radial-gradient(circle at 4px 10px, var(--coffee-mid) 2px, transparent 2.5px),
+      radial-gradient(circle at 10px 10px, var(--coffee-mid) 2px, transparent 2.5px);
+  }
+  .msg.agent cite {
+    font-style: normal;
+    color: var(--coffee-d);
+    border-bottom: 1px dashed var(--coffee-l);
+    cursor: help;
+    font-weight: 600;
+  }
+  .msg.agent cite:hover { background: rgba(184,122,62,0.08); }
+  .msg .confidence {
+    margin-top: 10px; padding-top: 10px;
+    border-top: 1px dashed var(--line-w);
+    font-family: var(--f-mono); font-size: 10px;
+    color: var(--ink-dim); letter-spacing: 1px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .msg .confidence .bar {
+    flex: 1; height: 4px; background: var(--line-w);
+    border-radius: 2px; overflow: hidden; position: relative;
+  }
+  .msg .confidence .bar::after {
+    content: ''; display: block; height: 100%;
+    background: linear-gradient(90deg, var(--coffee-l), var(--coffee-d));
+    width: 0; transition: width 0.9s cubic-bezier(0.2,0.8,0.2,1);
+  }
+  .msg .confidence .bar.fill::after { width: var(--w, 90%); }
+
+  .thinking {
+    display: flex; align-items: center; gap: 10px;
+    color: var(--ink-dim); font-size: 12.5px;
+    font-family: var(--f-mono); padding: 4px 8px;
+  }
+  .thinking .bars { display: flex; gap: 3px; }
+  .thinking .bars span {
+    display: inline-block; width: 3px; height: 14px;
+    background: var(--coffee-mid); border-radius: 1px;
+    animation: bars 1.2s infinite ease-in-out;
+  }
+  .thinking .bars span:nth-child(2) { animation-delay: 0.15s; }
+  .thinking .bars span:nth-child(3) { animation-delay: 0.3s; }
+  .thinking .bars span:nth-child(4) { animation-delay: 0.45s; }
+  @keyframes bars { 0%,100% { transform: scaleY(0.4); opacity: 0.4; } 50% { transform: scaleY(1); opacity: 1; } }
+
+  .dock {
+    padding: 18px 28px 22px;
+    border-top: 1px solid var(--line-w);
+    background: var(--paper);
+  }
+  .dock .label {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: var(--f-ui); font-size: 11px; font-weight: 600;
+    color: var(--ink-dim); letter-spacing: 2.5px; text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .dock .label::before {
+    content: '★'; color: var(--coffee-l); font-size: 12px; letter-spacing: 0;
+  }
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .pill {
+    cursor: pointer;
+    background: var(--paper);
+    color: var(--ink);
+    border: 1px solid var(--line-w);
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-family: var(--f-ui); font-size: 13px; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: all 0.15s ease;
+  }
+  .pill .ico { color: var(--coffee-mid); font-size: 14px; line-height: 1; }
+  .pill:hover:not(:disabled) { border-color: var(--coffee-l); background: var(--cream-3); }
+  .pill:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .input-row {
+    display: flex; gap: 10px; align-items: stretch;
+  }
+  .input-row input[type="text"] {
+    flex: 1;
+    border: 1px solid var(--line-w);
+    border-radius: 10px;
+    padding: 14px 18px;
+    background: var(--cream-3);
+    color: var(--ink);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .input-row input::placeholder { color: var(--ink-dim); }
+  .input-row input:focus { border-color: var(--coffee-l); background: var(--paper); }
+  .input-row button.send {
+    border: 0; border-radius: 10px;
+    padding: 0 32px;
+    background: linear-gradient(135deg, var(--coffee) 0%, var(--coffee-mid) 100%);
+    color: var(--cream);
+    font-weight: 600; font-size: 14px; letter-spacing: 0.3px;
+    cursor: pointer;
+    transition: filter 0.15s, transform 0.05s;
+  }
+  .input-row button.send:hover:not(:disabled) { filter: brightness(1.05); }
+  .input-row button.send:active:not(:disabled) { transform: translateY(1px); }
+  .input-row button.send:disabled { background: var(--ink-dim); cursor: not-allowed; }
+
+  .side {
+    display: flex; flex-direction: column;
+    min-height: 0; overflow: hidden;
+    background: var(--cream-3);
+    border-left: 1px solid var(--line-w);
+  }
+  .side-head {
+    padding: 18px 22px 8px;
+    display: flex; flex-direction: column; gap: 10px;
+    background: var(--cream-3);
+  }
+  .side-title {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--f-ui); font-size: 13px; font-weight: 700;
+    color: var(--ink); letter-spacing: 3px; text-transform: uppercase;
+  }
+  .side-title .grid-ico {
+    display: inline-grid; grid-template-columns: 1fr 1fr; gap: 2px;
+    width: 14px; height: 14px;
+  }
+  .side-title .grid-ico i {
+    background: var(--ink); border-radius: 1px;
+  }
+  .side-sub {
+    font-family: var(--f-display); font-style: italic; font-size: 14px;
+    color: var(--ink-dim);
+  }
+  .side-tabs {
+    display: flex; gap: 6px;
+    padding: 0 22px; margin-top: 2px;
+    border-bottom: 1px solid var(--line-w);
+  }
+  .side-tab {
+    appearance: none;
+    border: 0; background: transparent;
+    font-family: var(--f-ui); font-size: 12px; font-weight: 600;
+    color: var(--ink-dim); letter-spacing: 2px; text-transform: uppercase;
+    padding: 10px 4px 12px; margin-right: 18px;
+    cursor: pointer; position: relative;
+    transition: color 0.15s;
+  }
+  .side-tab:hover { color: var(--coffee-d); }
+  .side-tab.on { color: var(--coffee-d); }
+  .side-tab.on::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: -1px;
+    height: 2px; background: var(--coffee);
+    border-radius: 1px;
+  }
+  .side-tab .count {
+    display: inline-block; min-width: 18px; padding: 1px 6px;
+    border-radius: 999px; background: var(--coffee);
+    color: var(--cream); font-size: 10px; margin-left: 6px;
+    letter-spacing: 0; font-weight: 600;
+  }
+  .side-tab:not(.on) .count { background: var(--line-d); color: var(--ink-mut); }
+
+  .side-body {
+    flex: 1; overflow-y: auto;
+    padding: 18px 22px 24px;
+  }
+  .side-body::-webkit-scrollbar { width: 8px; }
+  .side-body::-webkit-scrollbar-thumb { background: var(--line-w); border-radius: 4px; }
+
+  .arch-brand {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-bottom: 14px;
+    font-family: var(--f-ui); font-size: 12px; font-weight: 600;
+    color: var(--cream);
+    background: var(--coffee);
+    padding: 6px 14px; border-radius: 999px;
+    letter-spacing: 0.3px;
+  }
+  .agents { display: flex; flex-direction: column; gap: 14px; }
+  .agent-card {
+    background: var(--paper);
+    border: 1px solid var(--line-w);
+    border-radius: 12px;
+    padding: 16px 18px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .agent-card.primary {
+    border-color: var(--coffee-l);
+    box-shadow: 0 0 0 1px var(--coffee-l), 0 8px 26px -18px rgba(111,67,33,0.35);
+  }
+  .agent-card .head {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 10px;
+  }
+  .agent-card .ico {
+    width: 28px; height: 28px; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--coffee-mid);
+  }
+  .agent-card .ico svg { width: 22px; height: 22px; }
+  .agent-card h4 {
+    margin: 0;
+    font-family: var(--f-ui); font-size: 16px; font-weight: 700;
+    color: var(--ink); letter-spacing: 0.2px;
+  }
+  .agent-card p {
+    margin: 0 0 12px;
+    font-size: 13.5px; line-height: 1.55;
+    color: var(--ink-mut);
+  }
+  .agent-card .section-lbl {
+    font-family: var(--f-ui); font-size: 10.5px; font-weight: 600;
+    color: var(--ink-dim); letter-spacing: 2.5px; text-transform: uppercase;
+    padding-top: 10px; margin-top: 10px;
+    border-top: 1px dashed var(--line-w);
+    display: block; margin-bottom: 8px;
+  }
+  .agent-card ul {
+    margin: 0; padding: 0; list-style: none;
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .agent-card ul li {
+    display: flex; align-items: flex-start; gap: 8px;
+    font-family: var(--f-mono); font-size: 12.5px;
+    color: var(--coffee-mid);
+  }
+  .agent-card ul li::before {
+    content: '→'; color: var(--coffee-mid); font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .panels {
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .empty {
+    text-align: center; padding: 40px 20px; color: var(--ink-dim);
+    border: 1px dashed var(--line-w);
+    border-radius: 12px;
+    background: var(--paper);
+  }
+  .empty .title {
+    font-family: var(--f-display); font-style: italic;
+    font-size: 22px; color: var(--coffee-d); margin-bottom: 6px;
+  }
+  .empty .hint {
+    font-family: var(--f-ui); font-size: 11px;
+    letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--ink-dim); font-weight: 600;
+  }
+  .tele-status {
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--f-mono); font-size: 10.5px;
+    color: var(--ink-dim); letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .tele-status b { color: var(--coffee-d); font-weight: 600; }
+
+  .panel {
+    background: var(--paper);
+    border: 1px solid var(--line-w);
+    border-radius: 10px;
+    overflow: hidden;
+    animation: panel-in 0.32s ease-out both;
+  }
+  @keyframes panel-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .panel-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line-w);
+    background: var(--cream-3);
+  }
+  .panel-head .tag {
+    font-family: var(--f-mono); font-size: 9.5px; font-weight: 600;
+    color: var(--coffee-d); letter-spacing: 2px; text-transform: uppercase;
+    padding: 3px 8px; border: 1px solid var(--coffee-xl);
+    border-radius: 4px; background: var(--cream);
+    white-space: nowrap;
+  }
+  .panel-head .tag.amber { color: var(--warn); border-color: #EBC594; background: #FBECD4; }
+  .panel-head .tag.green { color: var(--ok); border-color: #CFDCB7; background: #EEF3E1; }
+  .panel-head .title { flex: 1; font-weight: 600; color: var(--ink); font-size: 13.5px; }
+  .panel-head .dur { font-family: var(--f-mono); font-size: 10.5px; color: var(--ink-dim); }
+  .panel-body { padding: 12px 14px; }
+
+  .plan ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; }
+  .plan li {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 8px 10px; border-radius: 6px;
+    font-size: 13px; background: var(--cream-3);
+    border: 1px solid transparent;
+  }
+  .plan li .n { font-family: var(--f-mono); font-size: 11px; color: var(--coffee-mid); font-weight: 600; min-width: 22px; }
+  .plan li .t { color: var(--ink); line-height: 1.5; }
+  .plan li .s { font-family: var(--f-mono); font-size: 10px; color: var(--ink-dim); margin-left: auto; letter-spacing: 1px; text-transform: uppercase; }
+  .plan li.done .s { color: var(--ok); }
+  .plan li.active { background: var(--cream); border-color: var(--coffee-l); }
+  .plan li.active .s { color: var(--coffee-d); }
+
+  .sql {
+    font-family: var(--f-mono); font-size: 12px;
+    color: var(--ink); line-height: 1.55;
+    background: var(--cream-3);
+    padding: 11px 13px;
+    border-radius: 6px;
+    border: 1px solid var(--line-w);
+    white-space: pre-wrap;
+    overflow-x: auto;
+  }
+  .sql .kw  { color: var(--coffee-d); font-weight: 600; }
+  .sql .op  { color: var(--coffee-mid); font-weight: 600; }
+  .sql .str { color: var(--warn); }
+  .sql .cmt { color: var(--ink-dim); font-style: italic; }
+
+  .rows {
+    margin-top: 10px;
+    font-family: var(--f-mono); font-size: 11.5px;
+    color: var(--ink-mut);
+  }
+  .rows .head {
+    color: var(--ink-dim); letter-spacing: 1px; text-transform: uppercase;
+    font-size: 10px; padding: 6px 0; border-bottom: 1px solid var(--line-w);
+    display: grid; gap: 14px;
+  }
+  .rows .row {
+    padding: 6px 0; border-bottom: 1px dashed var(--line-w);
+    display: grid; gap: 14px; color: var(--ink);
+    animation: row-in 0.22s ease-out both;
+  }
+  @keyframes row-in { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: translateX(0); } }
+  .rows .row:last-child { border-bottom: 0; }
+  .rows .meta { font-family: var(--f-mono); font-size: 10.5px; color: var(--ink-dim); margin-top: 8px; letter-spacing: 0.3px; }
+  .rows .meta b { color: var(--ok); font-weight: 600; }
+
+  .footer {
+    padding: 12px 28px;
+    margin-top: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: var(--f-mono); font-size: 10.5px; color: var(--ink-dim);
+    letter-spacing: 1px;
+  }
+
+  .cite-pop {
+    position: fixed; pointer-events: none;
+    background: var(--ink); border: 1px solid var(--coffee-d);
+    border-radius: 6px; padding: 8px 12px;
+    font-family: var(--f-mono); font-size: 11px; color: var(--cream);
+    max-width: 320px;
+    box-shadow: 0 12px 40px rgba(42,28,16,0.35);
+    opacity: 0; transition: opacity 0.15s;
+    z-index: 100; line-height: 1.5;
+  }
+  .cite-pop.on { opacity: 1; }
+  .cite-pop .k { color: var(--coffee-l); margin-right: 8px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+ <div class="shell">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="bean"></div>
+      <div class="brand-text">
+        <div class="name">AI Coffee Roastery</div>
+        <div class="sub">Multi-agent recommendation system grounded in PostgreSQL</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="new-session" id="reset" title="Start a fresh session">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        <span>New Session</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="meta-row">
+    <div class="meta-field">
+      <span class="lbl">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        API Endpoint
+      </span>
+      <div class="endpoint-wrap">
+        <input id="endpoint" type="password" value="http://localhost:8000/api/query" spellcheck="false" />
+        <button class="eye" id="eye" title="Toggle visibility" aria-label="Toggle visibility">
+          <svg id="eye-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="meta-field">
+      <span class="lbl">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        User
+      </span>
+      <div class="user-select">
+        <span class="avatar" id="avatar">M</span>
+        <select id="customer"></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <section class="chat">
+      <div class="chat-body" id="chat"></div>
+
+      <div class="dock">
+        <div class="label">Quick Queries</div>
+        <div class="pills" id="pills">
+          <button class="pill" data-q="Cold brew options"><span class="ico">☕</span>Cold brew</button>
+          <button class="pill" data-q="Smooth espresso"><span class="ico">⊙</span>Smooth espresso</button>
+          <button class="pill" data-q="Light roast pour-over"><span class="ico">◌</span>Light roast</button>
+          <button class="pill" data-q="Budget French press"><span class="ico">$</span>Budget press</button>
+          <button class="pill" data-q="Order a bag of cold brew"><span class="ico">▶</span>Place an order</button>
+        </div>
+        <div class="input-row">
+          <input type="text" id="q" placeholder="Describe what you're looking for…" autocomplete="off" />
+          <button class="send" id="send">Send</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <div class="side-head">
+        <div class="side-title">
+          <span class="grid-ico"><i></i><i></i><i></i><i></i></span>
+          <span id="sideTitleText">System Architecture</span>
+        </div>
+        <div class="side-sub" id="sideSubText">Multi-Agent Orchestration</div>
+      </div>
+      <div class="side-tabs">
+        <button class="side-tab on" data-tab="arch">Architecture</button>
+        <button class="side-tab" data-tab="tele">
+          Agent Telemetry
+          <span class="count" id="teleCount">0</span>
+        </button>
+      </div>
+      <div class="side-body">
+        <div id="archView">
+          <div class="arch-brand">PostgreSQL + pgvector · one system, every role</div>
+          <div class="agents">
+            <div class="agent-card primary">
+              <div class="head">
+                <span class="ico">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-2-2h-4l-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/><path d="M8 12h8M8 16h5"/></svg>
+                </span>
+                <h4>Memory Architecture</h4>
+              </div>
+              <p>Episodic, semantic, and procedural memory all in Postgres — queried with one SQL dialect, joined in one plan.</p>
+              <span class="section-lbl">Tables</span>
+              <ul>
+                <li>agent_messages · episodic</li>
+                <li>beans.embedding · semantic (pgvector HNSW)</li>
+                <li>orders ⋈ beans · procedural (few-shot)</li>
+              </ul>
+            </div>
+
+            <div class="agent-card">
+              <div class="head">
+                <span class="ico">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/></svg>
+                </span>
+                <h4>Tool Registry</h4>
+              </div>
+              <p>Tool definitions, JSON schemas, and description embeddings live in Postgres. Discovery is a pgvector query, not a hard-coded list.</p>
+              <span class="section-lbl">Tables</span>
+              <ul>
+                <li>tools · name, schema, owner</li>
+                <li>tools.description_emb · discovery</li>
+                <li>tool_audit · every invocation</li>
+              </ul>
+            </div>
+
+            <div class="agent-card">
+              <div class="head">
+                <span class="ico">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="6" rx="1"/><rect x="3" y="14" width="18" height="6" rx="1"/><path d="M7 7h.01M7 17h.01"/></svg>
+                </span>
+                <h4>MCP Integration</h4>
+              </div>
+              <p>Schema introspection + safe parameterized SELECT exposed over stdio — any MCP client (Claude Desktop, Cursor) can query Postgres.</p>
+              <span class="section-lbl">Tools</span>
+              <ul>
+                <li>list_tables</li>
+                <li>describe(table)</li>
+                <li>run_query(sql, params)</li>
+              </ul>
+            </div>
+
+            <div class="agent-card">
+              <div class="head">
+                <span class="ico">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </span>
+                <h4>State Management</h4>
+              </div>
+              <p>Workflow plan + step index persisted to <code>agent_sessions.workflow_state</code> at every step boundary — resumable after crash.</p>
+              <span class="section-lbl">Tables</span>
+              <ul>
+                <li>agent_sessions.workflow_state</li>
+                <li>checkpoints after each step</li>
+                <li>resume from step_index</li>
+              </ul>
+            </div>
+
+            <div class="agent-card">
+              <div class="head">
+                <span class="ico">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6z"/><polyline points="9 12 11 14 15 10"/></svg>
+                </span>
+                <h4>Grounding &amp; Guardrails</h4>
+              </div>
+              <p>Every claim re-verified against canonical rows, confidence scored from data availability, and sensitive tools block on approval.</p>
+              <span class="section-lbl">Checks</span>
+              <ul>
+                <li>fact-check pass before reply</li>
+                <li>confidence from row coverage</li>
+                <li>approvals queue for place_order</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div id="teleView" style="display:none">
+          <div class="tele-status">
+            <span>session · <b id="sid">—</b></span>
+            <span>elapsed · <b id="elapsed">0ms</b></span>
+          </div>
+          <div class="panels" id="panels"></div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <footer class="footer">
+    <span>memory · tools · MCP · state · guardrails — all on PostgreSQL</span>
+    <span>PostgresConf SJ 2026 · San Pedro · Apr 21</span>
+  </footer>
+
+ </div>
+</div>
+
+<div class="cite-pop" id="citePop"></div>
+
+<script>
+// ------------------ tiny helpers ------------------
+const $   = s => document.querySelector(s);
+const el  = (t, c, h) => { const e = document.createElement(t); if (c) e.className = c; if (h !== undefined) e.innerHTML = h; return e; };
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// SQL highlighter with sentinel tokens (no self-matching)
+function kwify(sql) {
+  let s = esc(sql);
+  s = s.replace(/--[^\n]*/g, m => `\u0001${m}\u0002`);
+  s = s.replace(/'[^']*'/g,  m => `\u0003${m}\u0004`);
+  s = s.replace(/\$\d+/g,    m => `\u0003${m}\u0004`);
+  s = s.replace(/\b(SELECT|FROM|WHERE|AND|OR|ORDER BY|LIMIT|JOIN|LEFT|INNER|ON|AS|GROUP BY|DESC|ASC|INSERT|INTO|VALUES|UPDATE|SET|RETURNING|WITH|BEGIN|COMMIT|CREATE|TABLE|INDEX|USING|EXTENSION|PRIMARY|KEY|NOT|NULL|DEFAULT|TRUE|FALSE|ANY|IN)\b/g, '\u0005$1\u0006');
+  s = s.replace(/(&lt;=&gt;|&lt;-&gt;|&lt;#&gt;)/g, '\u0007$1\u0008');
+  s = s.replace(/\u0001/g, '<span class="cmt">').replace(/\u0002/g, '</span>');
+  s = s.replace(/\u0003/g, '<span class="str">').replace(/\u0004/g, '</span>');
+  s = s.replace(/\u0005/g, '<span class="kw">').replace(/\u0006/g, '</span>');
+  s = s.replace(/\u0007/g, '<span class="op">').replace(/\u0008/g, '</span>');
+  return s;
+}
+
+// ------------------ state ------------------
+const state = {
+  customers: [],
+  customerId: null,
+  sessionId: null,
+  busy: false,
+  startedAt: 0,
+  timer: null,
+};
+
+async function init() {
+  const r = await fetch('/api/customers');
+  state.customers = await r.json();
+  const sel = $('#customer');
+  sel.innerHTML = state.customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  sel.addEventListener('change', () => { state.customerId = sel.value; onCustomerChange(); });
+  state.customerId = state.customers[0]?.id;
+  onCustomerChange();
+
+  document.querySelectorAll('.pill[data-q]').forEach(p => {
+    p.addEventListener('click', () => run(p.dataset.q));
+  });
+  $('#reset').addEventListener('click', reset);
+  $('#send').addEventListener('click', () => {
+    const q = $('#q').value.trim();
+    if (q) run(q);
+  });
+  $('#q').addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const q = $('#q').value.trim();
+      if (q) run(q);
+    }
+  });
+
+  $('#eye').addEventListener('click', () => {
+    const inp = $('#endpoint');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  });
+
+  document.querySelectorAll('.side-tab').forEach(t => {
+    t.addEventListener('click', () => switchTab(t.dataset.tab));
+  });
+
+  emptyTelemetry();
+
+  // hover citations
+  document.addEventListener('mouseover', e => {
+    const c = e.target.closest('cite[data-k]');
+    if (!c) return;
+    const pop = $('#citePop');
+    pop.textContent = `Postgres row · ${c.dataset.k}`;
+    pop.classList.add('on');
+    const r = c.getBoundingClientRect();
+    pop.style.left = Math.min(window.innerWidth - 340, r.left) + 'px';
+    pop.style.top  = (r.bottom + 6) + 'px';
+  });
+  document.addEventListener('mouseout', e => {
+    if (e.target.closest('cite[data-k]')) $('#citePop').classList.remove('on');
+  });
+}
+
+function onCustomerChange() {
+  const c = state.customers.find(x => x.id === state.customerId);
+  const chat = $('#chat');
+  chat.innerHTML = '';
+  const m = el('div', 'msg agent');
+  const firstName = c ? c.name : 'there';
+  m.innerHTML = `<span class="label">Manager</span>
+    Hey there. I coordinate our roasting and flavor teams to find you the right beans. What kind of coffee are you after, ${esc(firstName)}?`;
+  chat.appendChild(m);
+  $('#avatar').textContent = firstName.charAt(0).toUpperCase();
+  state.sessionId = null;
+  const sid = $('#sid'); if (sid) sid.textContent = '—';
+  emptyTelemetry();
+  setTeleCount(0);
+}
+
+function emptyTelemetry() {
+  $('#panels').innerHTML = `
+    <div class="empty">
+      <div class="title">No live events yet</div>
+      <div class="hint">Ask something to see the agents work</div>
+    </div>`;
+}
+
+function setTeleCount(n) {
+  const el = $('#teleCount'); if (el) el.textContent = String(n);
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.side-tab').forEach(t => t.classList.toggle('on', t.dataset.tab === name));
+  $('#archView').style.display = name === 'arch' ? '' : 'none';
+  $('#teleView').style.display = name === 'tele' ? '' : 'none';
+  $('#sideTitleText').textContent = name === 'arch' ? 'System Architecture' : 'Agent Telemetry';
+  $('#sideSubText').textContent  = name === 'arch' ? 'Multi-Agent Orchestration' : 'Live trace of agent activity';
+}
+
+function reset() {
+  state.sessionId = null;
+  const sid = $('#sid'); if (sid) sid.textContent = '—';
+  const el = $('#elapsed'); if (el) el.textContent = '0ms';
+  onCustomerChange();
+  switchTab('arch');
+}
+
+// ------------------ main run ------------------
+async function run(query) {
+  if (state.busy) return;
+  state.busy = true;
+  document.querySelectorAll('.pill').forEach(p => p.disabled = true);
+  $('#send').disabled = true;
+
+  // add user msg
+  const chat = $('#chat');
+  const uMsg = el('div', 'msg user', esc(query));
+  chat.appendChild(uMsg);
+  chat.scrollTop = chat.scrollHeight;
+  $('#q').value = '';
+
+  // thinking indicator
+  const think = el('div', 'thinking');
+  think.innerHTML = `<div class="bars"><span></span><span></span><span></span><span></span></div><span>thinking…</span>`;
+  chat.appendChild(think);
+  chat.scrollTop = chat.scrollHeight;
+
+  $('#panels').innerHTML = '';
+  setTeleCount(0);
+  switchTab('tele');
+  state.startedAt = performance.now();
+  clearInterval(state.timer);
+  state.timer = setInterval(() => {
+    const el = $('#elapsed'); if (el) el.textContent = Math.round(performance.now() - state.startedAt) + 'ms';
+  }, 60);
+
+  let data;
+  try {
+    const res = await fetch('/api/query', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ customer_id: state.customerId, query, session_id: state.sessionId }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    data = await res.json();
+  } catch (err) {
+    think.remove();
+    const e = el('div', 'msg agent');
+    e.innerHTML = `<span class="label" style="color:var(--amber-chat)">Error</span>${esc(err.message)}. Is the API running?`;
+    chat.appendChild(e);
+    clearInterval(state.timer);
+    state.busy = false;
+    document.querySelectorAll('.pill').forEach(p => p.disabled = false);
+    $('#send').disabled = false;
+    return;
+  }
+
+  state.sessionId = data.session_id;
+  const sidEl = $('#sid'); if (sidEl) sidEl.textContent = data.session_id.slice(0, 8);
+
+  // replay events with small staged delays for visual effect
+  await playEvents(data.events, think);
+
+  clearInterval(state.timer);
+  state.busy = false;
+  document.querySelectorAll('.pill').forEach(p => p.disabled = false);
+  $('#send').disabled = false;
+}
+
+// ------------------ event renderer ------------------
+let currentPlan = null;
+
+async function playEvents(events, think) {
+  currentPlan = null;
+  let responseRendered = false;
+  let n = 0;
+
+  for (const ev of events) {
+    if (ev.type === 'plan') {
+      renderPlan(ev);
+      n++; setTeleCount(n);
+      await sleep(280);
+    } else if (ev.type === 'step') {
+      updateStep(ev);
+      await sleep(40);
+    } else if (ev.type === 'panel') {
+      renderPanel(ev);
+      n++; setTeleCount(n);
+      await sleep(420);
+    } else if (ev.type === 'response') {
+      think.remove();
+      await renderResponse(ev);
+      responseRendered = true;
+    }
+  }
+  if (!responseRendered) think.remove();
+}
+
+function renderPlan(ev) {
+  const p = el('div', 'panel');
+  p.innerHTML = `
+    <div class="panel-head">
+      <span class="tag">PLAN</span>
+      <span class="title">${esc(ev.title)}</span>
+      <span class="dur">~${ev.duration_ms}ms</span>
+    </div>
+    <div class="panel-body">
+      <div class="plan">
+        <ol>
+          ${ev.steps.map((s, i) => `
+            <li>
+              <span class="n">${String(i+1).padStart(2,'0')}</span>
+              <span class="t">${esc(s)}</span>
+              <span class="s">queued</span>
+            </li>`).join('')}
+        </ol>
+      </div>
+    </div>`;
+  $('#panels').appendChild(p);
+  $('#panels').scrollTop = $('#panels').scrollHeight;
+  currentPlan = p;
+}
+
+function updateStep(ev) {
+  if (!currentPlan) return;
+  const li = currentPlan.querySelectorAll('.plan li')[ev.index];
+  if (!li) return;
+  li.classList.remove('active', 'done');
+  if (ev.state === 'active') { li.classList.add('active'); li.querySelector('.s').textContent = 'running'; }
+  else if (ev.state === 'done') { li.classList.add('done'); li.querySelector('.s').textContent = 'ok'; }
+}
+
+function renderPanel(ev) {
+  const p = el('div', 'panel');
+  const tagCls = ev.tag_class && ev.tag_class !== 'cyan' ? ` ${ev.tag_class}` : '';
+  p.innerHTML = `
+    <div class="panel-head">
+      <span class="tag${tagCls}">${esc(ev.tag)}</span>
+      <span class="title">${esc(ev.title)}</span>
+      <span class="dur">${ev.duration_ms ? ev.duration_ms + 'ms' : ''}</span>
+    </div>
+    <div class="panel-body"></div>`;
+  const body = p.querySelector('.panel-body');
+
+  if (ev.sql) {
+    const s = el('div', 'sql');
+    s.innerHTML = kwify(ev.sql);
+    body.appendChild(s);
+  }
+  if (ev.columns && ev.columns.length) {
+    const cols = ev.columns.length;
+    const gridCols = `repeat(${cols}, minmax(0, 1fr))`;
+    const rwrap = el('div', 'rows');
+    const head = el('div', 'head');
+    head.style.gridTemplateColumns = gridCols;
+    head.innerHTML = ev.columns.map(c => `<span>${esc(c)}</span>`).join('');
+    rwrap.appendChild(head);
+    (ev.rows || []).forEach((row, i) => {
+      setTimeout(() => {
+        const r = el('div', 'row');
+        r.style.gridTemplateColumns = gridCols;
+        r.innerHTML = row.map(v => `<span>${esc(v)}</span>`).join('');
+        rwrap.appendChild(r);
+        $('#panels').scrollTop = $('#panels').scrollHeight;
+      }, 100 + i * 80);
+    });
+    if (ev.meta) {
+      setTimeout(() => {
+        const m = el('div', 'meta', ev.meta);  // meta can contain trusted <b> from backend
+        rwrap.appendChild(m);
+        $('#panels').scrollTop = $('#panels').scrollHeight;
+      }, 100 + (ev.rows || []).length * 80 + 100);
+    }
+    body.appendChild(rwrap);
+  } else if (ev.meta) {
+    const mw = el('div', 'rows');
+    mw.appendChild(el('div', 'meta', ev.meta));
+    body.appendChild(mw);
+  }
+
+  $('#panels').appendChild(p);
+  $('#panels').scrollTop = $('#panels').scrollHeight;
+}
+
+async function renderResponse(ev) {
+  const chat = $('#chat');
+  const m = el('div', 'msg agent');
+  m.innerHTML = `<span class="label">Coordinator · grounded response</span><span class="body"></span>`;
+  chat.appendChild(m);
+  const body = m.querySelector('.body');
+
+  // type-stream, chunk by word for speed, preserving HTML tags
+  const tokens = ev.text.split(/(\s+|<[^>]+>)/).filter(Boolean);
+  for (const t of tokens) {
+    body.innerHTML += t;
+    chat.scrollTop = chat.scrollHeight;
+    if (!t.startsWith('<') && t.trim()) await sleep(12);
+  }
+
+  // confidence bar
+  if (ev.confidence !== undefined) {
+    const c = el('div', 'confidence');
+    c.innerHTML = `
+      <span>confidence</span>
+      <div class="bar" style="--w:${ev.confidence}%"></div>
+      <span style="font-weight:500;color:var(--ink)">${ev.confidence}%</span>`;
+    m.appendChild(c);
+    requestAnimationFrame(() => c.querySelector('.bar').classList.add('fill'));
+  }
+}
+
+init();
+</script>
+</body>
+</html>
