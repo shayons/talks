@@ -1,184 +1,166 @@
-<svg viewBox="0 0 680 680" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Architecture: User request enters via FastAPI, Claude Haiku parses intent, PostgreSQL holds memory and operational state, the Agents box orchestrates three agents read-write against Postgres, Claude Opus synthesizes the grounded reply.">
+<svg viewBox="0 0 1040 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Architecture: User request enters via FastAPI, Claude Haiku parses intent, PostgreSQL holds memory and operational state including audit and workflow, the dashed Coordinator column dispatches to Flavor Profiler, Roast Master, and Guardrails, Claude Opus synthesizes a grounded reply returned to the customer.">
   <defs>
-    <linearGradient id="pgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f0f14"/>
-      <stop offset="100%" stop-color="#1a1a22"/>
+    <!-- Amber LLM pill fill: dark, warm, elegant. -->
+    <linearGradient id="llmFill" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#1c1308"/>
+      <stop offset="100%" stop-color="#0b0806"/>
     </linearGradient>
-    <linearGradient id="llmGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#1a1a22"/>
-      <stop offset="100%" stop-color="#0a0a0e"/>
+    <!-- Postgres panel fill: near-black with the faintest blue lift. -->
+    <linearGradient id="pgFill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#0a1018"/>
+      <stop offset="100%" stop-color="#060a10"/>
     </linearGradient>
-    <filter id="softGlow" x="-10%" y="-10%" width="120%" height="120%">
-      <feGaussianBlur stdDeviation="2.5" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-    <marker id="arrow-grey" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <!-- Arrow marker (muted grey) -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M2 1 L8 5 L2 9" fill="none" stroke="#8a8a8a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
-    <marker id="arrow-grey-start" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+    <marker id="arrow-start" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M8 1 L2 5 L8 9" fill="none" stroke="#8a8a8a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
 
-  <rect width="680" height="680" fill="#000000"/>
+  <rect width="1040" height="620" fill="#000000"/>
 
-  <!-- =========================================================
-       1. USER REQUEST pill (top center)
-       ========================================================= -->
+  <!-- ================================================================
+       1. USER REQUEST pill (top-left of spine)
+       ================================================================ -->
   <g>
-    <rect x="270" y="20" width="140" height="32" rx="16" fill="#0a0a0e" stroke="#2a2a2a" stroke-width="1"/>
-    <text x="340" y="40" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" font-size="14" text-anchor="middle">User request</text>
+    <rect x="230" y="20" width="160" height="36" rx="18" fill="#0a0a0e" stroke="#2a2a2a" stroke-width="1"/>
+    <text x="310" y="42" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" font-size="14" text-anchor="middle">User request</text>
   </g>
-  <text x="420" y="40" fill="#8a8a8a" font-family="Inter, Helvetica, Arial, sans-serif" font-size="12">via FastAPI</text>
+  <text x="402" y="42" fill="#8a8a8a" font-family="Inter, Helvetica, Arial, sans-serif" font-size="12">via FastAPI</text>
 
-  <!-- Arrow: User → Haiku -->
-  <line x1="340" y1="52" x2="340" y2="88" stroke="#8a8a8a" stroke-width="1.5" marker-end="url(#arrow-grey)"/>
+  <!-- User → Haiku -->
+  <line x1="310" y1="56" x2="310" y2="86" stroke="#8a8a8a" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-  <!-- =========================================================
-       2. HAIKU pill (row 2, centered; column spans 40..400 = 360w)
-       ========================================================= -->
+  <!-- ================================================================
+       2. HAIKU pill  (spine col, x=130..490 = 360w)
+       ================================================================ -->
   <g>
-    <rect x="40" y="90" width="360" height="62" rx="10" fill="url(#llmGrad)" stroke="#f0b877" stroke-width="2"/>
-    <text x="220" y="116" fill="#f0b877" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="16" text-anchor="middle">Claude Haiku 4.5</text>
-    <text x="220" y="136" fill="#c9b89a" font-family="Inter, Helvetica, Arial, sans-serif" font-size="12" text-anchor="middle">intent parse · tool-use · referent resolution</text>
+    <rect x="130" y="88" width="360" height="66" rx="12" fill="url(#llmFill)" stroke="#f0b877" stroke-width="1.5"/>
+    <text x="150" y="116" fill="#f0b877" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="15" letter-spacing="1.6">CLAUDE HAIKU 4.5</text>
+    <text x="150" y="138" fill="#c9b89a" font-family="Inter, Helvetica, Arial, sans-serif" font-size="12">intent parse · tool-use · referent resolution</text>
   </g>
-  <text x="420" y="112" fill="#c9b89a" font-family="Menlo, Consolas, monospace" font-size="11">reads agent_messages</text>
-  <text x="420" y="132" fill="#c9b89a" font-family="Menlo, Consolas, monospace" font-size="11">returns structured JSON</text>
+  <!-- Side annotation (breathes to the right) -->
+  <text x="510" y="116" fill="#c9b89a" font-family="Menlo, Consolas, monospace" font-size="12">reads agent_messages</text>
+  <text x="510" y="136" fill="#c9b89a" font-family="Menlo, Consolas, monospace" font-size="12">returns structured JSON</text>
 
-  <!-- Arrow: Haiku → Postgres, label "structured intent" -->
-  <line x1="220" y1="152" x2="220" y2="188" stroke="#8a8a8a" stroke-width="1.5" marker-end="url(#arrow-grey)"/>
-  <text x="234" y="175" fill="#c9b89a" font-family="Inter, Helvetica, Arial, sans-serif" font-style="italic" font-size="11">structured intent</text>
+  <!-- Haiku → Postgres -->
+  <line x1="310" y1="154" x2="310" y2="188" stroke="#8a8a8a" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-  <!-- =========================================================
-       3. POSTGRES box (row 3, same x-extent as Haiku)
-          Two sub-groups: Memory (top) and Operational state (bottom).
-          Three cells per row, symmetric.
-       ========================================================= -->
+  <!-- ================================================================
+       3. POSTGRES panel  x=130..690 (560w), y=190..432
+       ================================================================ -->
   <g>
-    <rect x="40" y="190" width="400" height="280" rx="14" fill="url(#pgGrad)" stroke="#5ea5d9" stroke-width="2" filter="url(#softGlow)"/>
-    <text x="240" y="218" fill="#5ea5d9" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="16" text-anchor="middle" letter-spacing="1">PostgreSQL</text>
-    <line x1="120" y1="228" x2="360" y2="228" stroke="#5ea5d9" stroke-width="0.6" opacity="0.35"/>
+    <rect x="130" y="190" width="560" height="242" rx="14" fill="url(#pgFill)" stroke="#5ea5d9" stroke-width="1.6"/>
+    <text x="410" y="224" fill="#5ea5d9" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="18" text-anchor="middle" letter-spacing="6">POSTGRESQL</text>
 
-    <!-- ---- Memory row label ---- -->
-    <text x="58" y="256" fill="#5ea5d9" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" font-size="11" letter-spacing="1.5">MEMORY</text>
-    <line x1="110" y1="252" x2="420" y2="252" stroke="#5ea5d9" stroke-width="0.4" opacity="0.25"/>
+    <!-- Row 1: Memory (three items, dot-prefixed, no cell boxes — elegant) -->
+    <!-- memory : agent_messages · orders -->
+    <circle cx="158" cy="268" r="3" fill="#f0b877"/>
+    <text x="170" y="272" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">memory</text>
+    <text x="170" y="290" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="10.5">agent_messages · orders</text>
 
-    <!-- Memory cell 1: Episodic -->
-    <g>
-      <rect x="58" y="264" width="110" height="56" rx="6" fill="#0a0a0e" stroke="#2a2a2a" stroke-width="1"/>
-      <text x="113" y="284" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="12" text-anchor="middle">Episodic</text>
-      <text x="113" y="302" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="9.5" text-anchor="middle">agent_messages</text>
-    </g>
-    <!-- Memory cell 2: Semantic -->
-    <g>
-      <rect x="185" y="264" width="110" height="56" rx="6" fill="#0a0a0e" stroke="#2a2a2a" stroke-width="1"/>
-      <text x="240" y="284" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="12" text-anchor="middle">Semantic</text>
-      <text x="240" y="302" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="9.5" text-anchor="middle">pgvector HNSW</text>
-    </g>
-    <!-- Memory cell 3: Procedural -->
-    <g>
-      <rect x="312" y="264" width="110" height="56" rx="6" fill="#0a0a0e" stroke="#2a2a2a" stroke-width="1"/>
-      <text x="367" y="284" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="12" text-anchor="middle">Procedural</text>
-      <text x="367" y="302" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="9.5" text-anchor="middle">cohort JOIN</text>
-    </g>
+    <!-- tools : description_emb · input_schema -->
+    <circle cx="318" cy="268" r="3" fill="#f0b877"/>
+    <text x="330" y="272" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">tools</text>
+    <text x="330" y="290" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="10.5">description_emb · input_schema</text>
 
-    <!-- ---- Operational state row label ---- -->
-    <text x="58" y="348" fill="#5ea5d9" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" font-size="11" letter-spacing="1.5">OPERATIONAL STATE</text>
-    <line x1="206" y1="344" x2="420" y2="344" stroke="#5ea5d9" stroke-width="0.4" opacity="0.25"/>
+    <!-- audit : tool_audit · every invocation -->
+    <circle cx="488" cy="268" r="3" fill="#f0b877"/>
+    <text x="500" y="272" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">audit</text>
+    <text x="500" y="290" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="10.5">tool_audit · every invocation</text>
 
-    <!-- Op cell 1: Tools -->
-    <g>
-      <rect x="58" y="356" width="110" height="56" rx="6" fill="#0a0a0e" stroke="#2a2a2a" stroke-width="1"/>
-      <text x="113" y="376" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="12" text-anchor="middle">Tools</text>
-      <text x="113" y="394" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="9.5" text-anchor="middle">description_emb</text>
-    </g>
-    <!-- Op cell 2: tool_audit -->
-    <g>
-      <rect x="185" y="356" width="110" height="56" rx="6" fill="#0a0a0e" stroke="#2a2a2a" stroke-width="1"/>
-      <text x="240" y="376" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="12" text-anchor="middle">tool_audit</text>
-      <text x="240" y="394" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="9.5" text-anchor="middle">SQL + LLM calls</text>
-    </g>
-    <!-- Op cell 3: Workflow -->
-    <g>
-      <rect x="312" y="356" width="110" height="56" rx="6" fill="#0a0a0e" stroke="#2a2a2a" stroke-width="1"/>
-      <text x="367" y="376" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="12" text-anchor="middle">Workflow</text>
-      <text x="367" y="394" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="9.5" text-anchor="middle">state + approvals</text>
-    </g>
+    <!-- Row 2 -->
+    <!-- workflow state : agent_sessions.workflow_state -->
+    <circle cx="158" cy="332" r="3" fill="#5ea5d9"/>
+    <text x="170" y="336" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">workflow state</text>
+    <text x="170" y="354" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="10.5">agent_sessions.workflow_state</text>
 
-    <!-- Tagline centered under operational state row -->
-    <text x="240" y="448" fill="#c9b89a" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="13" text-anchor="middle">one schema · one optimizer · one transaction</text>
+    <!-- approvals : pending → approved → executed -->
+    <circle cx="318" cy="332" r="3" fill="#5ea5d9"/>
+    <text x="330" y="336" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">approvals</text>
+    <text x="330" y="354" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="10.5">pending → approved → executed</text>
+
+    <!-- pgvector · HNSW : cosine similarity · 384-dim -->
+    <circle cx="488" cy="332" r="3" fill="#5ea5d9"/>
+    <text x="500" y="336" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">pgvector · HNSW</text>
+    <text x="500" y="354" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="10.5">cosine similarity · 384-dim</text>
+
+    <!-- Subtle guardrails caption under audit + approvals column -->
+    <text x="500" y="378" fill="#c9b89a" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="11">← fact-check + approvals</text>
+
+    <!-- Tagline inside Postgres box -->
+    <text x="410" y="410" fill="#c9b89a" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="14" text-anchor="middle">one schema · one optimizer · one transaction</text>
   </g>
 
-  <!-- =========================================================
-       4. AGENTS box (right side, peer of Postgres, dashed)
-          Starts at x=470, width=170, same vertical range as Postgres
-       ========================================================= -->
+  <!-- ================================================================
+       4. AGENTS column  (dashed amber, lives outside Postgres)
+          x=740..1000, y=190..432
+          Hierarchy: Coordinator (orchestrator) dispatches to 2 specialists.
+          Guardrails is NOT an agent — shown below as a separate band.
+       ================================================================ -->
   <g>
-    <rect x="470" y="190" width="170" height="280" rx="14" fill="#0a0a0e" stroke="#f0b877" stroke-width="2" stroke-dasharray="5 4"/>
-    <text x="555" y="218" fill="#f0b877" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="16" text-anchor="middle" letter-spacing="1">Agents</text>
-    <line x1="500" y1="228" x2="610" y2="228" stroke="#f0b877" stroke-width="0.6" opacity="0.35"/>
+    <rect x="740" y="190" width="260" height="242" rx="14" fill="#07070a" stroke="#f0b877" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="870" y="222" fill="#f0b877" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="13" text-anchor="middle" letter-spacing="4">AGENTS</text>
 
-    <!-- Orchestrator label -->
-    <text x="488" y="256" fill="#f0b877" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" font-size="10" letter-spacing="1.5">ORCHESTRATOR</text>
-    <!-- Coordinator card -->
-    <g>
-      <rect x="488" y="264" width="134" height="56" rx="6" fill="#1a1a22" stroke="#f0b877" stroke-width="1"/>
-      <text x="555" y="284" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="13" text-anchor="middle">Coordinator</text>
-      <text x="555" y="302" fill="#8a8a8a" font-family="Inter, Helvetica, Arial, sans-serif" font-size="10" text-anchor="middle">entry point · router</text>
-    </g>
+    <!-- Coordinator (orchestrator) as a highlighted tile -->
+    <rect x="760" y="238" width="220" height="44" rx="8" fill="#1a1208" stroke="#f0b877" stroke-width="1"/>
+    <text x="870" y="256" fill="#f0b877" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="13" text-anchor="middle">Coordinator</text>
+    <text x="870" y="272" fill="#8a8a8a" font-family="Inter, Helvetica, Arial, sans-serif" font-size="10.5" text-anchor="middle">orchestrator · router</text>
 
-    <!-- dispatches arrow + label -->
-    <text x="555" y="340" fill="#c9b89a" font-family="Inter, Helvetica, Arial, sans-serif" font-style="italic" font-size="11" text-anchor="middle">dispatches ↓</text>
+    <!-- dispatches label -->
+    <text x="870" y="296" fill="#c9b89a" font-family="Inter, Helvetica, Arial, sans-serif" font-style="italic" font-size="11" text-anchor="middle">dispatches ↓</text>
 
     <!-- Specialists label -->
-    <text x="488" y="356" fill="#f0b877" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" font-size="10" letter-spacing="1.5">SPECIALISTS</text>
+    <text x="760" y="316" fill="#c9b89a" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" font-size="10" letter-spacing="2">SPECIALISTS</text>
+    <line x1="838" y1="313" x2="980" y2="313" stroke="#c9b89a" stroke-width="0.5" opacity="0.2"/>
 
-    <!-- Flavor Profiler -->
-    <g>
-      <rect x="488" y="364" width="134" height="44" rx="6" fill="#0f0f14" stroke="#2a2a2a" stroke-width="1"/>
-      <text x="555" y="382" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="12" text-anchor="middle">Flavor Profiler</text>
-      <text x="555" y="398" fill="#8a8a8a" font-family="Inter, Helvetica, Arial, sans-serif" font-size="10" text-anchor="middle">vector similarity</text>
-    </g>
-    <!-- Roast Master -->
-    <g>
-      <rect x="488" y="414" width="134" height="44" rx="6" fill="#0f0f14" stroke="#2a2a2a" stroke-width="1"/>
-      <text x="555" y="432" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="12" text-anchor="middle">Roast Master</text>
-      <text x="555" y="448" fill="#8a8a8a" font-family="Inter, Helvetica, Arial, sans-serif" font-size="10" text-anchor="middle">filter + inventory</text>
-    </g>
+    <!-- Branch trunk under specialists header -->
+    <line x1="770" y1="322" x2="770" y2="372" stroke="#c97f2a" stroke-width="1" opacity="0.55"/>
+
+    <!-- Specialist 1: Flavor Profiler -->
+    <line x1="770" y1="336" x2="788" y2="336" stroke="#c97f2a" stroke-width="1" opacity="0.55"/>
+    <polygon points="786,332 794,336 786,340" fill="#c97f2a" opacity="0.8"/>
+    <text x="802" y="333" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" font-size="13">Flavor Profiler</text>
+    <text x="802" y="350" fill="#8a8a8a" font-family="Inter, Helvetica, Arial, sans-serif" font-size="11">pgvector search</text>
+
+    <!-- Specialist 2: Roast Master -->
+    <line x1="770" y1="370" x2="788" y2="370" stroke="#c97f2a" stroke-width="1" opacity="0.55"/>
+    <polygon points="786,366 794,370 786,374" fill="#c97f2a" opacity="0.8"/>
+    <text x="802" y="367" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" font-size="13">Roast Master</text>
+    <text x="802" y="384" fill="#8a8a8a" font-family="Inter, Helvetica, Arial, sans-serif" font-size="11">filter + inventory</text>
+
+    <!-- Divider — visually separate guardrails from agents -->
+    <line x1="760" y1="402" x2="980" y2="402" stroke="#c9b89a" stroke-width="0.5" opacity="0.18" stroke-dasharray="2 3"/>
+
+    <!-- Guardrails band — explicitly NOT an agent, it's a cross-cutting layer -->
+    <text x="870" y="420" fill="#c9b89a" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="11.5" text-anchor="middle">guardrails wrap every step</text>
   </g>
 
-  <!-- Bidirectional arrow: Postgres ↔ Agents, label "read + write" -->
-  <line x1="442" y1="330" x2="468" y2="330" stroke="#8a8a8a" stroke-width="1.5" marker-start="url(#arrow-grey-start)" marker-end="url(#arrow-grey)"/>
-  <text x="455" y="320" fill="#c9b89a" font-family="Inter, Helvetica, Arial, sans-serif" font-style="italic" font-size="10" text-anchor="middle">read + write</text>
+  <!-- Bidirectional bridge: Postgres ↔ Coordinator column -->
+  <line x1="692" y1="311" x2="738" y2="311" stroke="#8a8a8a" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow)"/>
+  <text x="715" y="302" fill="#c9b89a" font-family="Inter, Helvetica, Arial, sans-serif" font-style="italic" font-size="11" text-anchor="middle">read + write</text>
 
-  <!-- =========================================================
-       5. Arrow: Postgres → Opus, label "grounded picks"
-       ========================================================= -->
-  <line x1="220" y1="472" x2="220" y2="510" stroke="#8a8a8a" stroke-width="1.5" marker-end="url(#arrow-grey)"/>
-  <text x="234" y="496" fill="#c9b89a" font-family="Inter, Helvetica, Arial, sans-serif" font-style="italic" font-size="11">grounded picks</text>
+  <!-- ================================================================
+       5. Postgres → Opus  (spine continues)
+       ================================================================ -->
+  <line x1="310" y1="434" x2="310" y2="466" stroke="#8a8a8a" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-  <!-- =========================================================
-       6. OPUS pill (row 5, same x-extent as Haiku)
-       ========================================================= -->
+  <!-- ================================================================
+       6. OPUS pill
+       ================================================================ -->
   <g>
-    <rect x="40" y="512" width="360" height="62" rx="10" fill="url(#llmGrad)" stroke="#f0b877" stroke-width="2"/>
-    <text x="220" y="538" fill="#f0b877" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="16" text-anchor="middle">Claude Opus 4.7</text>
-    <text x="220" y="558" fill="#c9b89a" font-family="Inter, Helvetica, Arial, sans-serif" font-size="12" text-anchor="middle">response synthesis from grounded picks</text>
+    <rect x="130" y="468" width="360" height="66" rx="12" fill="url(#llmFill)" stroke="#f0b877" stroke-width="1.5"/>
+    <text x="150" y="496" fill="#f0b877" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="15" letter-spacing="1.6">CLAUDE OPUS 4.7</text>
+    <text x="150" y="518" fill="#c9b89a" font-family="Inter, Helvetica, Arial, sans-serif" font-size="12">response synthesis from grounded picks</text>
   </g>
-  <text x="420" y="534" fill="#c9b89a" font-family="Menlo, Consolas, monospace" font-size="11">cannot reference</text>
-  <text x="420" y="554" fill="#c9b89a" font-family="Menlo, Consolas, monospace" font-size="11">anything unseen</text>
+  <!-- Side annotation -->
+  <text x="510" y="496" fill="#c9b89a" font-family="Menlo, Consolas, monospace" font-size="12">grounded picks only</text>
+  <text x="510" y="516" fill="#c9b89a" font-family="Menlo, Consolas, monospace" font-size="12">→ customer-facing reply</text>
 
-  <!-- Arrow: Opus → customer-facing reply -->
-  <line x1="220" y1="574" x2="220" y2="612" stroke="#8a8a8a" stroke-width="1.5" marker-end="url(#arrow-grey)"/>
-
-  <!-- =========================================================
-       7. Customer-facing reply label (centered with Opus)
-       ========================================================= -->
-  <text x="220" y="632" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14" text-anchor="middle">Customer-facing reply</text>
-
-  <!-- Tagline at very bottom (bridges to the talk's tagline) -->
-  <text x="340" y="666" fill="#c9b89a" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="13" text-anchor="middle">Two Claude models · Three agents · One Postgres</text>
+  <!-- ================================================================
+       7. Bottom tagline (bookend)
+       ================================================================ -->
+  <text x="520" y="582" fill="#c9b89a" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="16" text-anchor="middle">Two Claude models · Three agents · One Postgres</text>
 </svg>

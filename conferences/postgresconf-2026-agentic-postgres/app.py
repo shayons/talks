@@ -46,8 +46,23 @@ def health() -> dict:
 
 @app.get("/api/customers")
 def list_customers() -> list[dict]:
+    # Order matches the README demo scenarios: Marco (fruity pour-over) →
+    # Ana (dark espresso) → Yuki (Tokyo specialty buyer). Unknown users fall
+    # through alphabetically so new seed data still lands somewhere sane.
     with conn() as c, c.cursor() as cur:
-        cur.execute("SELECT id, name, preferences_summary FROM customers ORDER BY name")
+        cur.execute(
+            """
+            SELECT id, name, preferences_summary
+              FROM customers
+             ORDER BY CASE id
+                        WHEN 'u_marco' THEN 1
+                        WHEN 'u_ana'   THEN 2
+                        WHEN 'u_yuki'  THEN 3
+                        ELSE 99
+                      END,
+                      name
+            """
+        )
         return [
             {"id": r[0], "name": r[1], "summary": r[2]}
             for r in cur.fetchall()
