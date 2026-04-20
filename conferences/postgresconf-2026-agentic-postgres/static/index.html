@@ -1546,7 +1546,7 @@
         } catch (err) {
           think.remove();
           const e = el("div", "msg agent");
-          e.innerHTML = `<span class="label" style="color:var(--amber-chat)">Error</span>${esc(err.message)}. Is the API running?`;
+          e.innerHTML = `<span class="label" style="color:var(--err)">Error</span>${esc(err.message)}. Is the API running?`;
           chat.appendChild(e);
           clearInterval(state.timer);
           state.busy = false;

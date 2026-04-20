@@ -8,7 +8,7 @@ Most "production agent" stacks glue together Pinecone, Redis, DynamoDB, Postgres
 
 The LLMs live at the edges — Haiku parses intent, Opus synthesizes the reply. **Everything in between is SQL.**
 
-**No agent framework.** Eight dependencies total: FastAPI, psycopg, pgvector, fastembed, boto3, pydantic, python-dotenv, uvicorn. No LangChain, no LangGraph, no Strands, no AgentCore, no Temporal. The claim is that when Postgres does memory, state, audit, and approvals, the orchestration layer you'd otherwise import is ~700 lines of Python you can read top-to-bottom — which is exactly what [`agents.py`](agents.py) is. LangGraph's `PostgresSaver` is a great library; it's also ~1,000 lines wrapping a `jsonb` column. Here the `jsonb` column is right there.
+**No agent framework.** Eight dependencies total: FastAPI, psycopg, pgvector, fastembed, boto3, pydantic, python-dotenv, uvicorn. No LangChain, no LangGraph, no Strands, no AgentCore, no Temporal. The claim is that when Postgres does memory, state, audit, and approvals, the orchestration layer you'd otherwise import is ~2,200 lines of Python you can read top-to-bottom — [`agents.py`](agents.py) is the bulk of it. LangGraph's `PostgresSaver` is a great library; it's also a wrapper around a `jsonb` column. Here the `jsonb` column is right there.
 
 ---
 
@@ -168,7 +168,7 @@ SELECT b.name, b.roast_level, b.in_stock,
  ORDER BY similarity DESC LIMIT 5;
 ```
 
-> _"Six pillars of a production agent — two Claude models, memory, tool registry, MCP, state, guardrails — all anchored on the Postgres you already have. The data plane is ~700 lines of Python plus a `schema.sql`. Postgres is enough."_
+> _"Six pillars of a production agent — two Claude models, memory, tool registry, MCP, state, guardrails — all anchored on the Postgres you already have. The data plane is ~2,200 lines of Python plus a 116-line `schema.sql`. Postgres is enough."_
 
 ---
 
