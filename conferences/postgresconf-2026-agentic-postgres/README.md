@@ -12,6 +12,34 @@ The LLMs live at the edges — Haiku parses intent, Opus synthesizes the reply. 
 
 ---
 
+## Table of contents
+
+**[Stage guide](#stage-guide--everything-you-need-while-presenting)** — everything you need while presenting
+
+- [Setup (before you go live)](#setup-before-you-go-live)
+- [The three customers](#the-three-customers)
+- [Opener (30 sec)](#opener-30-sec)
+- [Scenario 1 · Marco · Three kinds of memory in one plan](#scenario-1--marco--three-kinds-of-memory-in-one-plan-4-min)
+- [Scenario 2 · Ana · Memory continuity + approvals](#scenario-2--ana--memory-continuity--approvals-4-min)
+- [Scenario 3 · Yuki · Catalog miss + MCP](#scenario-3--yuki--catalog-miss--mcp-3-min)
+- [The closer (30 sec)](#the-closer-30-sec)
+- [Panel cheat sheet](#panel-cheat-sheet)
+- [Audience curveballs](#audience-curveballs)
+- [Key takeaways](#key-takeaways)
+
+**[Reference](#reference)** — appendix; safe to skip while presenting
+
+- [Quick start](#quick-start)
+- [Using your own Postgres](#using-your-own-postgres)
+- [Architecture](#architecture)
+- [Schema at a glance](#schema-at-a-glance)
+- [Customizing](#customizing)
+- [When to re-seed](#when-to-re-seed)
+- [Files](#files)
+- [Slide deck](#slide-deck)
+
+---
+
 # Stage guide — everything you need while presenting
 
 ## Setup (before you go live)
@@ -215,11 +243,58 @@ Prompts that tend to come up from the crowd. Rehearse once.
 
 ---
 
----
-
 # Reference
 
 Everything below is appendix — safe to skip while presenting.
+
+## Quick start
+
+Prereqs: Python 3.10+ · Postgres with pgvector ≥ 0.5 · AWS creds with `bedrock:InvokeModel` + `bedrock:Converse` on Claude global inference profiles in `us-east-1`.
+
+```bash
+# macOS
+brew install postgresql@17 pgvector
+brew services start postgresql@17
+
+# DB
+psql -d postgres -c "CREATE ROLE coffee LOGIN PASSWORD 'coffee';"
+psql -d postgres -c "CREATE DATABASE coffee OWNER coffee;"
+PGPASSWORD=coffee psql -h 127.0.0.1 -U coffee -d coffee -f schema.sql
+
+# AWS — any standard boto3 resolution (env vars, ~/.aws/credentials, SSO, Isengard)
+export AWS_REGION=us-east-1
+
+# App
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+python seed.py          # first run downloads ~130MB embedding model
+python app.py           # → http://localhost:8000
+
+# Optional — MCP server
+python mcp_server.py    # stdio; wire to any MCP client
+```
+
+First query is ~5–10s (Haiku + Opus both on the critical path). Subsequent queries are faster; watch the per-call latency in each `LLM · …` panel.
+
+Optional model overrides in `.env`:
+
+```bash
+BEDROCK_HAIKU_MODEL=global.anthropic.claude-haiku-4-5-20251001-v1:0
+BEDROCK_OPUS_MODEL=global.anthropic.claude-opus-4-7
+```
+
+> If `psql` connects to the wrong host (e.g. a work RDS), clear libpq env vars for that shell: `unset PGHOST PGUSER PGPASSWORD PGSSLMODE PGDATABASE`.
+
+## Using your own Postgres
+
+```bash
+export DATABASE_URL=postgresql://user:pass@host:5432/dbname
+psql "$DATABASE_URL" -f schema.sql
+python seed.py && python app.py
+```
+
+Works with Aurora PostgreSQL, RDS PostgreSQL, Supabase, Neon, Crunchy Bridge, or vanilla Postgres. Needs pgvector **0.5+** for HNSW.
 
 ## Architecture
 
@@ -286,55 +361,6 @@ customers  1 ─── ∞  agent_sessions  1 ─── ∞  agent_messages
                                     └─── ∞  approvals   (ON DELETE CASCADE)
 tools  (standalone; referenced by name from tool_audit.tool / approvals.tool)
 ```
-
-## Quick start
-
-Prereqs: Python 3.10+ · Postgres with pgvector ≥ 0.5 · AWS creds with `bedrock:InvokeModel` + `bedrock:Converse` on Claude global inference profiles in `us-east-1`.
-
-```bash
-# macOS
-brew install postgresql@17 pgvector
-brew services start postgresql@17
-
-# DB
-psql -d postgres -c "CREATE ROLE coffee LOGIN PASSWORD 'coffee';"
-psql -d postgres -c "CREATE DATABASE coffee OWNER coffee;"
-PGPASSWORD=coffee psql -h 127.0.0.1 -U coffee -d coffee -f schema.sql
-
-# AWS — any standard boto3 resolution (env vars, ~/.aws/credentials, SSO, Isengard)
-export AWS_REGION=us-east-1
-
-# App
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-python seed.py          # first run downloads ~130MB embedding model
-python app.py           # → http://localhost:8000
-
-# Optional — MCP server
-python mcp_server.py    # stdio; wire to any MCP client
-```
-
-First query is ~5–10s (Haiku + Opus both on the critical path). Subsequent queries are faster; watch the per-call latency in each `LLM · …` panel.
-
-Optional model overrides in `.env`:
-
-```bash
-BEDROCK_HAIKU_MODEL=global.anthropic.claude-haiku-4-5-20251001-v1:0
-BEDROCK_OPUS_MODEL=global.anthropic.claude-opus-4-7
-```
-
-> If `psql` connects to the wrong host (e.g. a work RDS), clear libpq env vars for that shell: `unset PGHOST PGUSER PGPASSWORD PGSSLMODE PGDATABASE`.
-
-## Using your own Postgres
-
-```bash
-export DATABASE_URL=postgresql://user:pass@host:5432/dbname
-psql "$DATABASE_URL" -f schema.sql
-python seed.py && python app.py
-```
-
-Works with Aurora PostgreSQL, RDS PostgreSQL, Supabase, Neon, Crunchy Bridge, or vanilla Postgres. Needs pgvector **0.5+** for HNSW.
 
 ## Customizing
 
