@@ -97,8 +97,12 @@ class AgentContext:
 
 
 # =======================================================================
-# Simple intent parsing (no LLM — deterministic + demo-safe)
+# Intent parsing — lookup tables + Haiku 4.5 tool-use
 # =======================================================================
+# Lookup tables below feed the Roast Master's filter and the Flavor
+# Profiler's embedding anchor. The actual *intent parser* is Haiku-driven
+# (see parse_intent below) — it reads the last 6 turns of agent_messages
+# to resolve referential phrases like "order that" to a concrete bean id.
 
 BREW_METHOD_PATTERNS: list[tuple[str, str, list[str]]] = [
     # (method_key, display_label, matching substrings — lowercase)
@@ -215,6 +219,8 @@ _BREW_LABEL_MAP = {
     "drip": "drip",
 }
 
+
+# --- Haiku parser + recent-message loader ------------------------------
 
 def _load_recent_messages(session_id: str, limit: int = 6) -> list[dict]:
     """Recent turn history for the LLM — user text + agent text + cited beans."""
