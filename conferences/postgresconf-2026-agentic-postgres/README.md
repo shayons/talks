@@ -8,6 +8,8 @@ Most "production agent" stacks glue together Pinecone, Redis, DynamoDB, Postgres
 
 The LLMs live at the edges — Haiku parses intent, Opus synthesizes the reply. **Everything in between is SQL.**
 
+**No agent framework.** Eight dependencies total: FastAPI, psycopg, pgvector, fastembed, boto3, pydantic, python-dotenv, uvicorn. No LangChain, no LangGraph, no Strands, no AgentCore, no Temporal. The claim is that when Postgres does memory, state, audit, and approvals, the orchestration layer you'd otherwise import is ~700 lines of Python you can read top-to-bottom — which is exactly what [`agents.py`](agents.py) is. LangGraph's `PostgresSaver` is a great library; it's also ~1,000 lines wrapping a `jsonb` column. Here the `jsonb` column is right there.
+
 ---
 
 # Stage guide — everything you need while presenting
