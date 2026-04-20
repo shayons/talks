@@ -563,7 +563,7 @@ A war story — even an anonymized one — makes the talk read as "I've shipped 
 
 ```bash
 git clone https://github.com/shayons/talks.git
-cd talks/conferences/postgresconf-2026-agentic-postgres
+cd talks/conferences/2026-postgresconf-agentic-ai
 createdb coffee
 psql coffee -f schema.sql
 
@@ -585,7 +585,7 @@ Needs **pgvector 0.5+** (for HNSW) and AWS credentials with Bedrock access.
 
 Questions?
 
-Repo + slides · [github.com/shayons/talks](https://github.com/shayons/talks/tree/main/conferences/postgresconf-2026-agentic-postgres) · PostgresConf 2026
+Repo + slides · [github.com/shayons/talks](https://github.com/shayons/talks/tree/main/conferences/2026-postgresconf-agentic-ai) · PostgresConf 2026
 
 <!--
 Open the floor. Default to taking questions from the live demo (which is still on screen) so the answers are concrete.

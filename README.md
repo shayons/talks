@@ -8,7 +8,7 @@ Each talk lives under `conferences/<slug>/` with its own README, runnable code, 
 
 | Venue                             | Date         | Title                                                            | Folder                                                                                               |
 | --------------------------------- | ------------ | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **PostgresConf 2026** · San Pedro | Apr 21, 2026 | Building Agentic AI Applications with PostgreSQL as the Backbone | [`conferences/postgresconf-2026-agentic-postgres/`](conferences/postgresconf-2026-agentic-postgres/) |
+| **PostgresConf 2026** · San Pedro | Apr 21, 2026 | Building Agentic AI Applications with PostgreSQL as the Backbone | [`conferences/2026-postgresconf-agentic-ai/`](conferences/2026-postgresconf-agentic-ai/) |
 
 ## Layout
 
