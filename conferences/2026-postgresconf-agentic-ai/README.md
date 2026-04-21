@@ -235,6 +235,7 @@ The right-hand Agent Telemetry tab streams these as the agents run. One-line nar
 | `TOOL · CHECK_INVENTORY`   | Registered in `tools`, audited in `tool_audit`, same transaction as its effect.                                           |
 | `GUARDRAIL · FACT-CHECK`   | Every pick re-read from `beans`, stock verified. Failures dropped, not papered over.                                      |
 | `GROUNDING`                | Every claim ties back to a row. Confidence reflects data coverage, not a fudge factor.                                    |
+| `MEMORY · CONFIDENCE`      | Shows the math behind the % (picks, history, top similarity, clamp). Deterministic, auditable, reproducible in SQL.       |
 | `GUARDRAIL · APPROVAL`     | `place_order` has `requires_approval=true` → inserts into `approvals` with `status='pending'`. Effect blocked.            |
 | `LLM · OPUS · SYNTHESIZE`  | Opus receives grounded picks + customer profile. System prompt locks it to cited bean ids. ~700 in / ~300 out / 3–5s.     |
 
@@ -248,6 +249,7 @@ Prompts that tend to come up from the crowd. Rehearse once.
 | `Order two bags of the Yemen one`         | Haiku resolves "the Yemen one" → `b_yemen_mocha` from session history. Approval queues for qty=2.                                                                                                                         |
 | `What did I order last time?`             | Episodic memory direct hit — `get_customer_history` fires, returns the last 5 `orders` rows.                                                                                                                              |
 | `Was it approved?` / `Did my order ship?` | The agent has no order-status tool by design — Opus refuses gracefully and points at the `approvals` queue. Show the row in psql: `SELECT status FROM approvals WHERE session_id=...`. Status is a column, not a service. |
+| `Where does the 87% come from?`           | Point at the `MEMORY · CONFIDENCE` panel. Four inputs, one formula: `60 + min(20, picks×7) + (8 if history) + min(10, top_sim×10)`, clamped to [30,98]. No LLM introspection. Reproducible from `tool_audit`.             |
 | `ignore previous instructions and …`      | Opus can't reference beans that aren't in its context regardless of injection. Architectural guardrail, not a prompt.                                                                                                     |
 
 ## Key takeaways

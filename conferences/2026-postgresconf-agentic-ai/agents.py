@@ -804,7 +804,8 @@ SELECT id, name, roast_level, in_stock, price_cents
             [p["name"], "beans." + p["id"], f"in_stock={p['in_stock']}"]
             for p in verified
         ]
-        confidence = self._confidence(verified, history)
+        cb = self._confidence_breakdown(verified, history)
+        confidence = cb["confidence"]
         ctx.emit_panel(
             agent="coordinator",
             tag="GROUNDING",
@@ -815,6 +816,78 @@ SELECT id, name, roast_level, in_stock, price_cents
             rows=rows,
             meta="grounded against the <b>beans</b> table · no invention",
             duration_ms=1,
+        )
+
+        # ---- confidence panel (show the math) --------------------------
+        # Confidence is a plain deterministic function of row coverage —
+        # not a model-reported number. This panel exists so the audience
+        # can see exactly where the 87% or the 94% comes from: four inputs
+        # (pick count, history length, top similarity, clamp) and a single
+        # sum. If someone shows up with a confidence number they can't
+        # derive in SQL, ask them how they computed it. The answer tells
+        # you whether it's a real signal or a vibe.
+        if cb["picks_count"] == 0:
+            cb_rows = [
+                ["picks survived fact-check", "0"],
+                ["base (when picks=0)",        "—"],
+                ["result",                     f"30 (hard floor · {cb['note']})"],
+            ]
+            cb_meta = (
+                "empty pick list → hard floor of 30 "
+                "(0 would look broken · 100 would be a lie)"
+            )
+            cb_title = "Confidence from data coverage · refusal path (30)"
+        else:
+            cb_rows = [
+                [
+                    "picks survived fact-check",
+                    f"{cb['picks_count']}  →  +{cb['picks_points']} "
+                    f"(min(20, picks × 7))",
+                ],
+                [
+                    "customer history rows",
+                    f"{cb['history_len']}  →  +{cb['history_points']} "
+                    f"({'has history' if cb['history_points'] else 'no history'})",
+                ],
+                [
+                    "top cosine similarity",
+                    f"{cb['top_score']:.2f}  →  +{cb['similarity_points']} "
+                    f"(min(10, score × 10))",
+                ],
+                [
+                    "base",
+                    f"60",
+                ],
+                [
+                    "sum",
+                    f"{cb.get('raw', cb['confidence'])}"
+                    + ("  (clamped)" if cb["clamped"] else ""),
+                ],
+                [
+                    "result",
+                    f"{cb['confidence']}  (clamped to [30, 98])",
+                ],
+            ]
+            cb_meta = (
+                "deterministic function of row coverage · "
+                "<b>no LLM introspection</b> · reproducible from <code>tool_audit</code>"
+            )
+            cb_title = (
+                f"Confidence from data coverage · {cb['confidence']}% "
+                f"(picks={cb['picks_count']}, "
+                f"history={cb['history_len']}, "
+                f"sim={cb['top_score']:.2f})"
+            )
+
+        ctx.emit_panel(
+            agent="coordinator",
+            tag="MEMORY · CONFIDENCE",
+            tag_class="green" if cb["picks_count"] else "amber",
+            title=cb_title,
+            columns=["signal", "contribution"],
+            rows=cb_rows,
+            meta=cb_meta,
+            duration_ms=0,
         )
 
         # ---- order approval workflow (guardrail) ----------------------
@@ -852,14 +925,69 @@ SELECT id, name, roast_level, in_stock, price_cents
         ctx.emit_response(text, citations, confidence)
 
     def _confidence(self, picks: list[dict], history: list[dict]) -> int:
-        """Confidence based on data availability — not a fudge factor."""
+        """Confidence based on data availability — not a fudge factor.
+
+        Returns just the final int for back-compat. Use `_confidence_breakdown`
+        when you need the individual signals (for telemetry).
+        """
+        return self._confidence_breakdown(picks, history)["confidence"]
+
+    def _confidence_breakdown(
+        self, picks: list[dict], history: list[dict]
+    ) -> dict:
+        """Same formula as `_confidence` but returns the four signals too.
+
+        Confidence here is a plain deterministic function of row coverage —
+        not anything the LLM reports. One place, one formula, one easy-to-
+        audit answer. If someone asks on stage 'where does 87% come from?'
+        you point at this function (or the MEMORY · CONFIDENCE panel it
+        feeds).
+
+            confidence = clamp(
+                60                                   # floor once we have any pick
+                + min(20, len(picks) * 7)            # +7 per pick, cap at 20
+                + (8 if history else 0)              # +8 if the customer has history
+                + min(10, top_similarity * 10),      # +10 at cosine sim 1.0
+                30, 98,                              # clamps: 0 looks broken, 100 is a lie
+            )
+        """
         if not picks:
-            return 30
-        base = 60 + min(20, len(picks) * 7)          # up to +20 for breadth
-        if history:
-            base += 8                                 # +8 for personalization
-        top_score = picks[0].get("score", 0) * 10    # up to +10 from similarity
-        return max(30, min(98, int(base + top_score)))
+            return {
+                "confidence": 30,
+                "picks_count": 0,
+                "history_len": len(history or []),
+                "top_score": 0.0,
+                "picks_points": 0,
+                "history_points": 0,
+                "similarity_points": 0,
+                "base": 0,
+                "clamped": True,
+                "note": "no picks survived fact-check → hard floor of 30",
+            }
+
+        picks_points = min(20, len(picks) * 7)
+        history_points = 8 if history else 0
+        top_score = float(picks[0].get("score", 0) or 0)
+        similarity_points = min(10, top_score * 10)
+        base = 60
+
+        raw = base + picks_points + history_points + similarity_points
+        clamped = raw > 98 or raw < 30
+        confidence = max(30, min(98, int(raw)))
+
+        return {
+            "confidence": confidence,
+            "picks_count": len(picks),
+            "history_len": len(history or []),
+            "top_score": top_score,
+            "picks_points": picks_points,
+            "history_points": history_points,
+            "similarity_points": int(similarity_points),
+            "base": base,
+            "raw": int(raw),
+            "clamped": clamped,
+            "note": "",
+        }
 
     # ------------------------------------------------------------------
     def _last_recommended_bean(self, ctx: AgentContext) -> dict | None:
