@@ -110,7 +110,7 @@ True, but that's not the strongest claim. The strongest claim is:
 
 - **One optimizer** sees vector similarity, row filters, and joins together and picks a plan
 - **One transaction** commits the audit row, the approval, and the state checkpoint atomically
-- **One snapshot** means your similarity scores and your inventory counts agree
+- **One MVCC snapshot** means your similarity scores and your inventory counts agree
 
 Distributed systems people call this "avoid distributed consensus for state you don't need distributed." Postgres people call it Tuesday.
 
@@ -120,9 +120,9 @@ The real win is consistency across vectors + relational + audit + workflow state
 
 ---
 
-## The architecture
+## AI Coffee Roastery — Architecture
 
-![Architecture: User request enters via FastAPI, Claude Haiku parses intent, PostgreSQL holds three memory types and operational state, the dashed Agents box on the right orchestrates three agents read-write against Postgres, Claude Opus synthesizes a grounded reply, customer-facing reply returned](assets/architecture.svg)
+![AI Coffee Roastery architecture: User request enters via FastAPI, Claude Haiku parses intent, one PostgreSQL database holds three memory types and operational state, the dashed Agents box on the right orchestrates three agents read-write against Postgres, Claude Opus synthesizes a grounded reply, customer-facing reply returned](assets/architecture.svg)
 
 <!--
 Haiku reads the conversation and produces structured intent — including
