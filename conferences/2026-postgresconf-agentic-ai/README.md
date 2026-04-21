@@ -26,6 +26,7 @@ The LLMs live at the edges — Haiku parses intent, Opus synthesizes the reply. 
 - [Panel cheat sheet](#panel-cheat-sheet)
 - [Audience curveballs](#audience-curveballs)
 - [Key takeaways](#key-takeaways)
+- [Production FAQs](#production-faqs)
 
 **[Reference](#reference)** — appendix; safe to skip while presenting
 
@@ -267,6 +268,77 @@ Prompts that tend to come up from the crowd. Rehearse once.
 5. Workflow state is a JSONB column — checkpointed, resumable, `COMMIT` = durable boundary.
 6. Grounding, fact-check, and an approval queue are real guardrails, not decorations.
 7. `"order that"` resolves because Haiku reads the same `agent_messages` the coordinator writes to.
+
+## Production FAQs
+
+Questions that come up every time, with stage-ready answers. Land the one-liner first; expand if asked.
+
+### Access & identity
+
+**What level of database access does the agent have?**
+Two identities, two blast radii. The FastAPI agent is read-write against the domain tables (`agent_messages`, `orders`, `tool_audit`, `approvals`, `agent_sessions`) via an app role — and nothing else. The MCP agent is read-only: three tools, allowlisted tables, SELECT-only parser, and in production a second Postgres role with only `GRANT SELECT`. The LLM never gets raw DB credentials.
+
+**How does authentication work?**
+AuthN happens at the edge, not in the LLM. FastAPI auths the user the way your product already does (session, OAuth, SAML). For MCP, the host authenticates to the server via the transport — stdio locally, mTLS or bearer token for hosted.
+
+**How does authorization work?**
+Two layers. Coarse: per-tenant Postgres roles with scoped `GRANT`s. Fine: RLS policies keyed off `SET LOCAL app.current_user_id` set at transaction start. The database enforces it — the agent has no say in who sees what.
+
+**How do write-effecting tools stay safe?**
+`tools.requires_approval = true`. The coordinator inserts into `approvals` with `status='pending'` and stops. A human with write access flips the bit. The LLM can propose the effect; it cannot execute it.
+
+**How do you audit who did what?**
+One `SELECT` against `tool_audit`. Every SQL tool call and every LLM invocation (`tool='llm:<model_id>'`) is there, keyed by `session_id` and `caller`. No correlating across four systems.
+
+### Scale & performance
+
+**When does pgvector stop being enough?**
+HNSW builds slow past ~10M rows per index. First move: **pgvectorscale** (StreamingDiskANN, stays on Postgres). Beyond that — or sub-millisecond p99s — look at Milvus, Qdrant, Vespa. Most agents don't get there.
+
+**How do you keep `agent_messages` and `tool_audit` from blowing up?**
+Partition by month on `(session_id, ts)`. Old partitions go read-only or archived. Tune `autovacuum_vacuum_insert_scale_factor` (PG13+) — default autovacuum won't trigger on append-only workloads.
+
+**What's the query budget per turn?**
+8–15 SQL queries per turn. At 50 concurrent sessions that's ~500 queries in flight. Front it with PgBouncer in transaction mode (or RDS Proxy). Not a new problem — standard OLTP advice.
+
+**Where does the latency live?**
+Milliseconds in Postgres. Seconds in Opus. The database is the boring, cheap part — the LLM is the tax.
+
+### Cost & ops
+
+**Is running two LLMs per turn expensive?**
+Haiku is small and fast — negligible. Opus dominates the bill. Shape matters more than numbers: milliseconds of SQL, seconds of Opus. DB cost is a rounding error.
+
+**How do you observe this in production?**
+`tool_audit` is your ledger. Query it for p99 latency, token usage, approval rates, tool invocation frequency. Pipe it to Grafana via a materialized view. One source of truth, no dashboards to correlate.
+
+**How do you test it?**
+Unit tests on each tool (they're functions). Integration tests hit a test database with seeded fixtures. For the LLM edges, mock Bedrock in `bedrock.py`; the rest of the system is deterministic SQL.
+
+**How do you roll out schema changes?**
+Same as any Postgres app. `ALTER TABLE ... ADD COLUMN` is online; backfills go through `UPDATE ... WHERE ... LIMIT` loops. Tool registry changes are `INSERT`/`UPDATE` — no deploy.
+
+### Multi-tenancy & data
+
+**How do you isolate tenants?**
+Shared cluster with RLS for small-to-medium tenancy. Separate schemas or separate clusters as blast-radius requirements grow. Partitioning on `tenant_id` helps both performance and isolation.
+
+**How do you handle PII in `agent_messages`?**
+Same as any Postgres PII — column-level encryption, RLS on readers, audit who queries it. Agents don't create a new PII problem; they make the existing one visible faster.
+
+**Where does the embedding model run?**
+In-process via `fastembed` (MiniLM-L6-v2, 384-dim) for the demo. In production, swap to Bedrock's Titan embeddings or a dedicated embedding service — the only change is the 384 in `vector(384)`.
+
+### Replacing pieces
+
+**Can I swap Claude for something else?**
+Yes. The contract between layers is `intent → grounded picks → citations` — a data shape, not a prompt. Swap Haiku for a cheaper extractor, swap Opus for GPT-4, swap both for Ollama locally. The `tool_audit` row just has a different `tool='llm:…'` value.
+
+**Does this fight LangChain / LangGraph / Strands / AgentCore?**
+No. Frameworks handle prompt orchestration and agent loops; Postgres handles state, memory, audit, approvals. LangGraph's `PostgresSaver` is a JSONB column with a nice API. Clean seam. The demo skips the framework so the bottom half is legible — production, pick one.
+
+**What if I already have Postgres for my app — do I run a second cluster for this?**
+Probably not. Start in the same cluster, separate schema. Move to its own cluster when the workload characteristics diverge enough to matter (different tuning, different backup cadence, different blast-radius requirement). Most teams don't need to.
 
 ---
 
