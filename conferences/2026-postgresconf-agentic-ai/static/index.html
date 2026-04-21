@@ -81,7 +81,7 @@
         border-radius: 14px;
         overflow: hidden;
         display: grid;
-        grid-template-rows: auto auto 1fr;
+        grid-template-rows: auto 1fr;
         box-shadow:
           0 2px 0 rgba(107, 67, 33, 0.04),
           0 18px 50px -30px rgba(107, 67, 33, 0.25);
@@ -100,6 +100,17 @@
         }
         .side {
           border-top: 1px solid var(--line-w);
+        }
+      }
+      @media (max-width: 640px) {
+        .chat-head {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 10px;
+          padding: 12px 20px;
+        }
+        .chat-head .user-select {
+          min-width: 0;
         }
       }
 
@@ -158,17 +169,15 @@
         letter-spacing: 0.1px;
       }
       .topbar-right {
-        display: flex;
-        align-items: center;
-        gap: 12px;
+        display: none;
       }
       .new-session {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        background: rgba(255, 248, 236, 0.14);
-        border: 1px solid rgba(255, 248, 236, 0.25);
-        color: var(--cream);
+        background: var(--cream-3);
+        border: 1px solid var(--line-d);
+        color: var(--coffee-d);
         font-family: var(--f-ui);
         font-size: 13px;
         font-weight: 500;
@@ -180,42 +189,19 @@
           border-color 0.15s;
       }
       .new-session:hover {
-        background: rgba(255, 248, 236, 0.22);
-        border-color: rgba(255, 248, 236, 0.45);
+        background: var(--cream);
+        border-color: var(--coffee-l);
       }
       .new-session svg {
         width: 14px;
         height: 14px;
       }
 
-      .meta-row {
-        display: flex;
-        justify-content: flex-end;
-        gap: 20px;
-        padding: 18px 28px 20px;
-        background: var(--paper);
-        border-bottom: 1px solid var(--line-w);
-      }
+      .meta-row,
       .meta-field {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        min-width: 0;
-      }
-      .meta-field .lbl {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        font-family: var(--f-mono);
-        font-size: 10.5px;
-        color: var(--ink-dim);
-        letter-spacing: 2.5px;
-        text-transform: uppercase;
-      }
-      .meta-field .lbl svg {
-        width: 12px;
-        height: 12px;
-        opacity: 0.7;
+        /* Legacy selectors — layout moved: User dropdown + New Session now
+           live inside .chat-head. */
+        display: none;
       }
       .user-select {
         display: flex;
@@ -225,11 +211,11 @@
         border: 1px solid var(--line-w);
         background: var(--cream-3);
         border-radius: 8px;
-        padding: 8px 14px;
+        padding: 6px 12px;
       }
       .user-select .avatar {
-        width: 26px;
-        height: 26px;
+        width: 24px;
+        height: 24px;
         border-radius: 50%;
         background: radial-gradient(
           circle at 30% 30%,
@@ -241,7 +227,7 @@
         justify-content: center;
         font-family: var(--f-ui);
         font-weight: 600;
-        font-size: 12px;
+        font-size: 11px;
         color: var(--paper);
         flex-shrink: 0;
       }
@@ -250,7 +236,7 @@
         border: 0;
         background: transparent;
         font-family: var(--f-ui);
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 500;
         color: var(--ink);
         outline: none;
@@ -270,6 +256,41 @@
         display: flex;
         flex-direction: column;
         min-height: 0;
+      }
+      .chat-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 28px;
+        border-bottom: 1px solid var(--line-w);
+        background: var(--paper);
+      }
+      .chat-head .chat-head-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+        flex: 1;
+      }
+      .chat-head .chat-head-left .lbl {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--f-mono);
+        font-size: 10.5px;
+        color: var(--ink-dim);
+        letter-spacing: 2.5px;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .chat-head .chat-head-left .lbl svg {
+        width: 12px;
+        height: 12px;
+        opacity: 0.7;
+      }
+      .chat-head .user-select {
+        min-width: 180px;
       }
       .chat-body {
         flex: 1;
@@ -1061,53 +1082,51 @@
               </div>
             </div>
           </div>
-          <div class="topbar-right">
-            <button
-              class="new-session"
-              id="reset"
-              title="Start a fresh session"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M3 12a9 9 0 1 0 3-6.7" />
-                <path d="M3 4v5h5" />
-              </svg>
-              <span>New Session</span>
-            </button>
-          </div>
         </header>
-
-        <div class="meta-row">
-          <div class="meta-field">
-            <span class="lbl">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <circle cx="12" cy="8" r="4" />
-                <path d="M4 21a8 8 0 0 1 16 0" />
-              </svg>
-              User
-            </span>
-            <div class="user-select">
-              <span class="avatar" id="avatar">M</span>
-              <select id="customer"></select>
-            </div>
-          </div>
-        </div>
 
         <div class="main">
           <section class="chat">
+            <div class="chat-head">
+              <div class="chat-head-left">
+                <span class="lbl">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M4 21a8 8 0 0 1 16 0" />
+                  </svg>
+                  User
+                </span>
+                <div class="user-select">
+                  <span class="avatar" id="avatar">M</span>
+                  <select id="customer"></select>
+                </div>
+              </div>
+              <button
+                class="new-session"
+                id="reset"
+                title="Start a fresh session"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M3 12a9 9 0 1 0 3-6.7" />
+                  <path d="M3 4v5h5" />
+                </svg>
+                <span>New Session</span>
+              </button>
+            </div>
+
             <div class="chat-body" id="chat"></div>
 
             <div class="dock">
