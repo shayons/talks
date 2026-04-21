@@ -55,6 +55,12 @@ Optional third window for Scenario 3: `python mcp_server.py` in a terminal.
 
 ## The three customers
 
+Walk on stage, open the demo, and before typing a single query, frame the setup:
+
+> _"We have three customers. Marco is a pour-over regular who keeps pulling East African beans. Ana buys dark-roast espresso in quantity. Yuki is a Tokyo specialty buyer who likes washed light roasts and asks about things our catalog doesn't always carry. Three different personalities, three different shopping patterns — **same agents, same tools, same prompts underneath.** The only thing that changes between them is the rows in `customers`, `orders`, and `agent_messages`. Memory is the personality."_
+
+That framing sets up what the audience is about to see: three visibly different replies from an identical pipeline. No branching per customer, no different prompts, no different tools. Just rows.
+
 Same agents, same tools, same prompts. The memory in their rows is what makes the answers different.
 
 | Customer  | Anchors                            | Profile                                                     | Recent orders                                             |
