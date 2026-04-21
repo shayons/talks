@@ -11,16 +11,16 @@
   --pg-bg: #000000; /* pure black */
   --pg-bg-raised: #111111; /* panels, code blocks */
   --pg-line: #2a2a2a; /* subtle borders */
-  --pg-ink: #f5eadb; /* primary cream */
-  --pg-ink-dim: #c9b89a; /* secondary */
-  --pg-ink-mut: #8a8a8a; /* captions, page numbers */
-  --pg-blue: #5ea5d9; /* postgres brand tint */
-  --pg-amber: #f0b877; /* highlights, heading accents */
-  --pg-amber-d: #c97f2a; /* heading underline */
-  --pg-ok: #8bc34a; /* success */
-  --pg-warn: #f0b877;
-  --pg-err: #e07a6a;
-  --pg-quote: #2bd1a1;
+  --pg-ink: #f8efe1; /* primary cream (slightly brighter for projector) */
+  --pg-ink-dim: #d8c8ad; /* secondary cream (was #c9b89a — brighter now) */
+  --pg-ink-mut: #a3a3a3; /* captions, page numbers (was #8a8a8a) */
+  --pg-blue: #7ab8e5; /* postgres brand tint (was #5ea5d9 — brighter) */
+  --pg-amber: #ffcf88; /* highlights, heading accents (was #f0b877) */
+  --pg-amber-d: #e0933a; /* heading underline (was #c97f2a — brighter) */
+  --pg-ok: #a3d466; /* success (was #8bc34a) */
+  --pg-warn: #ffcf88;
+  --pg-err: #ec8e7c; /* was #e07a6a */
+  --pg-quote: #4ce2b6; /* was #2bd1a1 */
 }
 
 section {

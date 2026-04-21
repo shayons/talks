@@ -12,10 +12,10 @@
     </linearGradient>
     <!-- Arrow marker (muted grey) -->
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M2 1 L8 5 L2 9" fill="none" stroke="#8a8a8a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M2 1 L8 5 L2 9" fill="none" stroke="#a3a3a3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
     <marker id="arrow-start" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-      <path d="M8 1 L2 5 L8 9" fill="none" stroke="#8a8a8a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M8 1 L2 5 L8 9" fill="none" stroke="#a3a3a3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
 
@@ -26,138 +26,138 @@
        ================================================================ -->
   <g>
     <rect x="230" y="8" width="160" height="36" rx="18" fill="#0a0a0e" stroke="#2a2a2a" stroke-width="1"/>
-    <text x="310" y="30" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" font-size="14" text-anchor="middle">User request</text>
+    <text x="310" y="30" fill="#f8efe1" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" font-size="14" text-anchor="middle">User request</text>
   </g>
-  <text x="402" y="30" fill="#8a8a8a" font-family="Inter, Helvetica, Arial, sans-serif" font-size="12">via FastAPI</text>
+  <text x="402" y="30" fill="#a3a3a3" font-family="Inter, Helvetica, Arial, sans-serif" font-size="12">via FastAPI</text>
 
   <!-- User → Haiku -->
-  <line x1="310" y1="44" x2="310" y2="66" stroke="#8a8a8a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="310" y1="44" x2="310" y2="66" stroke="#a3a3a3" stroke-width="1.5" marker-end="url(#arrow)"/>
 
   <!-- ================================================================
        2. HAIKU pill  (y=68..134)
        ================================================================ -->
   <g>
-    <rect x="130" y="68" width="360" height="66" rx="12" fill="url(#llmFill)" stroke="#f0b877" stroke-width="1.5"/>
-    <text x="150" y="96" fill="#f0b877" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="15" letter-spacing="1.6">CLAUDE HAIKU 4.5</text>
-    <text x="150" y="118" fill="#c9b89a" font-family="Inter, Helvetica, Arial, sans-serif" font-size="12">intent parse · tool-use · referent resolution</text>
+    <rect x="130" y="68" width="360" height="66" rx="12" fill="url(#llmFill)" stroke="#ffcf88" stroke-width="1.5"/>
+    <text x="150" y="96" fill="#ffcf88" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="15" letter-spacing="1.6">CLAUDE HAIKU 4.5</text>
+    <text x="150" y="118" fill="#d8c8ad" font-family="Inter, Helvetica, Arial, sans-serif" font-size="12">intent parse · tool-use · referent resolution</text>
   </g>
   <!-- Side annotation -->
-  <text x="510" y="96" fill="#c9b89a" font-family="Menlo, Consolas, monospace" font-size="12">reads agent_messages</text>
-  <text x="510" y="116" fill="#c9b89a" font-family="Menlo, Consolas, monospace" font-size="12">returns structured JSON</text>
+  <text x="510" y="96" fill="#d8c8ad" font-family="Menlo, Consolas, monospace" font-size="12">reads agent_messages</text>
+  <text x="510" y="116" fill="#d8c8ad" font-family="Menlo, Consolas, monospace" font-size="12">returns structured JSON</text>
 
   <!-- Haiku → Postgres -->
-  <line x1="310" y1="134" x2="310" y2="158" stroke="#8a8a8a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="310" y1="134" x2="310" y2="158" stroke="#a3a3a3" stroke-width="1.5" marker-end="url(#arrow)"/>
 
   <!-- ================================================================
        3. POSTGRES panel  x=130..690, y=160..402 (242h)
        ================================================================ -->
   <g>
-    <rect x="130" y="160" width="560" height="242" rx="14" fill="url(#pgFill)" stroke="#5ea5d9" stroke-width="1.6"/>
-    <text x="410" y="194" fill="#5ea5d9" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="18" text-anchor="middle" letter-spacing="6">POSTGRESQL</text>
+    <rect x="130" y="160" width="560" height="242" rx="14" fill="url(#pgFill)" stroke="#7ab8e5" stroke-width="1.6"/>
+    <text x="410" y="194" fill="#7ab8e5" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="18" text-anchor="middle" letter-spacing="6">POSTGRESQL</text>
 
     <!-- Row 1 -->
-    <circle cx="158" cy="238" r="3" fill="#f0b877"/>
-    <text x="170" y="242" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">memory</text>
-    <text x="170" y="260" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="10.5">agent_messages</text>
-    <text x="170" y="274" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="10.5">orders</text>
+    <circle cx="158" cy="238" r="3" fill="#ffcf88"/>
+    <text x="170" y="242" fill="#f8efe1" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">memory</text>
+    <text x="170" y="260" fill="#a3a3a3" font-family="Menlo, Consolas, monospace" font-size="10.5">agent_messages</text>
+    <text x="170" y="274" fill="#a3a3a3" font-family="Menlo, Consolas, monospace" font-size="10.5">orders</text>
 
-    <circle cx="318" cy="238" r="3" fill="#f0b877"/>
-    <text x="330" y="242" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">tools</text>
-    <text x="330" y="260" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="10.5">description_emb</text>
-    <text x="330" y="274" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="10.5">input_schema</text>
+    <circle cx="318" cy="238" r="3" fill="#ffcf88"/>
+    <text x="330" y="242" fill="#f8efe1" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">tools</text>
+    <text x="330" y="260" fill="#a3a3a3" font-family="Menlo, Consolas, monospace" font-size="10.5">description_emb</text>
+    <text x="330" y="274" fill="#a3a3a3" font-family="Menlo, Consolas, monospace" font-size="10.5">input_schema</text>
 
-    <circle cx="488" cy="238" r="3" fill="#f0b877"/>
-    <text x="500" y="242" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">audit</text>
-    <text x="500" y="260" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="10.5">tool_audit</text>
-    <text x="500" y="274" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="10.5">every invocation</text>
+    <circle cx="488" cy="238" r="3" fill="#ffcf88"/>
+    <text x="500" y="242" fill="#f8efe1" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">audit</text>
+    <text x="500" y="260" fill="#a3a3a3" font-family="Menlo, Consolas, monospace" font-size="10.5">tool_audit</text>
+    <text x="500" y="274" fill="#a3a3a3" font-family="Menlo, Consolas, monospace" font-size="10.5">every invocation</text>
 
     <!-- Row 2 -->
-    <circle cx="158" cy="310" r="3" fill="#5ea5d9"/>
-    <text x="170" y="314" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">workflow state</text>
-    <text x="170" y="332" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="10.5">agent_sessions</text>
-    <text x="170" y="346" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="10.5">.workflow_state</text>
+    <circle cx="158" cy="310" r="3" fill="#7ab8e5"/>
+    <text x="170" y="314" fill="#f8efe1" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">workflow state</text>
+    <text x="170" y="332" fill="#a3a3a3" font-family="Menlo, Consolas, monospace" font-size="10.5">agent_sessions</text>
+    <text x="170" y="346" fill="#a3a3a3" font-family="Menlo, Consolas, monospace" font-size="10.5">.workflow_state</text>
 
-    <circle cx="318" cy="310" r="3" fill="#5ea5d9"/>
-    <text x="330" y="314" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">approvals</text>
-    <text x="330" y="332" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="10.5">pending → approved</text>
-    <text x="330" y="346" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="10.5">→ executed</text>
+    <circle cx="318" cy="310" r="3" fill="#7ab8e5"/>
+    <text x="330" y="314" fill="#f8efe1" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">approvals</text>
+    <text x="330" y="332" fill="#a3a3a3" font-family="Menlo, Consolas, monospace" font-size="10.5">pending → approved</text>
+    <text x="330" y="346" fill="#a3a3a3" font-family="Menlo, Consolas, monospace" font-size="10.5">→ executed</text>
 
-    <circle cx="488" cy="310" r="3" fill="#5ea5d9"/>
-    <text x="500" y="314" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">pgvector · HNSW</text>
-    <text x="500" y="332" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="10.5">cosine similarity</text>
-    <text x="500" y="346" fill="#8a8a8a" font-family="Menlo, Consolas, monospace" font-size="10.5">384-dim</text>
+    <circle cx="488" cy="310" r="3" fill="#7ab8e5"/>
+    <text x="500" y="314" fill="#f8efe1" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">pgvector · HNSW</text>
+    <text x="500" y="332" fill="#a3a3a3" font-family="Menlo, Consolas, monospace" font-size="10.5">cosine similarity</text>
+    <text x="500" y="346" fill="#a3a3a3" font-family="Menlo, Consolas, monospace" font-size="10.5">384-dim</text>
 
     <!-- Guardrails caption under audit/approvals column -->
-    <text x="500" y="366" fill="#c9b89a" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="11">← fact-check + approvals</text>
+    <text x="500" y="366" fill="#d8c8ad" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="11">← fact-check + approvals</text>
 
     <!-- Tagline inside Postgres box -->
-    <text x="410" y="388" fill="#c9b89a" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="14" text-anchor="middle">one schema · one optimizer · one transaction</text>
+    <text x="410" y="388" fill="#d8c8ad" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="14" text-anchor="middle">one schema · one optimizer · one transaction</text>
   </g>
 
   <!-- ================================================================
        4. AGENTS column  x=740..1000, y=160..402
        ================================================================ -->
   <g>
-    <rect x="740" y="160" width="260" height="242" rx="14" fill="#07070a" stroke="#f0b877" stroke-width="1.5" stroke-dasharray="5 4"/>
-    <text x="870" y="192" fill="#f0b877" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="13" text-anchor="middle" letter-spacing="4">AGENTS</text>
+    <rect x="740" y="160" width="260" height="242" rx="14" fill="#07070a" stroke="#ffcf88" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="870" y="192" fill="#ffcf88" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="13" text-anchor="middle" letter-spacing="4">AGENTS</text>
 
     <!-- Coordinator (orchestrator) -->
-    <rect x="760" y="208" width="220" height="44" rx="8" fill="#1a1208" stroke="#f0b877" stroke-width="1"/>
-    <text x="870" y="226" fill="#f0b877" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="13" text-anchor="middle">Coordinator</text>
-    <text x="870" y="242" fill="#8a8a8a" font-family="Inter, Helvetica, Arial, sans-serif" font-size="10.5" text-anchor="middle">orchestrator · router</text>
+    <rect x="760" y="208" width="220" height="44" rx="8" fill="#1a1208" stroke="#ffcf88" stroke-width="1"/>
+    <text x="870" y="226" fill="#ffcf88" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="13" text-anchor="middle">Coordinator</text>
+    <text x="870" y="242" fill="#a3a3a3" font-family="Inter, Helvetica, Arial, sans-serif" font-size="10.5" text-anchor="middle">orchestrator · router</text>
 
     <!-- dispatches label -->
-    <text x="870" y="266" fill="#c9b89a" font-family="Inter, Helvetica, Arial, sans-serif" font-style="italic" font-size="11" text-anchor="middle">dispatches ↓</text>
+    <text x="870" y="266" fill="#d8c8ad" font-family="Inter, Helvetica, Arial, sans-serif" font-style="italic" font-size="11" text-anchor="middle">dispatches ↓</text>
 
     <!-- Specialists label -->
-    <text x="760" y="286" fill="#c9b89a" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" font-size="10" letter-spacing="2">SPECIALISTS</text>
-    <line x1="838" y1="283" x2="980" y2="283" stroke="#c9b89a" stroke-width="0.5" opacity="0.2"/>
+    <text x="760" y="286" fill="#d8c8ad" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" font-size="10" letter-spacing="2">SPECIALISTS</text>
+    <line x1="838" y1="283" x2="980" y2="283" stroke="#d8c8ad" stroke-width="0.5" opacity="0.2"/>
 
     <!-- Branch trunk -->
-    <line x1="770" y1="292" x2="770" y2="342" stroke="#c97f2a" stroke-width="1" opacity="0.55"/>
+    <line x1="770" y1="292" x2="770" y2="342" stroke="#e0933a" stroke-width="1" opacity="0.55"/>
 
     <!-- Flavor Profiler -->
-    <line x1="770" y1="306" x2="788" y2="306" stroke="#c97f2a" stroke-width="1" opacity="0.55"/>
-    <polygon points="786,302 794,306 786,310" fill="#c97f2a" opacity="0.8"/>
-    <text x="802" y="303" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" font-size="13">Flavor Profiler</text>
-    <text x="802" y="320" fill="#8a8a8a" font-family="Inter, Helvetica, Arial, sans-serif" font-size="11">pgvector search</text>
+    <line x1="770" y1="306" x2="788" y2="306" stroke="#e0933a" stroke-width="1" opacity="0.55"/>
+    <polygon points="786,302 794,306 786,310" fill="#e0933a" opacity="0.8"/>
+    <text x="802" y="303" fill="#f8efe1" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" font-size="13">Flavor Profiler</text>
+    <text x="802" y="320" fill="#a3a3a3" font-family="Inter, Helvetica, Arial, sans-serif" font-size="11">pgvector search</text>
 
     <!-- Roast Master -->
-    <line x1="770" y1="340" x2="788" y2="340" stroke="#c97f2a" stroke-width="1" opacity="0.55"/>
-    <polygon points="786,336 794,340 786,344" fill="#c97f2a" opacity="0.8"/>
-    <text x="802" y="337" fill="#f5eadb" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" font-size="13">Roast Master</text>
-    <text x="802" y="354" fill="#8a8a8a" font-family="Inter, Helvetica, Arial, sans-serif" font-size="11">filter + inventory</text>
+    <line x1="770" y1="340" x2="788" y2="340" stroke="#e0933a" stroke-width="1" opacity="0.55"/>
+    <polygon points="786,336 794,340 786,344" fill="#e0933a" opacity="0.8"/>
+    <text x="802" y="337" fill="#f8efe1" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="600" font-size="13">Roast Master</text>
+    <text x="802" y="354" fill="#a3a3a3" font-family="Inter, Helvetica, Arial, sans-serif" font-size="11">filter + inventory</text>
 
     <!-- Divider -->
-    <line x1="760" y1="372" x2="980" y2="372" stroke="#c9b89a" stroke-width="0.5" opacity="0.18" stroke-dasharray="2 3"/>
+    <line x1="760" y1="372" x2="980" y2="372" stroke="#d8c8ad" stroke-width="0.5" opacity="0.18" stroke-dasharray="2 3"/>
 
     <!-- Guardrails band -->
-    <text x="870" y="390" fill="#c9b89a" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="11.5" text-anchor="middle">guardrails wrap every step</text>
+    <text x="870" y="390" fill="#d8c8ad" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="11.5" text-anchor="middle">guardrails wrap every step</text>
   </g>
 
   <!-- Bidirectional bridge: Postgres ↔ Coordinator column -->
-  <line x1="692" y1="281" x2="738" y2="281" stroke="#8a8a8a" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow)"/>
-  <text x="715" y="272" fill="#c9b89a" font-family="Inter, Helvetica, Arial, sans-serif" font-style="italic" font-size="11" text-anchor="middle">read + write</text>
+  <line x1="692" y1="281" x2="738" y2="281" stroke="#a3a3a3" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow)"/>
+  <text x="715" y="272" fill="#d8c8ad" font-family="Inter, Helvetica, Arial, sans-serif" font-style="italic" font-size="11" text-anchor="middle">read + write</text>
 
   <!-- ================================================================
        5. Postgres → Opus
        ================================================================ -->
-  <line x1="310" y1="404" x2="310" y2="428" stroke="#8a8a8a" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="310" y1="404" x2="310" y2="428" stroke="#a3a3a3" stroke-width="1.5" marker-end="url(#arrow)"/>
 
   <!-- ================================================================
        6. OPUS pill  (y=430..496)
        ================================================================ -->
   <g>
-    <rect x="130" y="430" width="360" height="66" rx="12" fill="url(#llmFill)" stroke="#f0b877" stroke-width="1.5"/>
-    <text x="150" y="458" fill="#f0b877" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="15" letter-spacing="1.6">CLAUDE OPUS 4.7</text>
-    <text x="150" y="480" fill="#c9b89a" font-family="Inter, Helvetica, Arial, sans-serif" font-size="12">response synthesis from grounded picks</text>
+    <rect x="130" y="430" width="360" height="66" rx="12" fill="url(#llmFill)" stroke="#ffcf88" stroke-width="1.5"/>
+    <text x="150" y="458" fill="#ffcf88" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="15" letter-spacing="1.6">CLAUDE OPUS 4.7</text>
+    <text x="150" y="480" fill="#d8c8ad" font-family="Inter, Helvetica, Arial, sans-serif" font-size="12">response synthesis from grounded picks</text>
   </g>
   <!-- Side annotation -->
-  <text x="510" y="458" fill="#c9b89a" font-family="Menlo, Consolas, monospace" font-size="12">grounded picks only</text>
-  <text x="510" y="478" fill="#c9b89a" font-family="Menlo, Consolas, monospace" font-size="12">→ customer-facing reply</text>
+  <text x="510" y="458" fill="#d8c8ad" font-family="Menlo, Consolas, monospace" font-size="12">grounded picks only</text>
+  <text x="510" y="478" fill="#d8c8ad" font-family="Menlo, Consolas, monospace" font-size="12">→ customer-facing reply</text>
 
   <!-- ================================================================
        7. Bottom tagline
        ================================================================ -->
-  <text x="520" y="524" fill="#c9b89a" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="16" text-anchor="middle">Two Claude models · Three agents · One Postgres DB</text>
+  <text x="520" y="524" fill="#d8c8ad" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="16" text-anchor="middle">Two Claude models · Three agents · One Postgres DB</text>
 </svg>
