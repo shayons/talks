@@ -51,6 +51,8 @@ Two windows, side by side:
 
 Optional third window for Scenario 3: `python mcp_server.py` in a terminal.
 
+**Run [`./reset.sh`](reset.sh) right before you go live** — clears the rehearsal noise (`agent_sessions`, `agent_messages`, `tool_audit`, `approvals`) without touching the knowledge base. One keystroke, no re-embedding. See [When to re-seed](#when-to-re-seed) for the full distinction.
+
 ## The three customers
 
 Same agents, same tools, same prompts. The memory in their rows is what makes the answers different.
@@ -398,9 +400,14 @@ Day-to-day demoing is just `python app.py`. Re-seed only when:
 - You blew away the DB or re-ran `schema.sql`
 - You edited `BEANS`, `CUSTOMERS`, `ORDERS`, or `TOOLS` in `seed.py`
 - You changed `EMBED_MODEL` — stored embeddings won't match new queries
-- You want a completely clean slate for a stage rehearsal
 
-For a fresh session/audit trail without re-embedding the catalog:
+**Between rehearsals you almost never need `seed.py`.** What you want is a clean conversation state — run [`reset.sh`](reset.sh):
+
+```bash
+./reset.sh
+```
+
+One keystroke; truncates `approvals`, `tool_audit`, `agent_messages`, and `agent_sessions` with `RESTART IDENTITY`. Doesn't touch `beans`, `customers`, `orders`, or `tools`, so embeddings and knowledge base stay put. Equivalent to:
 
 ```sql
 TRUNCATE approvals, tool_audit, agent_messages, agent_sessions RESTART IDENTITY;
@@ -412,6 +419,7 @@ Ideal right before going live.
 
 - [`schema.sql`](schema.sql) — full schema, pipe into `psql`
 - [`seed.py`](seed.py) — seeds customers, beans (with real embeddings), orders, tool registry
+- [`reset.sh`](reset.sh) — between-rehearsals cleanup (truncates conversation state only)
 - [`db.py`](db.py) — Postgres pool + lazy embedder
 - [`bedrock.py`](bedrock.py) — Bedrock Converse wrapper with per-call telemetry + `tool_audit` logging
 - [`agents.py`](agents.py) — coordinator, roast master, flavor profiler, Haiku intent, Opus synthesis, tool discovery, procedural memory, checkpointing, fact-check, approvals
