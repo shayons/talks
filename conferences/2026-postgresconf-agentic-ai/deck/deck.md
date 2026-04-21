@@ -305,7 +305,7 @@ The threshold matters — too low surfaces irrelevant tools; too high misses leg
 - `list_tables` — schema introspection with approximate row counts
 - `describe(table)` — columns + indexes, **allowlist-gated**
 - `run_query(sql, params)` — **SELECT-only**, parameterized, DDL/DML rejected, 100-row cap
-- **Enforcement**: MCP server connects as a read-only Postgres role (`GRANT SELECT ON ... TO mcp_reader`). SQL also parsed client-side to reject anything that isn't a single `SELECT`. Belt and suspenders.
+- **Enforcement**: SQL parsed client-side to reject anything that isn't a single `SELECT`. In production, connect as a read-only Postgres role (`GRANT SELECT ON ... TO mcp_reader`) for belt-and-suspenders safety.
 
 Claude Desktop, Cursor, or any MCP host can query `agent_messages`, `tool_audit`, `approvals` directly.
 

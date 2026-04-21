@@ -8,7 +8,7 @@ Most "production agent" stacks glue together Pinecone, Redis, DynamoDB, Postgres
 
 The LLMs live at the edges — Haiku parses intent, Opus synthesizes the reply. **Everything in between is SQL.**
 
-**No agent framework — by design, not on principle.** Eight dependencies total: FastAPI, psycopg, pgvector, fastembed, boto3, pydantic, python-dotenv, uvicorn. The repo deliberately ships without LangChain, LangGraph, Strands, AgentCore, or Temporal so you can read the orchestration top-to-bottom — [`agents.py`](agents.py) is ~2,200 lines of Python with no magic. In production, most teams pick a framework and that's fine: LangGraph's [`PostgresSaver`](https://langchain-ai.github.io/langgraph/reference/checkpoints/#langgraph.checkpoint.postgres.PostgresSaver) is a nice API over a `jsonb` column, Strands memory can point at a Postgres table, AgentCore's session store speaks SQL. Clean seam — **frameworks handle prompt orchestration and agent loops; Postgres handles state, memory, audit, approvals.** This repo skips the top half so the bottom half is legible.
+**No agent framework — by design, not on principle.** Eight dependencies total: FastAPI, psycopg, pgvector, fastembed, boto3, pydantic, python-dotenv, uvicorn. The repo deliberately ships without LangChain, LangGraph, Strands, AgentCore, or Temporal so you can read the orchestration top-to-bottom — [`agents.py`](agents.py) is ~1,500 lines of Python with no magic. In production, most teams pick a framework and that's fine: LangGraph's [`PostgresSaver`](https://langchain-ai.github.io/langgraph/reference/checkpoints/#langgraph.checkpoint.postgres.PostgresSaver) is a nice API over a `jsonb` column, Strands memory can point at a Postgres table, AgentCore's session store speaks SQL. Clean seam — **frameworks handle prompt orchestration and agent loops; Postgres handles state, memory, audit, approvals.** This repo skips the top half so the bottom half is legible.
 
 ---
 
@@ -219,7 +219,7 @@ SELECT b.name, b.roast_level, b.in_stock,
  ORDER BY similarity DESC LIMIT 5;
 ```
 
-> _"Six pillars of a production agent — two Claude models, memory, tool registry, MCP, state, guardrails — all anchored on the Postgres you already have. The data plane is ~2,200 lines of Python plus a 116-line `schema.sql`. Postgres is enough."_
+> _"Six pillars of a production agent — two Claude models, memory, tool registry, MCP, state, guardrails — all anchored on the Postgres you already have. The data plane is ~2,500 lines of Python plus a 116-line `schema.sql`. Postgres is enough."_
 
 ---
 

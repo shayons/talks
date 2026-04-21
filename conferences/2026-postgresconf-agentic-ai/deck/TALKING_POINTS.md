@@ -18,13 +18,13 @@
 | Tools as a table                | 12–14  | 4 min      | Registry → discovery SQL → MCP                                         |
 | Workflow state + limits         | 15–16  | 3 min      | JSONB checkpoint, then the honesty slide on when it's not enough       |
 | Guardrails                      | 17     | 2 min      | Fact-check · confidence · approvals                                    |
-| **Demo**                        | 18     | **12 min** | 3 scenarios · see README for per-turn scripts                          |
-| Operational realities           | 19–22  | 8 min      | HNSW, autovacuum, pool sizing, coreference                             |
-| Honesty slide                   | 23     | 2 min      | When _not_ to do this — buys credibility                               |
-| Closer + references             | 24–27  | 3 min      | The "every role, one plan" SQL · where the pattern lands · Q&A         |
+| **Demo** (divider + live)       | 18     | **12 min** | 3 scenarios · see README for per-turn scripts                          |
+| Operational realities           | 19–23  | 8 min      | Divider + HNSW, autovacuum, pool sizing, coreference                   |
+| Honesty slide                   | 24     | 2 min      | When _not_ to do this — buys credibility                               |
+| Closer + references             | 25–29  | 3 min      | "Every role, one plan" SQL · where it lands · references · repo · Q&A  |
 | **Buffer**                      |        | **3 min**  | Demo gods, a deep question, finding the right tab                      |
 
-**Rule of thumb on stage:** 5 minutes behind at the demo → skip operational realities (19–22), jump to the closer. The demo is the payload. The tuning slides are appendix.
+**Rule of thumb on stage:** 5 minutes behind at the demo → skip operational realities (20–23), jump to the closer. The demo is the payload. The tuning slides are appendix.
 
 ---
 
@@ -142,11 +142,11 @@ Two interfaces, one store. Agent writes via FastAPI. External MCP hosts (Claude 
 
 The enforcement is the point:
 
-- Read-only Postgres role (`GRANT SELECT`). The _database_ refuses writes.
 - SQL parsed client-side to reject anything that isn't a single `SELECT`.
 - Row cap enforced.
+- In production, add a read-only Postgres role (`GRANT SELECT`). The _database_ refuses writes — belt and suspenders.
 
-_"Belt and suspenders. The role is the belt. If the parser has a bug, the role still stops it. Same model we already trust for BI readers and exfil-sensitive reporting."_
+_"The demo uses client-side parsing. In production, add the role. The role is the belt. If the parser has a bug, the role still stops it. Same model we already trust for BI readers and exfil-sensitive reporting."_
 
 ### 15. Workflow state is a column
 
@@ -188,7 +188,13 @@ Condensed running order for stage timing:
 
 **Behind schedule?** Cut Scenario 3's MCP terminal, keep the refusal. The refusal is the point.
 
-### 19. pgvector: HNSW tuning
+### 19. Operational Realities (divider)
+
+Section-divider slide. Brief beat to signal the mode shift from architecture to production.
+
+_"Everything up to here was architecture. The next four slides are what it takes to keep this pattern up at 2am — the part that earns the trust of a room full of Postgres operators."_
+
+### 20. pgvector: HNSW tuning
 
 The committers want this slide. Three knobs:
 
@@ -200,7 +206,7 @@ Name the shape: recall climbs fast, saturates around 0.98. Latency climbs linear
 
 Committer note: _"pgvector 0.7 shipped parallel HNSW builds. Still on 0.5 or 0.6 with single-threaded builds? That's your first easy upgrade."_
 
-### 20. Autovacuum on append-heavy tables
+### 21. Autovacuum on append-heavy tables
 
 `agent_messages` and `tool_audit` are write-mostly. Default autovacuum is tuned for OLTP mutation — it triggers on dead tuples you never create.
 
@@ -210,7 +216,7 @@ _"Half the room nods because they've lived it. The other half just learned why t
 
 For the deeply-interested: TOAST on `content jsonb` in `agent_messages`. Long prompt histories toast — set `toast_tuple_target` to match your typical payload. Measure with `pg_column_size`.
 
-### 21. Connection pooling
+### 22. Connection pooling
 
 One turn = 8–15 queries. 50 concurrent sessions = ~500 queries in flight. Don't point those at raw backends.
 
@@ -218,7 +224,7 @@ PgBouncer in transaction mode, prepared statements on (1.21+), `default_pool_siz
 
 _"This is standard OLTP advice. Agents are OLTP with LLM calls on either side. The pooling story doesn't change."_
 
-### 22. Chat continuity ("order that")
+### 23. Chat continuity ("order that")
 
 The coreference problem. Re-embedding turn 2 lands somewhere else, because "order a bag" semantically matches "generic order" more than "that espresso blend we just pitched." Naive implementation → customer sees a bait-and-switch.
 
@@ -226,7 +232,7 @@ The fix: Haiku's tool schema includes `order_referent_bean_id`. Haiku reads the 
 
 _"The LLM and the coordinator share a memory. That memory is a boring SQL table. The thing that would be a brittle state machine in some other architecture is a structured field in a tool schema — and the source of truth is `agent_messages`."_
 
-### 23. When NOT to do this
+### 24. When NOT to do this
 
 Land all five bullets. This is the slide that buys you credibility. Read the fifth with a smile:
 
@@ -236,7 +242,7 @@ Land the pivot:
 
 _"I'm not here to tell you Postgres is the answer for every agent workload. I'm here to tell you it's the answer for most agent workloads, most of the time — and the tradeoff conversation should start with the access pattern, not the vendor logo."_
 
-### 24. Every role, one plan
+### 25. Every role, one plan
 
 The closer SQL. Read it out loud — don't rush. Name each subquery:
 
@@ -247,7 +253,7 @@ The closer SQL. Read it out loud — don't rush. Name each subquery:
 
 _"One plan. One optimizer. One transaction. Draw this when your vectors are in Pinecone, your state is in Postgres, and your audit is in DynamoDB."_
 
-### 25. Where this pattern lands in practice
+### 26. Where this pattern lands in practice
 
 Softer framing than a war story. Observation across independent teams, not a personal victory lap. This slide is also where you reconcile the "no framework" repo with the "frameworks are fine" reality.
 
@@ -261,17 +267,19 @@ Close with the humbler read: _"Smart teams keep reinventing this. That's the str
 
 Offer to share specifics off-stage on the three use-case bullets.
 
-### 26. Architecture reference
+### 27. Architecture reference
 
 Don't read the table. It's for the recording.
 
 _"This is for when you're back at your desk trying to remember which column does what. Slides are on GitHub."_
 
-### 27. Run it yourself + Thank you
+### 28. Run it yourself
 
 Point at the URL.
 
 _"Clone it, run it, break it. Schema is 116 lines. `agents.py` reads top to bottom. No framework to fight."_
+
+### 29. Thank you
 
 Open the floor. Default to taking questions against the live demo (still on screen) so answers stay concrete.
 
@@ -299,7 +307,7 @@ Open the floor. Default to taking questions against the live demo (still on scre
 - **Pace check at slide 11.** Past 15 minutes into the talk? You're behind — the demo will run long. Skip slide 9 (latency/cost) to recover.
 - **Don't read the SQL slides.** Name the three things in the query and move. The audience reads faster than you speak.
 - **Demo running long?** Cut Scenario 3's MCP terminal. Keep the refusal.
-- **psql misbehaving?** Slide 24 ("Every role, one plan") is the fallback. Same argument without the live DB.
+- **psql misbehaving?** Slide 25 ("Every role, one plan") is the fallback. Same argument without the live DB.
 - **Finished early?** Open questions. Don't pad.
 
 ---
@@ -308,4 +316,4 @@ Open the floor. Default to taking questions against the live demo (still on scre
 
 If someone asks in the hallway to describe the talk in one sentence:
 
-> _"The data plane for a production agent collapses into one Postgres — episodic, semantic, and procedural memory, tool registry, audit, workflow state, approvals, and an MCP surface — and the orchestration layer you'd otherwise import is ~2,200 lines of Python."_
+> _"The data plane for a production agent collapses into one Postgres — episodic, semantic, and procedural memory, tool registry, audit, workflow state, approvals, and an MCP surface — and the orchestration layer you'd otherwise import is ~2,500 lines of Python."_
