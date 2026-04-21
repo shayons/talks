@@ -179,6 +179,19 @@ INTENT_TOOL_SPEC = {
                         },
                         "description": "Explicit roast levels the customer asked for. Empty if none.",
                     },
+                    "origins": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": (
+                            "Country, region, or continent the customer asked about, as a "
+                            "free-form list of substrings to match against the beans.origin "
+                            "column with ILIKE. Examples: ['Japan'], ['Ethiopia','Kenya'], "
+                            "['Asia-Pacific','Indonesia','Sumatra','Sulawesi'], "
+                            "['Central America','Panama','Costa Rica','Guatemala']. "
+                            "Include synonyms and common countries for a region so ILIKE "
+                            "has something to match. Empty list if no place was mentioned."
+                        ),
+                    },
                     "budget_cents": {
                         "type": ["integer", "null"],
                         "description": "Upper budget in US cents (e.g. $20 -> 2000). Null if no budget mentioned.",
@@ -202,7 +215,7 @@ INTENT_TOOL_SPEC = {
                     },
                 },
                 "required": [
-                    "brew_method", "explicit_roasts", "budget_cents",
+                    "brew_method", "explicit_roasts", "origins", "budget_cents",
                     "wants_order", "order_referent_bean_id", "reasoning",
                 ],
             }
@@ -295,6 +308,7 @@ def parse_intent(ctx: "AgentContext") -> dict:
         "brew_method": parsed.get("brew_method"),
         "brew_label": _BREW_LABEL_MAP.get(parsed.get("brew_method") or ""),
         "explicit_roasts": parsed.get("explicit_roasts") or [],
+        "origins": [o.strip() for o in (parsed.get("origins") or []) if o and o.strip()],
         "budget_cents": parsed.get("budget_cents"),
         "wants_order": bool(parsed.get("wants_order")),
         "order_referent_bean_id": parsed.get("order_referent_bean_id"),
@@ -310,6 +324,7 @@ def parse_intent(ctx: "AgentContext") -> dict:
         preview_rows=[
             ["brew_method", intent["brew_method"] or "(unspecified)"],
             ["explicit_roasts", ", ".join(intent["explicit_roasts"]) or "(none)"],
+            ["origins", ", ".join(intent["origins"]) or "(none)"],
             ["budget_cents", str(intent["budget_cents"]) if intent["budget_cents"] else "(none)"],
             ["wants_order", "yes" if intent["wants_order"] else "no"],
             ["order_referent_bean_id", intent["order_referent_bean_id"] or "(none)"],
@@ -774,7 +789,7 @@ SELECT id, name, roast_level, in_stock, price_cents
         with conn() as c, c.cursor() as cur:
             cur.execute(
                 """SELECT id, name, roast_level, process, flavor_notes,
-                          price_cents, in_stock
+                          price_cents, in_stock, origin
                      FROM beans WHERE id = %s""",
                 (bean_id,),
             )
@@ -785,6 +800,7 @@ SELECT id, name, roast_level, in_stock, price_cents
             "id": r[0], "name": r[1], "roast_level": r[2],
             "process": r[3], "flavor_notes": r[4],
             "price_cents": r[5], "in_stock": r[6],
+            "origin": r[7],
             "score": 0.0,
             "one_liner": f"{r[2]} roast · {', '.join((r[4] or [])[:3])} · ${r[5]/100:.2f}/bag",
         }
@@ -851,9 +867,9 @@ SELECT id, name, roast_level, in_stock, price_cents
 
         # ---- Build grounded context for Opus -----------------------------
         bean_block = "\n".join(
-            f"- id={p['id']} | name={p['name']} | roast={p['roast_level']} | "
-            f"notes={', '.join(p['flavor_notes'])} | price=${p['price_cents']/100:.2f}/bag | "
-            f"in_stock={p['in_stock']}"
+            f"- id={p['id']} | name={p['name']} | origin={p.get('origin','?')} | "
+            f"roast={p['roast_level']} | notes={', '.join(p['flavor_notes'])} | "
+            f"price=${p['price_cents']/100:.2f}/bag | in_stock={p['in_stock']}"
             for p in picks
         )
         history_block = "\n".join(
@@ -934,12 +950,24 @@ SELECT id, name, roast_level, in_stock, price_cents
             "   order status from here and that they can check the approvals queue "
             "   (e.g. <code>SELECT status FROM approvals ...</code>) or wait for a "
             "   shipping notification. Still use citation tags if you name any bean, "
-            "   but most status replies won't name beans at all."
+            "   but most status replies won't name beans at all.\n"
+            "10. If the customer asked for a specific country or region (see "
+            "    `requested_origins` below) and NONE of the grounded picks match "
+            "    that provenance in their `origin` field, do NOT pivot to unrelated "
+            "    picks. Instead, refuse warmly in 1–2 sentences: say the catalog "
+            "    doesn't have that origin in stock right now and invite them to "
+            "    broaden the request (e.g. to the wider region, or another origin "
+            "    they've enjoyed). Do NOT cite beans from a different origin as if "
+            "    they were a match — stay honest. You may still offer a gentle "
+            "    adjacent suggestion if one is clearly close (e.g. 'Sulawesi from "
+            "    Indonesia' when someone asks for 'Asia-Pacific'), but label it "
+            "    honestly as adjacent, not as a match."
         )
         user_msg = (
             f"Customer name: {first_name}\n"
             f"Customer profile: {prefs or '(none)'}\n"
             f"Brew method: {brew_label}\n"
+            f"Requested origins: {', '.join(intent.get('origins') or []) or '(none)'}\n"
             f"Customer latest message: {ctx.query!r}\n\n"
             f"Recent order history (newest first):\n{history_block}\n\n"
             f"Grounded picks (the ONLY beans you may reference):\n{bean_block}\n\n"
@@ -989,7 +1017,7 @@ class FlavorProfilerAgent:
 
         # Build the similarity SQL — real pgvector cosine distance
         sql = """
-SELECT id, name, roast_level, process, flavor_notes, price_cents, in_stock,
+SELECT id, name, roast_level, process, flavor_notes, price_cents, in_stock, origin,
        1 - (embedding <=> $1) AS score
   FROM beans
  ORDER BY embedding <=> $1
@@ -1004,7 +1032,7 @@ SELECT id, name, roast_level, process, flavor_notes, price_cents, in_stock,
 
         # panel
         display_rows = [
-            [r[1], r[2], ", ".join(r[4])[:36], f"{r[7]:.2f}"]  # name, roast, notes, score
+            [r[1], r[2], ", ".join(r[4])[:36], f"{r[8]:.2f}"]  # name, roast, notes, score
             for r in rows
         ]
         ctx.emit_panel(
@@ -1022,7 +1050,8 @@ SELECT id, name, roast_level, process, flavor_notes, price_cents, in_stock,
             {
                 "id": r[0], "name": r[1], "roast_level": r[2],
                 "process": r[3], "flavor_notes": r[4],
-                "price_cents": r[5], "in_stock": r[6], "score": float(r[7]),
+                "price_cents": r[5], "in_stock": r[6],
+                "origin": r[7], "score": float(r[8]),
                 "one_liner": self._one_liner(r),
             }
             for r in rows
@@ -1075,6 +1104,49 @@ class RoastMasterAgent:
         # budget filter
         if intent["budget_cents"]:
             filtered = [c for c in filtered if c["price_cents"] <= intent["budget_cents"]]
+
+        # origin filter — SQL-level ILIKE in Python because we already have the
+        # candidate rows in memory. Catalog-miss demo (Scenario 3) lives here:
+        # asking for "Japanese single-origins" returns an empty set, fact-check
+        # stays empty, Opus takes the refusal path. Without this filter, pgvector
+        # cosine returns delicate-floral neighbors (Geisha, Yirgacheffe) that
+        # embed close to "Japanese single-origin" and the agent would pitch
+        # them, silently papering over the catalog miss.
+        origins = intent.get("origins") or []
+        if origins:
+            def _matches_origin(c: dict) -> bool:
+                bean_origin = (c.get("origin") or "").lower()
+                return any(o.lower() in bean_origin for o in origins)
+
+            matched_before = len(filtered)
+            filtered_by_origin = [c for c in filtered if _matches_origin(c)]
+
+            ctx.emit_panel(
+                agent="roast_master",
+                tag="ROAST MASTER · ORIGIN",
+                title=f"Origin filter: {', '.join(origins)}",
+                sql=(
+                    "-- pseudo: beans.origin ILIKE ANY "
+                    + str(tuple(f"%{o}%" for o in origins))
+                ),
+                columns=["requested_origin", "matched?"],
+                rows=[
+                    [
+                        o,
+                        "✓" if any(o.lower() in (c.get("origin") or "").lower()
+                                   for c in filtered)
+                        else "—",
+                    ]
+                    for o in origins
+                ],
+                meta=(
+                    f"{len(filtered_by_origin)}/{matched_before} candidates "
+                    f"kept · empty list ⇒ refusal path, not a pivot"
+                ),
+                duration_ms=0,
+                tag_class=("green" if filtered_by_origin else "amber"),
+            )
+            filtered = filtered_by_origin
 
         # dedup while preserving order, pick up to 3
         seen = set()

@@ -171,7 +171,7 @@ Switch to **Yuki**. Click **New Session**. Tokyo-based buyer whose first ask the
 
 **Turn 1 —** `Any Japanese single-origins in stock?`
 
-Cosine similarity returns neighbors (Sumatra, Sulawesi) but `origin ILIKE '%Japan%'` comes up empty. Fact-check drops everything. Grounded-picks list is empty. Opus is still called, but the system prompt forces a warm refusal — it physically cannot cite a bean that isn't in its context.
+Haiku extracts `origins=['Japan']`. The Roast Master applies the origin filter (`ROAST MASTER · ORIGIN` panel, amber because no matches). Cosine similarity returned neighbors (Sumatra, Sulawesi, Ethiopia) but none of their `origin` columns contain `Japan`, so the filter drops all of them. Fact-check gets an empty list. Grounded-picks list is empty. Opus is still called, but the system prompt (rule 10) forces a warm refusal — **it physically cannot cite a bean that isn't in its context, and the origin filter guarantees no off-provenance pick slips through.**
 
 **Turn 2 —** `What do you have from Asia-Pacific then?`
 
@@ -221,21 +221,22 @@ SELECT b.name, b.roast_level, b.in_stock,
 
 The right-hand Agent Telemetry tab streams these as the agents run. One-line narration per panel.
 
-| Panel                      | Say this                                                                                                              |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `PLAN`                     | Coordinator decomposes the request into steps; states transition `queued → running → ok`.                             |
-| `LLM · HAIKU · INTENT`     | Haiku reads the last ~6 turns, returns structured JSON via Converse tool-use.                                         |
-| `TOOL REGISTRY · DISCOVER` | `tools.description_emb` ranked by cosine similarity — tools discovered at query time, not hard-coded.                 |
-| `MEMORY · EPISODIC`        | Last 5 `orders` rows — index scan on `orders_customer_idx`.                                                           |
-| `MEMORY · PROFILE`         | `preferences_summary` — one-row PK lookup. A text column instead of a Redis profile.                                  |
-| `MEMORY · PROCEDURAL`      | The zinger. pgvector similarity + JOIN on `orders` and `customers` — one query, three sources.                        |
-| `MEMORY · SEMANTIC`        | Cosine similarity over `beans.embedding` with HNSW. Sub-millisecond at this scale, still fast at 10M rows.            |
-| `ROAST MASTER · FILTER`    | Brew-method filter runs in Postgres, not in the model.                                                                |
-| `TOOL · CHECK_INVENTORY`   | Registered in `tools`, audited in `tool_audit`, same transaction as its effect.                                       |
-| `GUARDRAIL · FACT-CHECK`   | Every pick re-read from `beans`, stock verified. Failures dropped, not papered over.                                  |
-| `GROUNDING`                | Every claim ties back to a row. Confidence reflects data coverage, not a fudge factor.                                |
-| `GUARDRAIL · APPROVAL`     | `place_order` has `requires_approval=true` → inserts into `approvals` with `status='pending'`. Effect blocked.        |
-| `LLM · OPUS · SYNTHESIZE`  | Opus receives grounded picks + customer profile. System prompt locks it to cited bean ids. ~700 in / ~300 out / 3–5s. |
+| Panel                      | Say this                                                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `PLAN`                     | Coordinator decomposes the request into steps; states transition `queued → running → ok`.                                 |
+| `LLM · HAIKU · INTENT`     | Haiku reads the last ~6 turns, returns structured JSON via Converse tool-use.                                             |
+| `TOOL REGISTRY · DISCOVER` | `tools.description_emb` ranked by cosine similarity — tools discovered at query time, not hard-coded.                     |
+| `MEMORY · EPISODIC`        | Last 5 `orders` rows — index scan on `orders_customer_idx`.                                                               |
+| `MEMORY · PROFILE`         | `preferences_summary` — one-row PK lookup. A text column instead of a Redis profile.                                      |
+| `MEMORY · PROCEDURAL`      | The zinger. pgvector similarity + JOIN on `orders` and `customers` — one query, three sources.                            |
+| `MEMORY · SEMANTIC`        | Cosine similarity over `beans.embedding` with HNSW. Sub-millisecond at this scale, still fast at 10M rows.                |
+| `ROAST MASTER · FILTER`    | Brew-method filter runs in Postgres, not in the model.                                                                    |
+| `ROAST MASTER · ORIGIN`    | Origin filter (country/region) runs against `beans.origin` — empties the pick list when no bean matches, forcing refusal. |
+| `TOOL · CHECK_INVENTORY`   | Registered in `tools`, audited in `tool_audit`, same transaction as its effect.                                           |
+| `GUARDRAIL · FACT-CHECK`   | Every pick re-read from `beans`, stock verified. Failures dropped, not papered over.                                      |
+| `GROUNDING`                | Every claim ties back to a row. Confidence reflects data coverage, not a fudge factor.                                    |
+| `GUARDRAIL · APPROVAL`     | `place_order` has `requires_approval=true` → inserts into `approvals` with `status='pending'`. Effect blocked.            |
+| `LLM · OPUS · SYNTHESIZE`  | Opus receives grounded picks + customer profile. System prompt locks it to cited bean ids. ~700 in / ~300 out / 3–5s.     |
 
 ## Audience curveballs
 
