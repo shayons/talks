@@ -8,7 +8,7 @@ Most "production agent" stacks glue together Pinecone, Redis, DynamoDB, Postgres
 
 The LLMs live at the edges — Haiku parses intent, Opus synthesizes the reply. **Everything in between is SQL.**
 
-**No agent framework.** Eight dependencies total: FastAPI, psycopg, pgvector, fastembed, boto3, pydantic, python-dotenv, uvicorn. No LangChain, no LangGraph, no Strands, no AgentCore, no Temporal. The claim is that when Postgres does memory, state, audit, and approvals, the orchestration layer you'd otherwise import is ~2,200 lines of Python you can read top-to-bottom — [`agents.py`](agents.py) is the bulk of it. LangGraph's `PostgresSaver` is a great library; it's also a wrapper around a `jsonb` column. Here the `jsonb` column is right there.
+**No agent framework — by design, not by dogma.** Eight dependencies total: FastAPI, psycopg, pgvector, fastembed, boto3, pydantic, python-dotenv, uvicorn. The repo deliberately ships without LangChain, LangGraph, Strands, AgentCore, or Temporal so you can read the orchestration top-to-bottom — [`agents.py`](agents.py) is ~2,200 lines of Python with no magic. In production, most teams pick a framework and that's fine: LangGraph's [`PostgresSaver`](https://langchain-ai.github.io/langgraph/reference/checkpoints/#langgraph.checkpoint.postgres.PostgresSaver) is a nice API over a `jsonb` column, Strands memory can point at a Postgres table, AgentCore's session store speaks SQL. Clean seam — **frameworks handle prompt orchestration and agent loops; Postgres handles state, memory, audit, approvals.** This repo skips the top half so the bottom half is legible.
 
 ---
 
