@@ -11,16 +11,17 @@
   --pg-bg: #000000; /* pure black */
   --pg-bg-raised: #111111; /* panels, code blocks */
   --pg-line: #2a2a2a; /* subtle borders */
-  --pg-ink: #f8efe1; /* primary cream (slightly brighter for projector) */
-  --pg-ink-dim: #d8c8ad; /* secondary cream (was #c9b89a — brighter now) */
-  --pg-ink-mut: #a3a3a3; /* captions, page numbers (was #8a8a8a) */
-  --pg-blue: #7ab8e5; /* postgres brand tint (was #5ea5d9 — brighter) */
-  --pg-amber: #ffcf88; /* highlights, heading accents (was #f0b877) */
-  --pg-amber-d: #e0933a; /* heading underline (was #c97f2a — brighter) */
-  --pg-ok: #a3d466; /* success (was #8bc34a) */
+  --pg-ink: #ffffff; /* primary body text — pure white for projector contrast */
+  --pg-ink-dim: #d8c8ad; /* secondary cream (italic captions, asides) */
+  --pg-ink-mut: #a3a3a3; /* captions, page numbers */
+  --pg-blue: #a8d4ff; /* eyebrow labels (THE THESIS, ABOUT ME, etc.) — brightened */
+  --pg-blue-strong: #7ab8e5; /* h3 subheaders where we want a touch less luminance */
+  --pg-amber: #ffcf88; /* named emphasis — strong tags, service names, code */
+  --pg-amber-d: #e0933a; /* heading underline */
+  --pg-ok: #a3d466; /* success */
   --pg-warn: #ffcf88;
-  --pg-err: #ec8e7c; /* was #e07a6a */
-  --pg-quote: #4ce2b6; /* was #2bd1a1 */
+  --pg-err: #ec8e7c;
+  --pg-quote: #4ce2b6;
 }
 
 section {
@@ -56,7 +57,7 @@ h2 {
 }
 h3 {
   font-size: 30px;
-  color: var(--pg-blue);
+  color: var(--pg-blue-strong);
 }
 strong {
   color: var(--pg-amber);
@@ -343,7 +344,7 @@ section.bio .bio-text strong {
 section.bio .bio-text p {
   font-size: 20px;
   line-height: 1.5;
-  color: var(--pg-ink-dim);
+  color: var(--pg-ink);
   margin: 12px 0;
 }
 section.bio .bio-links {
@@ -376,7 +377,7 @@ section.takeaway h1 {
   margin: 0 auto 24px;
 }
 section.takeaway p {
-  color: var(--pg-ink-dim);
+  color: var(--pg-ink);
   font-size: 28px;
   max-width: 78%;
   margin: 0 auto;
