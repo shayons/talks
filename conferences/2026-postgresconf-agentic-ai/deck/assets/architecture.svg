@@ -17,26 +17,6 @@
     <marker id="arrow-start" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="6" markerHeight="6" orient="auto">
       <path d="M8 1 L2 5 L8 9" fill="none" stroke="#a3a3a3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
-    <!-- Soft blue glow for the Postgres panel + POSTGRESQL title. -->
-    <filter id="blueGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b1"/>
-      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="b2"/>
-      <feMerge>
-        <feMergeNode in="b2"/>
-        <feMergeNode in="b1"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-    <!-- Soft amber glow for the LLM pills + AGENTS panel. -->
-    <filter id="amberGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="a1"/>
-      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="a2"/>
-      <feMerge>
-        <feMergeNode in="a2"/>
-        <feMergeNode in="a1"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
   </defs>
 
   <rect width="1040" height="540" fill="#000000"/>
@@ -57,8 +37,8 @@
        2. HAIKU pill  (y=68..134)
        ================================================================ -->
   <g>
-    <rect x="130" y="68" width="360" height="66" rx="12" fill="url(#llmFill)" stroke="#ffcf88" stroke-width="1.5" filter="url(#amberGlow)"/>
-    <text x="150" y="96" fill="#ffcf88" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="15" letter-spacing="1.6" filter="url(#amberGlow)">CLAUDE HAIKU 4.5</text>
+    <rect x="130" y="68" width="360" height="66" rx="12" fill="url(#llmFill)" stroke="#ffcf88" stroke-width="1.5"/>
+    <text x="150" y="96" fill="#ffcf88" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="15" letter-spacing="1.6">CLAUDE HAIKU 4.5</text>
     <text x="150" y="118" fill="#ffffff" font-family="Inter, Helvetica, Arial, sans-serif" font-size="12">intent parse · tool-use · referent resolution</text>
   </g>
   <!-- Side annotation -->
@@ -72,8 +52,8 @@
        3. POSTGRES panel  x=130..690, y=160..402 (242h)
        ================================================================ -->
   <g>
-    <rect x="130" y="160" width="560" height="242" rx="14" fill="url(#pgFill)" stroke="#7ab8e5" stroke-width="1.6" filter="url(#blueGlow)"/>
-    <text x="410" y="194" fill="#a8d4ff" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="18" text-anchor="middle" letter-spacing="6" filter="url(#blueGlow)">POSTGRESQL</text>
+    <rect x="130" y="160" width="560" height="242" rx="14" fill="url(#pgFill)" stroke="#7ab8e5" stroke-width="1.6"/>
+    <text x="410" y="194" fill="#7ab8e5" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="18" text-anchor="middle" letter-spacing="6">POSTGRESQL</text>
 
     <!-- Row 1 -->
     <circle cx="158" cy="238" r="3" fill="#ffcf88"/>
@@ -118,8 +98,8 @@
        4. AGENTS column  x=740..1000, y=160..402
        ================================================================ -->
   <g>
-    <rect x="740" y="160" width="260" height="242" rx="14" fill="#07070a" stroke="#ffcf88" stroke-width="1.5" stroke-dasharray="5 4" filter="url(#amberGlow)"/>
-    <text x="870" y="192" fill="#ffcf88" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="13" text-anchor="middle" letter-spacing="4" filter="url(#amberGlow)">AGENTS</text>
+    <rect x="740" y="160" width="260" height="242" rx="14" fill="#07070a" stroke="#ffcf88" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="870" y="192" fill="#ffcf88" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="13" text-anchor="middle" letter-spacing="4">AGENTS</text>
 
     <!-- Coordinator (orchestrator) -->
     <rect x="760" y="208" width="220" height="44" rx="8" fill="#1a1208" stroke="#ffcf88" stroke-width="1"/>
@@ -168,8 +148,8 @@
        6. OPUS pill  (y=430..496)
        ================================================================ -->
   <g>
-    <rect x="130" y="430" width="360" height="66" rx="12" fill="url(#llmFill)" stroke="#ffcf88" stroke-width="1.5" filter="url(#amberGlow)"/>
-    <text x="150" y="458" fill="#ffcf88" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="15" letter-spacing="1.6" filter="url(#amberGlow)">CLAUDE OPUS 4.7</text>
+    <rect x="130" y="430" width="360" height="66" rx="12" fill="url(#llmFill)" stroke="#ffcf88" stroke-width="1.5"/>
+    <text x="150" y="458" fill="#ffcf88" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="15" letter-spacing="1.6">CLAUDE OPUS 4.7</text>
     <text x="150" y="480" fill="#ffffff" font-family="Inter, Helvetica, Arial, sans-serif" font-size="12">response synthesis from grounded picks</text>
   </g>
   <!-- Side annotation -->

@@ -325,9 +325,6 @@ section.bio h2 {
   text-transform: uppercase;
   font-weight: 600;
   margin: 0 0 12px;
-  text-shadow:
-    0 0 8px rgba(168, 212, 255, 0.55),
-    0 0 18px rgba(168, 212, 255, 0.35);
 }
 section.bio h1 {
   border: 0;
@@ -369,9 +366,6 @@ section.takeaway h2 {
   text-transform: uppercase;
   font-weight: 600;
   margin-bottom: 24px;
-  text-shadow:
-    0 0 10px rgba(168, 212, 255, 0.55),
-    0 0 22px rgba(168, 212, 255, 0.35);
 }
 section.takeaway h1 {
   border: 0;
@@ -401,9 +395,6 @@ section.section-divider h2 {
   letter-spacing: 4px;
   text-transform: uppercase;
   margin-bottom: 10px;
-  text-shadow:
-    0 0 10px rgba(168, 212, 255, 0.55),
-    0 0 22px rgba(168, 212, 255, 0.35);
 }
 section.section-divider h1 {
   font-size: 72px;
