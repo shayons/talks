@@ -14,8 +14,8 @@
   --pg-ink: #ffffff; /* primary body text — pure white for projector contrast */
   --pg-ink-dim: #d8c8ad; /* secondary cream (italic captions, asides) */
   --pg-ink-mut: #a3a3a3; /* captions, page numbers */
-  --pg-blue: #a8d4ff; /* eyebrow labels (THE THESIS, ABOUT ME, etc.) — brightened */
-  --pg-blue-strong: #7ab8e5; /* h3 subheaders where we want a touch less luminance */
+  --pg-blue: #5b8cb8; /* eyebrow labels — muted steel-blue, elegant on black */
+  --pg-blue-strong: #4a7a9e; /* h3 subheaders — slightly deeper */
   --pg-amber: #ffcf88; /* named emphasis — strong tags, service names, code */
   --pg-amber-d: #e0933a; /* heading underline */
   --pg-ok: #a3d466; /* success */

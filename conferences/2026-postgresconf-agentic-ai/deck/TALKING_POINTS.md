@@ -38,9 +38,9 @@ _"Three agents, two Claude models, one Postgres, no framework. Next 50 minutes I
 
 The hook. Deliver the 30-second opener — the full version is in the speaker notes on the slide. The short version for stage:
 
-_"The minute you ship an agent to production, it stops being a Python script. It becomes seven systems. Seven auth boundaries. Seven failure modes. Seven things to page on at 2am."_
+_"The minute you ship an agent, it stops being a Python script. It becomes a zoo of databases pretending to be one system. Different auth. Different failure modes. Different 2am pages."_
 
-Don't enumerate the seven systems here — slide 4 does that. This slide lands the hook; slide 4 pays it off with the list.
+Don't enumerate or count the systems here — slide 4 does that. This slide lands the hook; slide 4 pays it off with the specific seven.
 
 ### 3. Bio
 
