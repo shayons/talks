@@ -1,38 +1,31 @@
 # talks
 
-Public home for talks, workshops, and conference sessions by **Shayon Sanyal** — Principal PostgreSQL Specialist Solutions Architect · Lead, Agentic AI for Databases at AWS.
+Where I publish the source for talks I give — slides, runnable demo code, and the README I'd hand to anyone who wanted to reproduce them.
 
-Each talk lives under `conferences/<slug>/` with its own README, runnable code, slide deck, and anything else needed to reproduce it.
+By **Shayon Sanyal** · Principal PostgreSQL Specialist Solutions Architect at AWS · Lead, Agentic AI for Databases.
 
 ## Talks
 
-| Venue                             | Date         | Title                                                            | Folder                                                                                               |
-| --------------------------------- | ------------ | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **PostgresConf 2026** · San Pedro | Apr 21, 2026 | Building Agentic AI Applications with PostgreSQL as the Backbone | [`conferences/2026-postgresconf-agentic-ai/`](conferences/2026-postgresconf-agentic-ai/) |
+| Date         | Venue                             | Title                                                            | Materials                                                                                            |
+| ------------ | --------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Apr 21, 2026 | **PostgresConf 2026** · San Pedro | Building Agentic AI Applications with PostgreSQL as the Backbone | [`conferences/postgresconf-2026-agentic-postgres/`](conferences/postgresconf-2026-agentic-postgres/) |
 
-## Layout
+Each folder is self-contained: README, Marp slide deck (source + built PDF), and the demo code. Where a talk has been recorded, the folder's README links to the video.
 
-```
-talks/
-├── README.md                                  # you are here
-└── conferences/
-    └── <year>-<venue>-<topic-slug>/
-        ├── README.md                          # talk's README (abstract, demo script, run instructions)
-        ├── deck/                              # Marp source + built PDF + theme
-        │   ├── deck.md
-        │   ├── deck.pdf
-        │   └── theme.css
-        ├── <code for the live demo>
-        └── static/
-```
+To rebuild a deck locally, `cd` into the talk's folder and run `./deck/build.sh`. Requires Node.js 18+ and [Marp](https://marp.app/).
 
-## Recordings + slides
+## Speaking
 
-Where a talk has been recorded, the folder's README links to the video. Slide PDFs are built from `deck/deck.md` via [Marp](https://marp.app/) — run `./deck/build.sh` inside any talk folder to rebuild.
+If you're organizing a conference, meetup, or internal event and the topics here are a fit, I'm happy to talk. Reach out on LinkedIn with a short description and your date range — [linkedin.com/in/shayonsanyal](https://www.linkedin.com/in/shayonsanyal/).
+
+Topics I'm comfortable speaking on:
+
+- Aurora PostgreSQL — production deployments, migrations, performance, scaling
+- Agentic AI on Postgres — memory architectures, tool registries, MCP, grounding
+- pgvector and semantic search at production scale
+- Database-native AI patterns vs. framework-heavy alternatives
 
 ## Contact
 
 - LinkedIn · [linkedin.com/in/shayonsanyal](https://www.linkedin.com/in/shayonsanyal/)
 - GitHub · [@shayons](https://github.com/shayons)
-
-If you'd like me to speak at your event, reach out on LinkedIn with a short description and date range.
