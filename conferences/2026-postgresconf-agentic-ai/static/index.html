@@ -1005,6 +1005,17 @@
         color: var(--ink);
         animation: row-in 0.22s ease-out both;
       }
+      /* Make long identifiers (tool names like `search_beans_semantic`,
+         `get_customer_history`) wrap inside their grid slot instead of
+         overflowing into the adjacent column. overflow-wrap handles most
+         cases; word-break is the fallback for browsers that ignore the
+         newer property on grid children. */
+      .rows .head > span,
+      .rows .row > span {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
       @keyframes row-in {
         from {
           opacity: 0;
@@ -1686,7 +1697,11 @@
         }
         if (ev.columns && ev.columns.length) {
           const cols = ev.columns.length;
-          const gridCols = `repeat(${cols}, minmax(0, 1fr))`;
+          // minmax(min-content, 1fr) lets columns grow to their widest cell
+          // (so long identifiers like `search_beans_semantic` don't spill
+          // into the neighboring column) while still distributing leftover
+          // space evenly for short content.
+          const gridCols = `repeat(${cols}, minmax(min-content, 1fr))`;
           const rwrap = el("div", "rows");
           const head = el("div", "head");
           head.style.gridTemplateColumns = gridCols;
