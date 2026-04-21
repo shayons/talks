@@ -14,21 +14,21 @@ The LLMs live at the edges — Haiku parses intent, Opus synthesizes the reply. 
 
 ## Table of contents
 
-**[Stage guide](#stage-guide--everything-you-need-while-presenting)** — everything you need while presenting
+**[Stage guide](#stage-guide)** — setup, scenarios, and demo walkthrough
 
-- [Setup (before you go live)](#setup-before-you-go-live)
+- [Setup](#setup)
 - [The three customers](#the-three-customers)
-- [Opener (30 sec)](#opener-30-sec)
+- [Opener](#opener)
 - [Scenario 1 · Marco · Three kinds of memory in one plan](#scenario-1--marco--three-kinds-of-memory-in-one-plan-4-min)
 - [Scenario 2 · Ana · Memory continuity + approvals](#scenario-2--ana--memory-continuity--approvals-4-min)
 - [Scenario 3 · Yuki · Catalog miss + MCP](#scenario-3--yuki--catalog-miss--mcp-3-min)
-- [The closer (30 sec)](#the-closer-30-sec)
+- [The closer](#the-closer)
 - [Panel cheat sheet](#panel-cheat-sheet)
 - [Audience curveballs](#audience-curveballs)
 - [Key takeaways](#key-takeaways)
 - [Production FAQs](#production-faqs)
 
-**[Reference](#reference)** — appendix; safe to skip while presenting
+**[Reference](#reference)** — appendix
 
 - [Quick start](#quick-start)
 - [Using your own Postgres](#using-your-own-postgres)
@@ -41,9 +41,9 @@ The LLMs live at the edges — Haiku parses intent, Opus synthesizes the reply. 
 
 ---
 
-# Stage guide — everything you need while presenting
+# Stage guide
 
-## Setup (before you go live)
+## Setup
 
 Two windows, side by side:
 
@@ -52,15 +52,11 @@ Two windows, side by side:
 
 Optional third window for Scenario 3: `python mcp_server.py` in a terminal.
 
-**Run [`./reset.sh`](reset.sh) right before you go live** — clears the rehearsal noise (`agent_sessions`, `agent_messages`, `tool_audit`, `approvals`) without touching the knowledge base. One keystroke, no re-embedding. See [When to re-seed](#when-to-re-seed) for the full distinction.
+**Run [`./reset.sh`](reset.sh) before each session** — clears conversation state (`agent_sessions`, `agent_messages`, `tool_audit`, `approvals`) without touching the knowledge base. One keystroke, no re-embedding. See [When to re-seed](#when-to-re-seed) for the full distinction.
 
 ## The three customers
 
-Walk on stage, open the demo, and before typing a single query, frame the setup:
-
-> _"We have three customers. Marco is a pour-over regular who keeps pulling East African beans. Ana buys dark-roast espresso in quantity. Yuki is a Tokyo specialty buyer who likes washed light roasts and asks about things our catalog doesn't always carry. Three different personalities, three different shopping patterns — **same agents, same tools, same prompts underneath.** The only thing that changes between them is the rows in `customers`, `orders`, and `agent_messages`. Memory is the personality."_
-
-One pipeline, three different replies — because the rows are different.
+Three customers with different taste profiles demonstrate how the same agents, tools, and prompts produce different replies based on the rows in `customers`, `orders`, and `agent_messages`. Memory is the personality.
 
 | Customer  | Anchors                            | Profile                                                     | Recent orders                                             |
 | --------- | ---------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------- |
@@ -68,9 +64,9 @@ One pipeline, three different replies — because the rows are different.
 | **Ana**   | Memory continuity + approvals      | Dark-roast espresso, chocolatey, low-acid, buys in quantity | House Espresso Blend ×3 → Sumatra ×2 → Brazil Santos ×2   |
 | **Yuki**  | Catalog miss + MCP (same Postgres) | Tokyo buyer, Japanese single-origins, pour-over and siphon  | Panama Geisha → Ethiopia Yirgacheffe → Costa Rica Tarrazú |
 
-> Yuki's ask intentionally has no catalog match — that's what makes her an honest refusal demo, not a contrived "under $5" prompt.
+> Yuki's ask intentionally has no catalog match — that's what makes her a good refusal demo.
 
-## Opener (30 sec)
+## Opener
 
 > _"Three agents. Two Claude models on Bedrock. One Postgres. No vector DB, no queue, no cache, no orchestrator. Let's see what breaks — spoiler: nothing."_
 
@@ -82,7 +78,7 @@ Pick **Marco** (loads by default). Multi-turn pour-over conversation.
 
 **Turn 1 —** `Cold brew options`
 
-| Panel                      | Narration                                                                                        |
+| Panel                      | What happens                                                                                     |
 | -------------------------- | ------------------------------------------------------------------------------------------------ |
 | `LLM · HAIKU · INTENT`     | Haiku returns structured JSON via Converse tool-use: `brew_method=cold_brew`, no order.          |
 | `TOOL REGISTRY · DISCOVER` | `tools.description_emb` ranks `search_beans_semantic` and `check_inventory` on top. Not wired.   |
@@ -117,7 +113,7 @@ Switch to **Ana**. Click **New Session**. Multi-turn espresso conversation that 
 
 **Turn 1 —** `Cold brew options` _(same string as Marco's)_
 
-Different answer. Call that out explicitly. Ana's dark-espresso cohort pulls House Espresso Blend and Sumatra Mandheling. Opus honestly flags that the espresso blend isn't a cold-brew specialist — grounding plus candor.
+Different answer — Ana's dark-espresso cohort pulls House Espresso Blend and Sumatra Mandheling. Opus honestly flags that the espresso blend isn't a cold-brew specialist — grounding plus candor.
 
 **Turn 2 —** `order that`
 
@@ -141,9 +137,9 @@ UPDATE approvals SET status='approved', decided_at=now()
  WHERE id=(SELECT id FROM approvals WHERE status='pending' ORDER BY id DESC LIMIT 1);
 ```
 
-**Turn 3 — flip the approval, then show the row (psql, not the chat).**
+**Turn 3 — flip the approval, then show the row in psql.**
 
-After running the `UPDATE` above, don't ask the chat _"was it approved?"_ — the agent has no tool for that, so it pivots to fresh recommendations and the beat lands flat. Stay in psql and read the row directly. That's the honest story: **the approval queue is a table, not a service; the downstream consumer that actually ships the order polls this table, not the agent.**
+After running the `UPDATE` above, the agent has no tool to check approval status — it pivots to fresh recommendations. Stay in psql and read the row directly. The approval queue is a table, not a service; the downstream consumer that ships the order polls this table, not the agent.
 
 ```sql
 -- Show the full lifecycle on one row
@@ -154,9 +150,9 @@ SELECT id, tool, args->>'bean_id' AS bean_id, status, decided_at
  ORDER BY id DESC LIMIT 3;
 ```
 
-**Narration as you run it:** _"The status flipped. `decided_at` is set. No background worker polled this — a human ran a `UPDATE`. In production, a shipping worker would run `SELECT ... WHERE status='approved' FOR UPDATE SKIP LOCKED` on this same table, mark it `executed`, and fulfill the order. That's the whole 'workflow service' — a column, a `SELECT`, and a row lock."_
+The status flipped. `decided_at` is set. In production, a shipping worker would run `SELECT ... WHERE status='approved' FOR UPDATE SKIP LOCKED` on this same table, mark it `executed`, and fulfill the order.
 
-> If someone in the audience asks the agent _"was it approved?"_ anyway (it's the natural next question), Opus refuses gracefully — the system prompt forbids it from inventing order-status claims. It'll tell the user to check the approval queue. That's the safety net; the psql row above is the payoff.
+> If someone asks the agent _"was it approved?"_ anyway, Opus refuses gracefully — the system prompt forbids it from inventing order-status claims. It tells the user to check the approval queue.
 
 **Bonus — show the conversation Haiku is reading:**
 
@@ -205,7 +201,7 @@ SELECT caller, tool, latency_ms
 
 ---
 
-## The closer (30 sec)
+## The closer
 
 Back to psql. One query — vector similarity, relational filters, customer history, tool audit, approval queue — in a single plan.
 
@@ -226,9 +222,9 @@ SELECT b.name, b.roast_level, b.in_stock,
 
 ## Panel cheat sheet
 
-The right-hand Agent Telemetry tab streams these as the agents run. One-line narration per panel.
+The right-hand Agent Telemetry tab streams these panels as the agents run.
 
-| Panel                      | Say this                                                                                                                  |
+| Panel                      | What it shows                                                                                                             |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `PLAN`                     | Coordinator decomposes the request into steps; states transition `queued → running → ok`.                                 |
 | `LLM · HAIKU · INTENT`     | Haiku reads the last ~6 turns, returns structured JSON via Converse tool-use.                                             |
@@ -248,7 +244,7 @@ The right-hand Agent Telemetry tab streams these as the agents run. One-line nar
 
 ## Audience curveballs
 
-Prompts that tend to come up from the crowd. Rehearse once.
+Prompts worth trying — and what happens under the hood.
 
 | Try                                       | What happens                                                                                                                                                                                                              |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -271,7 +267,25 @@ Prompts that tend to come up from the crowd. Rehearse once.
 
 ## Production FAQs
 
-Questions that come up every time, with stage-ready answers. Land the one-liner first; expand if asked.
+### Guardrails & safety
+
+**What does "guardrails wrap every step" mean in practice?**
+Three layers run before the user sees a reply. Fact-check: every candidate bean is re-read from `beans` and stock-verified — failures are dropped, not patched over. Confidence: a deterministic score from row coverage, history match, and top similarity — reproducible from `tool_audit`, no LLM introspection. Approvals: tools flagged `requires_approval=true` insert into `approvals` and block until a human approves.
+
+**Can the LLM hallucinate a product that doesn't exist?**
+No — architecturally, not by prompt. Opus is restricted to the bean ids passed into its context. Fact-check drops stale ids before Opus sees them. No bean id in context → no bean id in the reply.
+
+**What about prompt injection?**
+The attack surface is Haiku's intent parse, not Opus's synthesis. Even if an attacker injects instructions into the user turn, Opus still only sees the grounded picks and profile we pass it. Not a prompt guardrail — an input-output contract.
+
+**How do you prevent an agent from running unsafe SQL?**
+Agents don't author SQL. They call typed tools (`flavor_profile_search`, `check_inventory`, `place_order`) with validated inputs. The SQL is authored by developers, parameterized, and reviewed like any other code. The MCP surface — the one path that accepts SQL — is SELECT-only, allowlisted, and row-capped.
+
+**What happens when the LLM is wrong?**
+If Haiku mis-parses intent, the coordinator gets a weaker query — typically a broader result set, not a wrong action. If Opus synthesizes badly, the reply is off but the data under it is still correct (it's cited). Either way, the blast radius is "bad reply," not "bad write" — writes are gated by approvals.
+
+**Is "confidence" from the model or from the data?**
+Data. The formula is `60 + min(20, picks×7) + (8 if history else 0) + min(10, top_sim×10)`, clamped to [30, 98]. Four inputs, one transformation, no LLM introspection. Reproducible from `tool_audit`.
 
 ### Access & identity
 
@@ -343,8 +357,6 @@ Probably not. Start in the same cluster, separate schema. Move to its own cluste
 ---
 
 # Reference
-
-Everything below is appendix — safe to skip while presenting.
 
 ## Quick start
 
@@ -477,25 +489,23 @@ Day-to-day demoing is just `python app.py`. Re-seed only when:
 - You edited `BEANS`, `CUSTOMERS`, `ORDERS`, or `TOOLS` in `seed.py`
 - You changed `EMBED_MODEL` — stored embeddings won't match new queries
 
-**Between rehearsals you almost never need `seed.py`.** What you want is a clean conversation state — run [`reset.sh`](reset.sh):
+**Between sessions you almost never need `seed.py`.** What you want is a clean conversation state — run [`reset.sh`](reset.sh):
 
 ```bash
 ./reset.sh
 ```
 
-One keystroke; truncates `approvals`, `tool_audit`, `agent_messages`, and `agent_sessions` with `RESTART IDENTITY`. Doesn't touch `beans`, `customers`, `orders`, or `tools`, so embeddings and knowledge base stay put. Equivalent to:
+Truncates `approvals`, `tool_audit`, `agent_messages`, and `agent_sessions` with `RESTART IDENTITY`. Doesn't touch `beans`, `customers`, `orders`, or `tools`, so embeddings and knowledge base stay put. Equivalent to:
 
 ```sql
 TRUNCATE approvals, tool_audit, agent_messages, agent_sessions RESTART IDENTITY;
 ```
 
-Ideal right before going live.
-
 ## Files
 
 - [`schema.sql`](schema.sql) — full schema, pipe into `psql`
 - [`seed.py`](seed.py) — seeds customers, beans (with real embeddings), orders, tool registry
-- [`reset.sh`](reset.sh) — between-rehearsals cleanup (truncates conversation state only)
+- [`reset.sh`](reset.sh) — clears conversation state (truncates session tables only)
 - [`db.py`](db.py) — Postgres pool + lazy embedder
 - [`bedrock.py`](bedrock.py) — Bedrock Converse wrapper with per-call telemetry + `tool_audit` logging
 - [`agents.py`](agents.py) — coordinator, roast master, flavor profiler, Haiku intent, Opus synthesis, tool discovery, procedural memory, checkpointing, fact-check, approvals
@@ -511,4 +521,4 @@ Dark-themed deck in [`deck/`](deck/) built with [Marp](https://marp.app/) — sa
 ./deck/build.sh           # renders deck/deck.pdf via npx @marp-team/marp-cli
 ```
 
-Requires Node.js 18+. Palette is pure black with cream and amber accents — high contrast for projectors, matches the live demo UI. Source: `deck/deck.md`. Styling: `deck/theme.css`. Re-run `./deck/build.sh` after any change.
+Requires Node.js 18+. Palette is pure black with cream and amber accents — high contrast for projectors, matches the demo UI. Source: `deck/deck.md`. Styling: `deck/theme.css`. Re-run `./deck/build.sh` after any change.
