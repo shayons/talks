@@ -524,6 +524,8 @@ Show this on psql if possible. Slide is the fallback if the demo gods are unkind
 
 ---
 
+<!-- _class: dense -->
+
 ## Where this pattern lands in practice
 
 We see teams landing on variants of this pattern in production — across customer environments on Aurora PostgreSQL:
