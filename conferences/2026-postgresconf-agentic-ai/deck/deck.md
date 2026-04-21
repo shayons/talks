@@ -614,8 +614,8 @@ reinventing the same thing" than by "I personally shipped this".
 ## Run it yourself
 
 ```bash
-git clone https://github.com/shayons/talks.git
-cd talks/conferences/2026-postgresconf-agentic-ai
+# Repo link coming soon — for now, the pattern:
+
 createdb coffee
 psql coffee -f schema.sql
 
@@ -637,7 +637,7 @@ Needs **pgvector 0.5+** (for HNSW) and AWS credentials with Bedrock access.
 
 Questions?
 
-Repo + slides · [github.com/shayons/talks](https://github.com/shayons/talks/tree/main/conferences/2026-postgresconf-agentic-ai) · PostgresConf 2026
+Repo + slides · _coming soon_ · PostgresConf 2026
 
 <!--
 Open the floor. Default to taking questions from the live demo (which is still on screen) so the answers are concrete.
