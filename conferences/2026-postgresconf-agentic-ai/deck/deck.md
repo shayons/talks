@@ -149,6 +149,8 @@ Two models, not one. Haiku is fast and cheap — perfect for structured extracti
 
 ---
 
+<!-- _class: dense -->
+
 ## Latency and cost per turn
 
 Where time and money go in a single agent turn:
