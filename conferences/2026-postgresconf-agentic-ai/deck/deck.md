@@ -358,7 +358,7 @@ Switch to the browser tab on localhost:8000. Run the two-turn script:
 
 While the turn runs, tab over to psql and show tool_audit filling up —
 SQL tool calls and llm:* rows in the same table, same session_id. If
-anything melts, the "Every pillar, one plan" slide later is the fallback.
+anything melts, the "Every role, one plan" slide later is the fallback.
 -->
 
 ---
@@ -478,7 +478,7 @@ Coreference becomes a structured field, not brittle string matching.
 
 Postgres is not the answer for every agent stack. Honest limits:
 
-- **Billion-scale vectors** — pgvector HNSW builds slow down past ~10M rows per index. Specialized vector stores (Milvus, Qdrant, Vespa) beat you on build time and ANN latency.
+- **Billion-scale vectors** — pgvector HNSW builds slow down past ~10M rows per index. Look at **pgvectorscale** (StreamingDiskANN on top of Postgres), **DiskANN-style** indexes, or Google's **ScaNN** — and if you need more, specialized vector stores (Milvus, Qdrant, Vespa) beat you on build time and ANN latency.
 - **Sub-millisecond p99** — agent in a trading hot path? A purpose-built in-memory KV (Redis, DragonflyDB) beats Postgres.
 - **Workflows measured in days** — saga compensation, human-in-the-loop over SLAs, cross-system orchestration. Temporal exists for a reason.
 - **Hard multi-tenant isolation at scale** — thousands of tenants with strong blast-radius requirements. RLS + partitioning works, but separate clusters are eventually cleaner.
@@ -494,7 +494,7 @@ This slide does more for your credibility than any other in the deck. Name the l
 
 <!-- _class: code-first dense -->
 
-## Every pillar, one plan
+## Every role, one plan
 
 ```sql
 SELECT b.name, b.roast_level, b.in_stock,
@@ -524,20 +524,34 @@ Show this on psql if possible. Slide is the fallback if the demo gods are unkind
 
 ---
 
-## What this has actually shipped into
+## Where this pattern lands in practice
 
-We run variants of this pattern in production across several customer environments on Aurora PostgreSQL:
+We see teams landing on variants of this pattern in production — across customer environments on Aurora PostgreSQL:
 
 - Multi-agent customer-facing assistants with approval queues
 - Internal ops agents that read operational telemetry and propose remediations
 - Migration assistants that read legacy schemas and generate Postgres DDL
 
-Common thread: the agent's data layer looks almost identical across all three. The `tools`, `tool_audit`, `approvals`, and `agent_messages` tables are copy-pasteable between them. The domain tables change. **The backbone doesn't.**
+The data layer looks nearly identical across all three — `tools`, `tool_audit`, `approvals`, `agent_messages`. Domain tables change. **The backbone doesn't.**
 
-Customer names stay off the slides — ask me after the talk and I'll share what I can.
+**And it plays nicely with frameworks.** LangChain, LangGraph, Strands, AgentCore — most teams land on one. Postgres doesn't fight them. LangGraph's `PostgresSaver` is a wrapper over a JSONB column; Strands memory can point at a Postgres table; AgentCore's session store speaks SQL. **Frameworks handle prompt orchestration and agent loops; Postgres handles state, memory, audit, approvals. Clean seam.**
+
+Customer names stay off the slides — ask me after and I'll share what I can.
 
 <!--
-A war story — even an anonymized one — makes the talk read as "I've shipped this N times" rather than "reference architecture with one demo".
+Verbal bridge when you hit this slide — reconciles the "no framework" repo
+with the "frameworks are fine" framing:
+
+  "The demo repo deliberately ships without a framework, so you can read
+   the orchestration top-to-bottom. But in production, most teams pick
+   one — and the pattern I've been showing you slots underneath whatever
+   they pick. It's not a choice between Postgres and LangGraph. It's a
+   choice about what each layer is good for."
+
+Then: "we see teams landing on variants" is the humbler framing — it's
+observation across independent teams, not a war story. That plays better
+with a PG-native crowd that's more impressed by "smart teams keep
+reinventing the same thing" than by "I personally shipped this".
 -->
 
 ---

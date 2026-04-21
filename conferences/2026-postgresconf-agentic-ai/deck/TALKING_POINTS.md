@@ -21,7 +21,7 @@
 | **Demo**                        | 17     | **12 min** | 3 scenarios · see README for per-turn scripts                          |
 | Operational realities           | 18–21  | 8 min      | HNSW, autovacuum, pool sizing, coreference                             |
 | Honesty slide                   | 22     | 2 min      | When _not_ to do this — buys credibility                               |
-| Closer + references             | 23–26  | 3 min      | The "every pillar, one plan" SQL · prod war story · Q&A                |
+| Closer + references             | 23–26  | 3 min      | The "every role, one plan" SQL · where the pattern lands · Q&A         |
 | **Buffer**                      |        | **3 min**  | Demo gods, a deep question, finding the right tab                      |
 
 **Rule of thumb on stage:** 5 minutes behind at the demo → skip operational realities (18–21), jump to the closer. The demo is the payload. The tuning slides are appendix.
@@ -94,7 +94,7 @@ Map each type to its access pattern:
 - **Semantic** → `ORDER BY embedding <=> $1` on HNSW. Btree-shaped access, different index type.
 - **Procedural** → the JOIN that falls out of having both in the same database.
 
-_"Episodic is writes and tail-of-log scans. Semantic is ANN. Procedural is whatever's interesting at the intersection. Zero of these are new problems for Postgres."_
+_"So the three-memory-types framing isn't really a claim about how LLMs remember things. It's a claim about how many index types and access patterns your data layer has to support, and whether a single planner can see all of them at once. The cog-sci vocabulary is a hook to make it memorable; the query plan is the point."_
 
 ### 10. The procedural memory query
 
@@ -228,7 +228,7 @@ Land the pivot:
 
 _"I'm not here to tell you Postgres is the answer for every agent workload. I'm here to tell you it's the answer for most agent workloads, most of the time — and the tradeoff conversation should start with the access pattern, not the vendor logo."_
 
-### 23. Every pillar, one plan
+### 23. Every role, one plan
 
 The closer SQL. Read it out loud — don't rush. Name each subquery:
 
@@ -239,13 +239,19 @@ The closer SQL. Read it out loud — don't rush. Name each subquery:
 
 _"One plan. One optimizer. One transaction. Draw this when your vectors are in Pinecone, your state is in Postgres, and your audit is in DynamoDB."_
 
-### 24. What this has shipped into
+### 24. Where this pattern lands in practice
 
-Brief war story. Anonymous:
+Softer framing than a war story. Observation across independent teams, not a personal victory lap. This slide is also where you reconcile the "no framework" repo with the "frameworks are fine" reality.
 
-_"Three production deployments on Aurora. Different domains, nearly-identical data layer. The backbone doesn't change."_
+**Verbal bridge — say this before the bullets:**
 
-Offer to share more off-stage.
+_"The demo repo deliberately ships without a framework, so you can read the orchestration top-to-bottom. But in production, most teams pick one — LangChain, LangGraph, Strands, AgentCore — and the pattern I've been showing you slots underneath whatever they pick. It's not a choice between Postgres and LangGraph. It's a choice about what each layer is good for."_
+
+Then land the clean-seam argument: **frameworks handle prompt orchestration and agent loops; Postgres handles state, memory, audit, approvals.** Name the integrations on stage — `PostgresSaver` is a JSONB column with a nice API, Strands memory backends, AgentCore session stores. The frameworks already know Postgres is the bottom half; they just don't always say it out loud.
+
+Close with the humbler read: _"Smart teams keep reinventing this. That's the strongest signal it's right."_
+
+Offer to share specifics off-stage on the three use-case bullets.
 
 ### 25. Architecture reference
 
@@ -265,18 +271,18 @@ Open the floor. Default to taking questions against the live demo (still on scre
 
 ## Anticipated questions (rehearse once)
 
-| Question                                               | Answer anchor                                                                                                                                                                                                       |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "What about at 100M vectors?"                          | HNSW builds slow down. Switch to IVFFlat for faster builds, or shard. At that scale, the question is "do my access patterns still need relational JOINs at query time?" If yes, stay Postgres. If no, leave.        |
-| "Why not pgvector.rs / DiskANN / ScaNN?"               | No strong opinion — they solve the index. The talk is about the _plan_ containing vectors + relational + audit. Any of those indexes plug into the same argument.                                                   |
-| "Isn't JSONB for workflow state a footgun?"            | Only if you write unvalidated JSON. We validate on the way in (pydantic), query with `->>` and `?`, index with GIN where it matters. Same rules as every JSONB table.                                               |
-| "What happens when agent_messages grows to 100M rows?" | Partition by month on `(session_id, ts)`. Old partitions go read-only or archived. HNSW on a partitioned table is fine as long as you query with the partition key.                                                 |
-| "Why Bedrock specifically?"                            | Incidental. The data layer doesn't care. Swap to OpenAI, Anthropic direct, or Ollama — the `tool_audit` row just has a different `tool='llm:…'` value.                                                              |
-| "How do you handle PII in agent_messages?"             | Same way you handle PII anywhere in Postgres — column-level encryption, row-level security, audit the readers. Agents aren't a new PII problem; they just surface the existing one faster.                          |
-| "pgvector locks on `UPDATE`?"                          | HNSW does not rebuild on UPDATE; it handles inserts incrementally. Bulk rebuilds use `REINDEX CONCURRENTLY`. The hot path we care about (agent reads) is not blocked by writes.                                     |
-| "Procedural memory is just RAG on the orders table."   | Correct. The difference is the retrieval runs in the same plan as the candidate ranking — the planner can reorder. In RAG-over-API, the order is fixed by your code. Not a huge deal at small scale, real at scale. |
-| "Why no LangChain/LangGraph?"                          | They're fine libraries — `PostgresSaver` is a wrapper around a JSONB column. If your JSONB column is right there, the wrapper is optional. Use it if you like; don't require it.                                    |
-| "What's the one thing you'd do differently?"           | Start with `tool_audit` as a partitioned hypertable from day one. We didn't, and we've cut over in production. Not painful, but I'd skip the step.                                                                  |
+| Question                                               | Answer anchor                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "What about at 100M vectors?"                          | HNSW builds slow down. Try **pgvectorscale** (StreamingDiskANN on Postgres) first — it's the least-disruptive jump. Beyond that, IVFFlat for faster builds, or shard. At that scale, the real question is "do my access patterns still need relational JOINs at query time?" If yes, stay Postgres. If no, leave. |
+| "Why not pgvector.rs / DiskANN / ScaNN?"               | No strong opinion — they solve the index. The talk is about the _plan_ containing vectors + relational + audit. Any of those indexes plug into the same argument.                                                                                                                                                 |
+| "Isn't JSONB for workflow state a footgun?"            | Only if you write unvalidated JSON. We validate on the way in (pydantic), query with `->>` and `?`, index with GIN where it matters. Same rules as every JSONB table.                                                                                                                                             |
+| "What happens when agent_messages grows to 100M rows?" | Partition by month on `(session_id, ts)`. Old partitions go read-only or archived. HNSW on a partitioned table is fine as long as you query with the partition key.                                                                                                                                               |
+| "Why Bedrock specifically?"                            | Incidental. The data layer doesn't care. Swap to OpenAI, Anthropic direct, or Ollama — the `tool_audit` row just has a different `tool='llm:…'` value.                                                                                                                                                            |
+| "How do you handle PII in agent_messages?"             | Same way you handle PII anywhere in Postgres — column-level encryption, row-level security, audit the readers. Agents aren't a new PII problem; they just surface the existing one faster.                                                                                                                        |
+| "pgvector locks on `UPDATE`?"                          | HNSW does not rebuild on UPDATE; it handles inserts incrementally. Bulk rebuilds use `REINDEX CONCURRENTLY`. The hot path we care about (agent reads) is not blocked by writes.                                                                                                                                   |
+| "Procedural memory is just RAG on the orders table."   | Correct. The difference is the retrieval runs in the same plan as the candidate ranking — the planner can reorder. In RAG-over-API, the order is fixed by your code. Not a huge deal at small scale, real at scale.                                                                                               |
+| "Why no LangChain/LangGraph?"                          | They're fine libraries — `PostgresSaver` is a wrapper around a JSONB column. If your JSONB column is right there, the wrapper is optional. Use it if you like; don't require it.                                                                                                                                  |
+| "What's the one thing you'd do differently?"           | Start with `tool_audit` as a partitioned hypertable from day one. We didn't, and we've cut over in production. Not painful, but I'd skip the step.                                                                                                                                                                |
 
 ---
 
@@ -285,7 +291,7 @@ Open the floor. Default to taking questions against the live demo (still on scre
 - **Pace check at slide 10.** Past 15 minutes into the talk? You're behind — the demo will run long. Skip slide 8 (latency/cost) to recover.
 - **Don't read the SQL slides.** Name the three things in the query and move. The audience reads faster than you speak.
 - **Demo running long?** Cut Scenario 3's MCP terminal. Keep the refusal.
-- **psql misbehaving?** Slide 23 ("Every pillar, one plan") is the fallback. Same argument without the live DB.
+- **psql misbehaving?** Slide 23 ("Every role, one plan") is the fallback. Same argument without the live DB.
 - **Finished early?** Open questions. Don't pad.
 
 ---
