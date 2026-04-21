@@ -11,20 +11,20 @@
 
 | Block                           | Slides | Budget     | Notes                                                                  |
 | ------------------------------- | ------ | ---------- | ---------------------------------------------------------------------- |
-| Title + bio                     | 1–2    | 1 min      | 20–30 sec bio, move on                                                 |
-| Problem → thesis → architecture | 3–7    | 6 min      | Frame the seven-system stack, land the one-DB claim, show the diagram  |
-| Latency + cost                  | 8      | 2 min      | Shape of the distribution, not numbers                                 |
-| Memory types                    | 9–10   | 4 min      | Three memory types, then the procedural JOIN — this is the first "wow" |
-| Tools as a table                | 11–13  | 4 min      | Registry → discovery SQL → MCP                                         |
-| Workflow state + limits         | 14–15  | 3 min      | JSONB checkpoint, then the honesty slide on when it's not enough       |
-| Guardrails                      | 16     | 2 min      | Fact-check · confidence · approvals                                    |
-| **Demo**                        | 17     | **12 min** | 3 scenarios · see README for per-turn scripts                          |
-| Operational realities           | 18–21  | 8 min      | HNSW, autovacuum, pool sizing, coreference                             |
-| Honesty slide                   | 22     | 2 min      | When _not_ to do this — buys credibility                               |
-| Closer + references             | 23–26  | 3 min      | The "every role, one plan" SQL · where the pattern lands · Q&A         |
+| Title + hook + bio              | 1–3    | 1.5 min    | Hook slide lands the "why"; 20–30 sec bio, move on                     |
+| Problem → thesis → architecture | 4–8    | 6 min      | Frame the seven-system stack, land the one-DB claim, show the diagram  |
+| Latency + cost                  | 9      | 2 min      | Shape of the distribution, not numbers                                 |
+| Memory types                    | 10–11  | 4 min      | Three memory types, then the procedural JOIN — this is the first "wow" |
+| Tools as a table                | 12–14  | 4 min      | Registry → discovery SQL → MCP                                         |
+| Workflow state + limits         | 15–16  | 3 min      | JSONB checkpoint, then the honesty slide on when it's not enough       |
+| Guardrails                      | 17     | 2 min      | Fact-check · confidence · approvals                                    |
+| **Demo**                        | 18     | **12 min** | 3 scenarios · see README for per-turn scripts                          |
+| Operational realities           | 19–22  | 8 min      | HNSW, autovacuum, pool sizing, coreference                             |
+| Honesty slide                   | 23     | 2 min      | When _not_ to do this — buys credibility                               |
+| Closer + references             | 24–27  | 3 min      | The "every role, one plan" SQL · where the pattern lands · Q&A         |
 | **Buffer**                      |        | **3 min**  | Demo gods, a deep question, finding the right tab                      |
 
-**Rule of thumb on stage:** 5 minutes behind at the demo → skip operational realities (18–21), jump to the closer. The demo is the payload. The tuning slides are appendix.
+**Rule of thumb on stage:** 5 minutes behind at the demo → skip operational realities (19–22), jump to the closer. The demo is the payload. The tuning slides are appendix.
 
 ---
 
@@ -34,11 +34,19 @@
 
 _"Three agents, two Claude models, one Postgres, no framework. Next 50 minutes I want to convince you the data layer for a production agent is boring — and boring is the feature."_
 
-### 2. Bio
+### 2. Why are we even having this conversation?
+
+The hook. Deliver the 30-second opener — the full version is in the speaker notes on the slide. The short version for stage:
+
+_"The minute you ship an agent to production, it stops being a Python script. It becomes seven systems. Seven auth boundaries. Seven failure modes. Seven things to page on at 2am."_
+
+Don't enumerate the seven systems here — slide 4 does that. This slide lands the hook; slide 4 pays it off with the list.
+
+### 3. Bio
 
 20 seconds. Name, role, "I ship this pattern for a living, here's what works." Move.
 
-### 3. The problem — seven systems
+### 4. The problem — seven systems
 
 Read the list out loud. Pause. Then:
 
@@ -48,11 +56,11 @@ For the committers:
 
 _"Every arrow between those boxes is an RPC, a serialization boundary, and an eventual-consistency window you have to reason about. Postgres solved this for OLTP decades ago. Agents are OLTP with vectors and a long tail of JSONB."_
 
-### 4. The thesis
+### 5. The thesis
 
 One database. One transactional snapshot. LLMs at the edges, SQL in the middle. That sentence is the whole talk.
 
-### 5. Why one database, not five
+### 6. Why one database, not five
 
 The slide that matters for the hackers. Don't dunk on vector DBs — that's the weak version. Go strong:
 
@@ -62,13 +70,13 @@ The slide that matters for the hackers. Don't dunk on vector DBs — that's the 
 
 _"This isn't a Postgres talk. It's a distributed-systems-avoidance talk. Postgres happens to be the thing we're avoiding distributing."_
 
-### 6. Architecture
+### 7. Architecture
 
 Point at the diagram. Haiku on top (intent, coref). Three agents in the dashed box, all reading and writing Postgres. Opus on the bottom (synthesis from grounded picks only). Everything the agents need — memory, tools, audit, state, approvals — in one Postgres box.
 
 _"Two Bedrock calls per turn. Everything else is a SQL transaction."_
 
-### 7. Haiku parses, Opus synthesizes
+### 8. Haiku parses, Opus synthesizes
 
 Two models, two jobs. Haiku is cheap and fast — structured extraction via Converse tool-use. Opus is slow and expensive — the generator. Split by what each is good at.
 
@@ -76,7 +84,7 @@ The contract between them — `intent → grounded picks → citations` — is a
 
 _"If you've ever built a pipeline where the cheap worker does extraction and the expensive worker does synthesis, this is that pattern. Claude happens to be the workers."_
 
-### 8. Latency and cost
+### 9. Latency and cost
 
 Don't quote Bedrock prices — they move. Show the shape: milliseconds of SQL, seconds of Opus.
 
@@ -84,7 +92,7 @@ _"Everyone in this room assumes agents are expensive because agents include LLMs
 
 For a room that runs OLTP at p99s measured in milliseconds, this is where they realize the DB isn't the bottleneck they thought it was.
 
-### 9. Three memory types, one database
+### 10. Three memory types, one database
 
 Terminology honesty up front — "procedural memory" is cog-sci borrowed loosely. If someone corrects you from the floor, agree: _"cohort memory works too, the point is the access pattern."_ Move on.
 
@@ -96,7 +104,7 @@ Map each type to its access pattern:
 
 _"So the three-memory-types framing isn't really a claim about how LLMs remember things. It's a claim about how many index types and access patterns your data layer has to support, and whether a single planner can see all of them at once. The cog-sci vocabulary is a hook to make it memorable; the query plan is the point."_
 
-### 10. The procedural memory query
+### 11. The procedural memory query
 
 First "wow" slide. Read the SQL out loud — slowly — and name three things in one plan:
 
@@ -110,7 +118,7 @@ For the planners in the room:
 
 _"If you care about query planning, this is the slide. The planner has visibility into selectivity on both the vector side and the relational side. Push-down works. A separate vector store gives up that visibility the moment the score leaves the index."_
 
-### 11. Tools are a table
+### 12. Tools are a table
 
 Show the schema. Highlight three columns:
 
@@ -120,7 +128,7 @@ Show the schema. Highlight three columns:
 
 _"It's a table. If you know Postgres, you already know how to back it up, replicate it, audit it, grant on it, partition it. No new operational surface."_
 
-### 12. Semantic tool discovery in one query
+### 13. Semantic tool discovery in one query
 
 Dynamic discovery, not a static toolbox. Add a tool → INSERT a row → it's available on the next request. No code deploy, no prompt template change.
 
@@ -128,7 +136,7 @@ _"Your change-management window just became `BEGIN; INSERT; COMMIT;`."_
 
 Plug the unification: `tool_audit` captures both SQL tool calls and LLM calls (as `tool='llm:<model_id>'`). One SELECT = complete execution trace. No correlating across four dashboards.
 
-### 13. MCP — same Postgres, different client
+### 14. MCP — same Postgres, different client
 
 Two interfaces, one store. Agent writes via FastAPI. External MCP hosts (Claude Desktop, Cursor) read via `mcp_server.py`.
 
@@ -140,13 +148,13 @@ The enforcement is the point:
 
 _"Belt and suspenders. The role is the belt. If the parser has a bug, the role still stops it. Same model we already trust for BI readers and exfil-sensitive reporting."_
 
-### 14. Workflow state is a column
+### 15. Workflow state is a column
 
 JSONB, checkpointed after every step. Same transaction as the side effects — the checkpoint cannot drift from the work it describes. Process dies mid-task? Next invocation reads `workflow_state->>'step_index'` and resumes.
 
 _"Every time someone reaches for Temporal to solve 'what if the agent crashes mid-task,' they're solving a problem Postgres solves with a `COMMIT`. Look at the transaction boundary. The checkpoint is atomic with the side effect. You can't get that from a separate workflow service without a two-phase commit or an outbox."_
 
-### 15. When JSONB stops being enough
+### 16. When JSONB stops being enough
 
 The honesty slide before the honesty slide. Where Temporal, Cadence, and Step Functions earn their keep:
 
@@ -156,7 +164,7 @@ The honesty slide before the honesty slide. Where Temporal, Cadence, and Step Fu
 
 _"Most agents don't have these problems. The ones that do shouldn't pretend Postgres solves them. Pick your tool for the access pattern you actually have, not the one on the slide deck."_
 
-### 16. Three guardrail layers
+### 17. Three guardrail layers
 
 Fact-check → confidence from data → approval queue. Walk through the order:
 
@@ -166,7 +174,7 @@ Fact-check → confidence from data → approval queue. Walk through the order:
 
 _"Opus physically cannot hallucinate a bean we don't have, because the system prompt restricts it to the ids we pass in, and fact-check drops anything stale from that list. Safety isn't a prompt. It's a context boundary."_
 
-### 17. DEMO (12 min)
+### 18. DEMO (12 min)
 
 Switch to browser + psql side-by-side. Full per-turn scripts with psql callouts and narration in **[README.md § Stage guide](../README.md#stage-guide--everything-you-need-while-presenting)**.
 
@@ -180,7 +188,7 @@ Condensed running order for stage timing:
 
 **Behind schedule?** Cut Scenario 3's MCP terminal, keep the refusal. The refusal is the point.
 
-### 18. pgvector: HNSW tuning
+### 19. pgvector: HNSW tuning
 
 The committers want this slide. Three knobs:
 
@@ -192,7 +200,7 @@ Name the shape: recall climbs fast, saturates around 0.98. Latency climbs linear
 
 Committer note: _"pgvector 0.7 shipped parallel HNSW builds. Still on 0.5 or 0.6 with single-threaded builds? That's your first easy upgrade."_
 
-### 19. Autovacuum on append-heavy tables
+### 20. Autovacuum on append-heavy tables
 
 `agent_messages` and `tool_audit` are write-mostly. Default autovacuum is tuned for OLTP mutation — it triggers on dead tuples you never create.
 
@@ -202,7 +210,7 @@ _"Half the room nods because they've lived it. The other half just learned why t
 
 For the deeply-interested: TOAST on `content jsonb` in `agent_messages`. Long prompt histories toast — set `toast_tuple_target` to match your typical payload. Measure with `pg_column_size`.
 
-### 20. Connection pooling
+### 21. Connection pooling
 
 One turn = 8–15 queries. 50 concurrent sessions = ~500 queries in flight. Don't point those at raw backends.
 
@@ -210,7 +218,7 @@ PgBouncer in transaction mode, prepared statements on (1.21+), `default_pool_siz
 
 _"This is standard OLTP advice. Agents are OLTP with LLM calls on either side. The pooling story doesn't change."_
 
-### 21. Chat continuity ("order that")
+### 22. Chat continuity ("order that")
 
 The coreference problem. Re-embedding turn 2 lands somewhere else, because "order a bag" semantically matches "generic order" more than "that espresso blend we just pitched." Naive implementation → customer sees a bait-and-switch.
 
@@ -218,7 +226,7 @@ The fix: Haiku's tool schema includes `order_referent_bean_id`. Haiku reads the 
 
 _"The LLM and the coordinator share a memory. That memory is a boring SQL table. The thing that would be a brittle state machine in some other architecture is a structured field in a tool schema — and the source of truth is `agent_messages`."_
 
-### 22. When NOT to do this
+### 23. When NOT to do this
 
 Land all five bullets. This is the slide that buys you credibility. Read the fifth with a smile:
 
@@ -228,7 +236,7 @@ Land the pivot:
 
 _"I'm not here to tell you Postgres is the answer for every agent workload. I'm here to tell you it's the answer for most agent workloads, most of the time — and the tradeoff conversation should start with the access pattern, not the vendor logo."_
 
-### 23. Every role, one plan
+### 24. Every role, one plan
 
 The closer SQL. Read it out loud — don't rush. Name each subquery:
 
@@ -239,7 +247,7 @@ The closer SQL. Read it out loud — don't rush. Name each subquery:
 
 _"One plan. One optimizer. One transaction. Draw this when your vectors are in Pinecone, your state is in Postgres, and your audit is in DynamoDB."_
 
-### 24. Where this pattern lands in practice
+### 25. Where this pattern lands in practice
 
 Softer framing than a war story. Observation across independent teams, not a personal victory lap. This slide is also where you reconcile the "no framework" repo with the "frameworks are fine" reality.
 
@@ -253,13 +261,13 @@ Close with the humbler read: _"Smart teams keep reinventing this. That's the str
 
 Offer to share specifics off-stage on the three use-case bullets.
 
-### 25. Architecture reference
+### 26. Architecture reference
 
 Don't read the table. It's for the recording.
 
 _"This is for when you're back at your desk trying to remember which column does what. Slides are on GitHub."_
 
-### 26. Run it yourself + Thank you
+### 27. Run it yourself + Thank you
 
 Point at the URL.
 
@@ -288,10 +296,10 @@ Open the floor. Default to taking questions against the live demo (still on scre
 
 ## Cadence notes
 
-- **Pace check at slide 10.** Past 15 minutes into the talk? You're behind — the demo will run long. Skip slide 8 (latency/cost) to recover.
+- **Pace check at slide 11.** Past 15 minutes into the talk? You're behind — the demo will run long. Skip slide 9 (latency/cost) to recover.
 - **Don't read the SQL slides.** Name the three things in the query and move. The audience reads faster than you speak.
 - **Demo running long?** Cut Scenario 3's MCP terminal. Keep the refusal.
-- **psql misbehaving?** Slide 23 ("Every role, one plan") is the fallback. Same argument without the live DB.
+- **psql misbehaving?** Slide 24 ("Every role, one plan") is the fallback. Same argument without the live DB.
 - **Finished early?** Open questions. Don't pad.
 
 ---

@@ -30,6 +30,42 @@ the boring part — and boring is a feature.
 
 ---
 
+<!-- _class: takeaway -->
+<!-- _paginate: false -->
+
+## Why are we even having this conversation?
+
+# The minute you ship an agent, it stops being a Python script. It becomes seven systems.
+
+Seven auth boundaries. Seven failure modes. Seven things to page on at 2am.
+
+<!--
+30-second opener. Deliver it verbatim if you can:
+
+  "Before we start — why are we even having this conversation? Because the
+   minute you ship an agent to production, it stops being a Python script
+   talking to an LLM. It becomes seven systems: Pinecone for vectors, Redis
+   for sessions, Postgres for app state, DynamoDB for audit, Temporal for
+   workflow, SQS for approvals, LangGraph or AgentCore on top. Seven auth
+   boundaries. Seven failure modes. Seven things to page on at 2am.
+
+   That's where the 'wrappers' come from — every framework you've seen is
+   trying to hide the fact that your agent's data is spread across five
+   stores that don't share a transaction, don't share a snapshot, and
+   definitely don't share a query plan.
+
+   The next 50 minutes, I want to convince you the data plane collapses
+   into one Postgres — memory, tools, audit, workflow, approvals, MCP —
+   and the orchestration you'd otherwise import is a couple thousand lines
+   of Python you can read top to bottom. LLMs at the edges. SQL in the
+   middle. The boring part is the feature."
+
+Don't enumerate the seven systems on this slide — slide 4 (The problem)
+does that. This slide lands the hook; slide 4 pays it off with the list.
+-->
+
+---
+
 <!-- _class: bio -->
 <!-- _paginate: false -->
 
