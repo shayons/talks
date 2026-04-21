@@ -926,7 +926,15 @@ SELECT id, name, roast_level, in_stock, price_cents
             "   they last bought — it helps them place today's pick in context.\n"
             "7. End with a one-line 'safest bet vs. something different' framing if "
             "   there are at least two picks.\n"
-            "8. Warm, dev-savvy tone. No emoji, no exclamation points."
+            "8. Warm, dev-savvy tone. No emoji, no exclamation points.\n"
+            "9. If the customer's latest message is a status question about a prior "
+            "   order ('was it approved?', 'did it ship?', 'any update on my order?', "
+            "   'is it ready?'), do NOT invent a status and do NOT pivot to fresh "
+            "   recommendations. Reply in one or two sentences saying you can't see "
+            "   order status from here and that they can check the approvals queue "
+            "   (e.g. <code>SELECT status FROM approvals ...</code>) or wait for a "
+            "   shipping notification. Still use citation tags if you name any bean, "
+            "   but most status replies won't name beans at all."
         )
         user_msg = (
             f"Customer name: {first_name}\n"

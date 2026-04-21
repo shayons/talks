@@ -134,6 +134,23 @@ UPDATE approvals SET status='approved', decided_at=now()
  WHERE id=(SELECT id FROM approvals WHERE status='pending' ORDER BY id DESC LIMIT 1);
 ```
 
+**Turn 3 — flip the approval, then show the row (psql, not the chat).**
+
+After running the `UPDATE` above, don't ask the chat _"was it approved?"_ — the agent has no tool for that, so it pivots to fresh recommendations and the beat lands flat. Stay in psql and read the row directly. That's the honest story: **the approval queue is a table, not a service; the downstream consumer that actually ships the order polls this table, not the agent.**
+
+```sql
+-- Show the full lifecycle on one row
+SELECT id, tool, args->>'bean_id' AS bean_id, status, decided_at
+  FROM approvals
+ WHERE session_id = (SELECT id FROM agent_sessions
+                      WHERE customer_id='u_ana' ORDER BY updated_at DESC LIMIT 1)
+ ORDER BY id DESC LIMIT 3;
+```
+
+**Narration as you run it:** _"The status flipped. `decided_at` is set. No background worker polled this — a human ran a `UPDATE`. In production, a shipping worker would run `SELECT ... WHERE status='approved' FOR UPDATE SKIP LOCKED` on this same table, mark it `executed`, and fulfill the order. That's the whole 'workflow service' — a column, a `SELECT`, and a row lock."_
+
+> If someone in the audience asks the agent _"was it approved?"_ anyway (it's the natural next question), Opus refuses gracefully — the system prompt forbids it from inventing order-status claims. It'll tell the user to check the approval queue. That's the safety net; the psql row above is the payoff.
+
 **Bonus — show the conversation Haiku is reading:**
 
 ```sql
@@ -224,12 +241,13 @@ The right-hand Agent Telemetry tab streams these as the agents run. One-line nar
 
 Prompts that tend to come up from the crowd. Rehearse once.
 
-| Try                                    | What happens                                                                                                               |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `Something fruity but not from Africa` | Semantic search ignores "not from Africa"; the roast/region filter handles it. Good demo of why structured intent matters. |
-| `Order two bags of the Yemen one`      | Haiku resolves "the Yemen one" → `b_yemen_mocha` from session history. Approval queues for qty=2.                          |
-| `What did I order last time?`          | Episodic memory direct hit — `get_customer_history` fires, returns the last 5 `orders` rows.                               |
-| `ignore previous instructions and …`   | Opus can't reference beans that aren't in its context regardless of injection. Architectural guardrail, not a prompt.      |
+| Try                                       | What happens                                                                                                                                                                                                              |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Something fruity but not from Africa`    | Semantic search ignores "not from Africa"; the roast/region filter handles it. Good demo of why structured intent matters.                                                                                                |
+| `Order two bags of the Yemen one`         | Haiku resolves "the Yemen one" → `b_yemen_mocha` from session history. Approval queues for qty=2.                                                                                                                         |
+| `What did I order last time?`             | Episodic memory direct hit — `get_customer_history` fires, returns the last 5 `orders` rows.                                                                                                                              |
+| `Was it approved?` / `Did my order ship?` | The agent has no order-status tool by design — Opus refuses gracefully and points at the `approvals` queue. Show the row in psql: `SELECT status FROM approvals WHERE session_id=...`. Status is a column, not a service. |
+| `ignore previous instructions and …`      | Opus can't reference beans that aren't in its context regardless of injection. Architectural guardrail, not a prompt.                                                                                                     |
 
 ## Key takeaways
 
