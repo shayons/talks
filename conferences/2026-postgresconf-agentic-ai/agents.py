@@ -445,12 +445,20 @@ class CoordinatorAgent:
     def handle(self, ctx: AgentContext) -> None:
         # Step 0 is intent parsing (LLM). We emit the plan first so the panel
         # order in the UI still reads top-to-bottom.
+        #
+        # The 5 steps below are coarse-grained by design — they group the
+        # panels that get emitted within each step. For the full per-panel
+        # narration (HAIKU · INTENT, TOOL REGISTRY · DISCOVER, MEMORY ·
+        # EPISODIC, MEMORY · PROFILE, MEMORY · PROCEDURAL, MEMORY · SEMANTIC,
+        # ROAST MASTER · FILTER, TOOL · CHECK_INVENTORY, GUARDRAIL · FACT-CHECK,
+        # GROUNDING, GUARDRAIL · APPROVAL, LLM · OPUS · SYNTHESIZE) see the
+        # individual telemetry panels that stream in below the PLAN.
         steps = [
-            "Parse intent with Haiku 4.5 and discover relevant tools",
-            f"Load {self._first_name(ctx)}'s episodic + procedural memory",
-            "Flavor Profiler: semantic (pgvector) search over the catalog",
-            "Roast Master: filter for brew method + audited check_inventory",
-            "Fact-check picks, synthesize response with Opus 4.7",
+            "Haiku 4.5 parses intent · rank tools by description_emb similarity",
+            f"Episodic (last 5 orders) + profile + procedural (similar-cohort JOIN) for {self._first_name(ctx)}",
+            "Flavor Profiler · pgvector HNSW cosine search over beans.embedding",
+            "Roast Master · SQL roast/budget filter + audited check_inventory",
+            "Fact-check every pick against beans · approval queue · Opus 4.7 synthesis",
         ]
         ctx.emit_plan(steps, duration_ms=45)
 
