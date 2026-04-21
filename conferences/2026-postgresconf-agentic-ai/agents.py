@@ -144,6 +144,95 @@ ROAST_LEVEL_PATTERNS: list[tuple[str, list[str]]] = [
     ("dark",          ["dark roast", "dark-roast"]),
 ]
 
+# Region synonym expansion — belt-and-suspenders for when Haiku emits a
+# region name verbatim ("Asia-Pacific", "East African") without expanding
+# into the specific countries stored in beans.origin. Keys are lowercased
+# substrings checked against each origin entry; values are the country
+# names we substitute in. Matches are added ADDITIVE — the user's literal
+# phrase is preserved so the filter panel still shows what they asked for.
+ORIGIN_REGION_MAP: dict[str, list[str]] = {
+    "asia-pacific": [
+        "Indonesia", "Sumatra", "Sulawesi", "Java",
+        "Papua New Guinea", "Vietnam", "Thailand",
+    ],
+    "asia pacific": [
+        "Indonesia", "Sumatra", "Sulawesi", "Java",
+        "Papua New Guinea", "Vietnam", "Thailand",
+    ],
+    "south east asia": [
+        "Indonesia", "Vietnam", "Thailand", "Papua New Guinea",
+    ],
+    "southeast asia": [
+        "Indonesia", "Vietnam", "Thailand", "Papua New Guinea",
+    ],
+    "east african": [
+        "Ethiopia", "Kenya", "Rwanda", "Burundi", "Tanzania", "Uganda",
+    ],
+    "east africa": [
+        "Ethiopia", "Kenya", "Rwanda", "Burundi", "Tanzania", "Uganda",
+    ],
+    "african": [
+        "Ethiopia", "Kenya", "Rwanda", "Burundi",
+        "Tanzania", "Uganda", "Yemen",
+    ],
+    "central american": [
+        "Guatemala", "Honduras", "Costa Rica", "Panama",
+        "Nicaragua", "El Salvador",
+    ],
+    "central america": [
+        "Guatemala", "Honduras", "Costa Rica", "Panama",
+        "Nicaragua", "El Salvador",
+    ],
+    "south american": [
+        "Colombia", "Brazil", "Peru", "Ecuador", "Bolivia",
+    ],
+    "south america": [
+        "Colombia", "Brazil", "Peru", "Ecuador", "Bolivia",
+    ],
+    "latin american": [
+        "Colombia", "Brazil", "Peru", "Guatemala", "Honduras",
+        "Costa Rica", "Panama", "Mexico",
+    ],
+    "latin america": [
+        "Colombia", "Brazil", "Peru", "Guatemala", "Honduras",
+        "Costa Rica", "Panama", "Mexico",
+    ],
+}
+
+
+def _expand_origin_regions(origins: list[str]) -> list[str]:
+    """Backstop for Haiku when it emits a region name without expanding it.
+
+    Additive — the user's literal phrase is preserved (so the telemetry
+    panel still shows what they asked for), and the most specific region
+    match gets its country list appended. Duplicates are removed while
+    preserving first-seen order so the panel reads sensibly.
+
+    Most-specific match wins: region keys are scanned longest-first so
+    'east african' beats the shorter 'african' (avoids adding Yemen to
+    an East African request).
+    """
+    # Pre-sort keys by length desc once so longer keys take precedence.
+    sorted_keys = sorted(ORIGIN_REGION_MAP.keys(), key=len, reverse=True)
+
+    expanded: list[str] = []
+    seen_lower: set[str] = set()
+    for o in origins:
+        key = (o or "").strip()
+        if not key:
+            continue
+        if key.lower() not in seen_lower:
+            expanded.append(key)
+            seen_lower.add(key.lower())
+        for region in sorted_keys:
+            if region in key.lower():
+                for c in ORIGIN_REGION_MAP[region]:
+                    if c.lower() not in seen_lower:
+                        expanded.append(c)
+                        seen_lower.add(c.lower())
+                break  # most-specific match wins; skip shorter keys
+    return expanded
+
 
 ORDER_INTENT_PATTERNS = ["order", "buy", "purchase", "ship me", "place an order", "checkout"]
 
@@ -184,12 +273,23 @@ INTENT_TOOL_SPEC = {
                         "items": {"type": "string"},
                         "description": (
                             "Country, region, or continent the customer asked about, as a "
-                            "free-form list of substrings to match against the beans.origin "
-                            "column with ILIKE. Examples: ['Japan'], ['Ethiopia','Kenya'], "
-                            "['Asia-Pacific','Indonesia','Sumatra','Sulawesi'], "
-                            "['Central America','Panama','Costa Rica','Guatemala']. "
-                            "Include synonyms and common countries for a region so ILIKE "
-                            "has something to match. Empty list if no place was mentioned."
+                            "list of substrings that will be matched against beans.origin "
+                            "with ILIKE. ALWAYS expand broad regions into the specific "
+                            "countries in that region so the filter has real values to hit, "
+                            "because beans.origin stores countries (e.g. 'Indonesia', "
+                            "'Ethiopia'), not region names.\n\n"
+                            "Examples of correct expansions:\n"
+                            "  'Japan'            → ['Japan']\n"
+                            "  'Ethiopian'        → ['Ethiopia']\n"
+                            "  'East African'     → ['Ethiopia','Kenya','Rwanda','Burundi','Tanzania','Uganda']\n"
+                            "  'Asia-Pacific'     → ['Indonesia','Sumatra','Sulawesi','Java','Papua New Guinea','Vietnam','Thailand']\n"
+                            "  'South East Asia'  → ['Indonesia','Vietnam','Thailand','Papua New Guinea']\n"
+                            "  'Central American' → ['Guatemala','Honduras','Costa Rica','Panama','Nicaragua','El Salvador']\n"
+                            "  'South American'   → ['Colombia','Brazil','Peru','Ecuador','Bolivia']\n"
+                            "  'Latin American'   → ['Colombia','Brazil','Peru','Guatemala','Honduras','Costa Rica','Panama','Mexico']\n"
+                            "  'African'          → ['Ethiopia','Kenya','Rwanda','Burundi','Tanzania','Uganda','Yemen']\n"
+                            "Include the user's literal phrase AND the expanded country "
+                            "list. Empty list only if no place was mentioned at all."
                         ),
                     },
                     "budget_cents": {
@@ -304,11 +404,17 @@ def parse_intent(ctx: "AgentContext") -> dict:
     parsed = call["tool_input"] or {}
 
     # Normalize — ensure all expected keys exist
+    raw_origins = [o.strip() for o in (parsed.get("origins") or []) if o and o.strip()]
+    # Server-side belt-and-suspenders: if Haiku emitted a region name
+    # verbatim without expanding to countries, add the country list now.
+    # The telemetry panel still shows what the user asked for (first entry
+    # is preserved); downstream ILIKE has real strings to match against.
+    expanded_origins = _expand_origin_regions(raw_origins)
     intent = {
         "brew_method": parsed.get("brew_method"),
         "brew_label": _BREW_LABEL_MAP.get(parsed.get("brew_method") or ""),
         "explicit_roasts": parsed.get("explicit_roasts") or [],
-        "origins": [o.strip() for o in (parsed.get("origins") or []) if o and o.strip()],
+        "origins": expanded_origins,
         "budget_cents": parsed.get("budget_cents"),
         "wants_order": bool(parsed.get("wants_order")),
         "order_referent_bean_id": parsed.get("order_referent_bean_id"),
