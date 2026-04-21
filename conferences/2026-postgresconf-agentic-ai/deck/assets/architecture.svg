@@ -52,8 +52,8 @@
        3. POSTGRES panel  x=130..690, y=160..402 (242h)
        ================================================================ -->
   <g>
-    <rect x="130" y="160" width="560" height="242" rx="14" fill="url(#pgFill)" stroke="#7ab8e5" stroke-width="1.6"/>
-    <text x="410" y="194" fill="#7ab8e5" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="18" text-anchor="middle" letter-spacing="6">POSTGRESQL</text>
+    <rect x="130" y="160" width="560" height="242" rx="14" fill="url(#pgFill)" stroke="#4d9fff" stroke-width="1.6"/>
+    <text x="410" y="194" fill="#4d9fff" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="18" text-anchor="middle" letter-spacing="6">POSTGRESQL</text>
 
     <!-- Row 1 -->
     <circle cx="158" cy="238" r="3" fill="#ffcf88"/>
@@ -72,17 +72,17 @@
     <text x="500" y="274" fill="#ffffff" font-family="Menlo, Consolas, monospace" font-size="10.5">every invocation</text>
 
     <!-- Row 2 -->
-    <circle cx="158" cy="310" r="3" fill="#7ab8e5"/>
+    <circle cx="158" cy="310" r="3" fill="#4d9fff"/>
     <text x="170" y="314" fill="#ffffff" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">workflow state</text>
     <text x="170" y="332" fill="#ffffff" font-family="Menlo, Consolas, monospace" font-size="10.5">agent_sessions</text>
     <text x="170" y="346" fill="#ffffff" font-family="Menlo, Consolas, monospace" font-size="10.5">.workflow_state</text>
 
-    <circle cx="318" cy="310" r="3" fill="#7ab8e5"/>
+    <circle cx="318" cy="310" r="3" fill="#4d9fff"/>
     <text x="330" y="314" fill="#ffffff" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">approvals</text>
     <text x="330" y="332" fill="#ffffff" font-family="Menlo, Consolas, monospace" font-size="10.5">pending → approved</text>
     <text x="330" y="346" fill="#ffffff" font-family="Menlo, Consolas, monospace" font-size="10.5">→ executed</text>
 
-    <circle cx="488" cy="310" r="3" fill="#7ab8e5"/>
+    <circle cx="488" cy="310" r="3" fill="#4d9fff"/>
     <text x="500" y="314" fill="#ffffff" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">pgvector · HNSW</text>
     <text x="500" y="332" fill="#ffffff" font-family="Menlo, Consolas, monospace" font-size="10.5">cosine similarity</text>
     <text x="500" y="346" fill="#ffffff" font-family="Menlo, Consolas, monospace" font-size="10.5">384-dim</text>

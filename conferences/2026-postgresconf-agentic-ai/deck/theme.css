@@ -14,8 +14,8 @@
   --pg-ink: #ffffff; /* primary body text — pure white for projector contrast */
   --pg-ink-dim: #d8c8ad; /* secondary cream (italic captions, asides) */
   --pg-ink-mut: #a3a3a3; /* captions, page numbers */
-  --pg-blue: #5b8cb8; /* eyebrow labels — muted steel-blue, elegant on black */
-  --pg-blue-strong: #4a7a9e; /* h3 subheaders — slightly deeper */
+  --pg-blue: #4d9fff; /* eyebrow labels — electric blue, high energy on black */
+  --pg-blue-strong: #3d8ae6; /* h3 subheaders — slightly deeper electric */
   --pg-amber: #ffcf88; /* named emphasis — strong tags, service names, code */
   --pg-amber-d: #e0933a; /* heading underline */
   --pg-ok: #a3d466; /* success */
