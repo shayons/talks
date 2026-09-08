@@ -6,9 +6,9 @@ By **Shayon Sanyal** · Principal PostgreSQL Specialist Solutions Architect at A
 
 ## Talks
 
-| Date         | Venue                             | Title                                                            | Materials                                                                                            |
-| ------------ | --------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Apr 21, 2026 | **PostgresConf 2026** · San Pedro | Building Agentic AI Applications with PostgreSQL as the Backbone | [`conferences/postgresconf-2026-agentic-postgres/`](conferences/postgresconf-2026-agentic-postgres/) |
+| Date         | Venue                             | Title                                                            | Materials                                                                                      |
+| ------------ | --------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Apr 21, 2026 | **PostgresConf 2026** · San Pedro | Building Agentic AI Applications with PostgreSQL as the Backbone | [`conferences/2026-postgresconf-agentic-ai/`](conferences/2026-postgresconf-agentic-ai/)       |
 
 Each folder is self-contained: README, Marp slide deck (source + built PDF), and the demo code. Where a talk has been recorded, the folder's README links to the video.
 
