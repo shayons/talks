@@ -8,7 +8,7 @@ By **Shayon Sanyal** · Principal PostgreSQL Specialist Solutions Architect at A
 
 | Date         | Venue                             | Title                                                            | Materials                                                                                      |
 | ------------ | --------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Apr 21, 2026 | **PostgresConf 2026** · San Pedro | Building Agentic AI Applications with PostgreSQL as the Backbone | [`conferences/2026-postgresconf-agentic-ai/`](conferences/2026-postgresconf-agentic-ai/)       |
+| Sep 30, 2026 | **[Postgres Summit US 2026](https://2026.postgressummit.us/)** · New York City | [Hybrid Search in PostgreSQL: Combining Vector and Full-Text for Real-World Applications](https://postgresql.us/events/postgressummitus2026/schedule/session/2349-hybrid-search-in-postgresql-combining-vector-and-full-text-for-real-world-applications/) | [`conferences/2026-postgresconf-agentic-ai/`](conferences/2026-postgresconf-agentic-ai/) |
 
 Each folder is self-contained: README, Marp slide deck (source + built PDF), and the demo code. Where a talk has been recorded, the folder's README links to the video.
 

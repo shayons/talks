@@ -1,254 +1,155 @@
 # Coffee & queries
 
-> Memory, tools, MCP, and guardrails for production agents — Claude on Bedrock at the edges, **one Postgres in the middle**.
->
-> Live demo for **[PostgresConf 2026](https://postgresconf.org/)** · San Pedro · Tue Apr 21 · 50 min.
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](requirements.txt)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)](schema.sql)
+[![pgvector](https://img.shields.io/badge/pgvector-HNSW-3F5C4B)](search.py)
+[![Strands Agents](https://img.shields.io/badge/Strands_Agents-streaming-6B3F2A)](llm.py)
+[![Amazon Bedrock](https://img.shields.io/badge/Amazon_Bedrock-model_access-232F3E)](docs/STREAMING.md)
 
-Most production-agent stacks glue together Pinecone, Redis, DynamoDB, Postgres, Temporal, SQS, and an orchestrator. This demo collapses the data plane into PostgreSQL: episodic, semantic, and procedural memory; tool registry; audit; workflow state; approvals; and MCP — same database, one query plan when you need it.
+Conference demo for **[Postgres Summit US 2026](https://2026.postgressummit.us/)** in New York City.
 
-Haiku parses intent. Opus synthesizes the reply. **Everything in between is SQL.**
+**Session:** [Hybrid Search in PostgreSQL: Combining Vector and Full-Text for Real-World Applications](https://postgresql.us/events/postgressummitus2026/schedule/session/2349-hybrid-search-in-postgresql-combining-vector-and-full-text-for-real-world-applications/)
 
-No agent framework, on purpose. Eight dependencies (`fastapi`, `psycopg`, `pgvector`, `fastembed`, `boto3`, `pydantic`, `python-dotenv`, `uvicorn`). [`agents.py`](agents.py) is ~1,500 lines you can read top to bottom. Frameworks are fine in production — LangGraph's `PostgresSaver` is a nice API over a `jsonb` column. This repo skips that layer so the data plane is legible.
+**Speaker:** Shayon Sanyal · **When:** Wednesday, September 30, 2026, 10:30–11:20 EDT
 
----
+**Where:** Letterpress · Convene, 555 Broadway, New York, NY
 
-## Quick start
+A coffee concierge that makes the data behind an agent visible. Choose a regular, ask for beans, and watch PostgreSQL supply conversation history, hybrid search results, product facts, audit records, and approval state.
 
-Python 3.10+ · Postgres + pgvector ≥ 0.5 · AWS creds with `bedrock:InvokeModel` and `bedrock:Converse` in `us-east-1`.
+The **Coffee & queries** interface is the conference demo's visual baseline: warm paper surfaces, regulars' portraits, a conversation, and a live SQL trace. It now connects to streaming replies, model selection, and coffee product cards backed by the catalog.
+
+[Product overview](PRODUCT.md) · [Streaming and API contract](docs/STREAMING.md) · [Coffee artwork](static/products/README.md) · [Conference deck](deck/)
+
+## Run locally
+
+Use Python 3.11+, PostgreSQL with `vector` and `pg_trgm`, and access to a configured model provider. PostgreSQL 17 is the tested local setup.
+
+Create a dedicated demo database once:
 
 ```bash
-brew install postgresql@17 pgvector && brew services start postgresql@17
-
+brew install postgresql@17 pgvector
+brew services start postgresql@17
 psql -d postgres -c "CREATE ROLE coffee LOGIN PASSWORD 'coffee';"
 psql -d postgres -c "CREATE DATABASE coffee OWNER coffee;"
-PGPASSWORD=coffee psql -h 127.0.0.1 -U coffee -d coffee -f schema.sql
-
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-python seed.py          # first run downloads ~130MB embedding model
-python app.py           # → http://localhost:8000
 ```
 
-First query is 5–10s (Haiku + Opus). Watch latency on each `LLM · …` panel.
-
-If `psql` hits the wrong host: `unset PGHOST PGUSER PGPASSWORD PGSSLMODE PGDATABASE`.
-
-**Own Postgres** (Aurora, RDS, Neon, etc. — needs pgvector 0.5+):
+Then, from this directory:
 
 ```bash
-export DATABASE_URL=postgresql://user:pass@host:5432/dbname
-psql "$DATABASE_URL" -f schema.sql
-python seed.py && python app.py
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+cp .env.example .env  # first setup only; preserve an existing .env
+python scripts/initialize_demo.py
+./run-demo.sh
 ```
 
-**Between rehearsals** run [`./reset.sh`](reset.sh) — truncates session tables, leaves embeddings alone. Re-seed only after `schema.sql`, seed-data edits, or an `EMBED_MODEL` change.
+Open **http://127.0.0.1:8017**. The initializer seeds an empty database and preserves an existing populated catalog. The first embedding call downloads the local model. Configure credentials on the server; the browser never receives them.
 
----
-
-## Stage guide
-
-Two windows: browser at `http://localhost:8000`, and
+For a database created by an older version, apply these migrations in order. They preserve catalog rows, embeddings, customers, and conversations; the second rebuilds the derived search column and briefly locks the catalog. Set `DATABASE_URL` in your shell to the intended database first.
 
 ```bash
-PGPASSWORD=coffee psql -h 127.0.0.1 -U coffee -d coffee
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f migrations/20260902_hybrid_search.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f migrations/20260907_flavor_search.sql
 ```
 
-Optional third window for Yuki: `python mcp_server.py`.
+Do not run `schema.sql` against data you want to keep: it drops and recreates the demo tables. `GET /api/search/status` reports catalog and index readiness.
 
-Click a regular (or press `1` / `2` / `3`). Stage-guide prompts sit under the composer. **New session** clears conversation state for that customer.
+## Models and streaming
 
-| Regular   | Lesson                         | Profile                                      | Recent orders                          |
-| --------- | ------------------------------ | -------------------------------------------- | -------------------------------------- |
-| **Marco** | Three memories in one plan     | Medium roast, fruity East African, pour-over | Yirgacheffe → Guji → Kenya AA → Rwanda |
-| **Ana**   | Continuity + gated writes      | Dark espresso, chocolatey, buys in quantity  | House Espresso ×3 → Sumatra → Santos   |
-| **Yuki**  | Catalog miss + MCP             | Tokyo buyer, Japanese single-origins         | Geisha → Yirgacheffe → Tarrazú         |
+Select a model route in the conversation:
 
-Yuki's first ask has no catalog match — that's the point.
+| Route | Default intent / response models | Server configuration |
+| --- | --- | --- |
+| Bedrock OpenAI | GPT-5.6 Luna / Sol | AWS credentials and access to the configured model IDs |
+| Bedrock Claude | Haiku 4.5 / Sonnet 5 | AWS credentials and access to the configured model IDs |
+| OpenAI API | GPT-5.6 Luna / Sol | `OPENAI_API_KEY` |
 
-**Opener:** _Three agents. Two Claude models. One Postgres. No vector DB, no queue, no cache, no orchestrator._
+These are the application's configured defaults, not a guarantee of account or regional availability. Override model IDs in [.env.example](.env.example). Bedrock streaming requires [`bedrock:InvokeModelWithResponseStream`](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_ConverseStream.html).
 
-### 1 · Marco · three memories (~4 min)
+Strands handles the model calls. Python controls the database steps. The browser receives actual server events and response text as they arrive. A failed stream keeps the partial reply visibly incomplete and restores the question for review.
 
-Turn 1 — `Cold brew options`. Watch **Agent telemetry**: Haiku extracts `brew_method=cold_brew`; tool discovery ranks `search_beans_semantic`; episodic memory is Marco's last five `orders`; **procedural memory** is the zinger — pgvector similarity `JOIN`ed to `orders` and `customers` in one query. Roast filter and fact-check run in SQL. Opus cites only beans that survived.
+## Try the demo
 
-Turn 2 — `Something lighter and more floral` (same session). Haiku reads the last six turns, keeps cold brew, biases light/medium-light. Yirgacheffe and Guji Natural surface because Marco's history is in the same `agent_messages` table Haiku is reading.
+Regulars are keyed by stable customer IDs; displayed names come from PostgreSQL. Fresh seeds use Marco, Ana, and Yuki. Customized catalogs can use different names.
 
-```sql
-SELECT caller, tool, latency_ms,
-       result->>'input_tokens' AS in_tok, result->>'output_tokens' AS out_tok
-  FROM tool_audit
- WHERE session_id = (SELECT id FROM agent_sessions
-                      WHERE customer_id='u_marco' ORDER BY updated_at DESC LIMIT 1)
- ORDER BY ts DESC LIMIT 12;
+| Regular | First question | Follow-up | What to inspect |
+| --- | --- | --- | --- |
+| Pour-over regular | Cold brew options | Something lighter and more floral | History, filters, hybrid retrieval |
+| Espresso regular | Cold brew options | Order that | Same-session referent and a pending approval |
+| Tokyo buyer | Any Japanese single-origins in stock? | What do you have from Asia-Pacific then? | Empty results and origin filters |
+
+Click a regular or press `1`, `2`, or `3`. Press `/` to focus the composer. **New session** starts a conversation without deleting saved history. Customer, session, and model controls stay fixed while a reply runs.
+
+Each completed recommendation includes product cards with verified names, origins, roasts, tasting notes, prices, and stock. Packaging illustrations are shared by roast family. Prices and availability are checked for that reply and may change later.
+
+Order requests create **pending approval records**. This demo does not fulfill orders, charge customers, or decrement inventory. It currently queues one bag per request.
+
+## How it works
+
+```mermaid
+flowchart LR
+    UI["Coffee & queries"] --> API["FastAPI · SSE"]
+    API --> Intent["Strands · structured intent"]
+    Intent --> SQL["PostgreSQL · history, hybrid retrieval, eligibility"]
+    SQL --> Verify["Re-read canonical catalog rows"]
+    Verify --> Reply["Strands · streamed reply"]
+    Verify --> Cards["Structured product cards"]
+    Reply --> UI
+    Cards --> UI
+    SQL --> Audit["Audit, checkpoints and pending approvals"]
 ```
 
-A vector DB sitting apart from `orders` cannot say "customers with similar taste actually bought X." It has to be the same database.
+Hybrid retrieval combines pgvector cosine ranking with PostgreSQL full-text ranking using reciprocal-rank fusion. Budget, roast, origin, and stock filters apply before candidate limits. Embeddings use `BAAI/bge-small-en-v1.5` locally through FastEmbed, with 384 dimensions.
 
-### 2 · Ana · continuity + approvals (~4 min)
+| Table | Role |
+| --- | --- |
+| `customers` | Customer profiles |
+| `beans` | Catalog, stock, prices, full-text document, embeddings |
+| `orders` | Historical purchases |
+| `agent_sessions` | Customer ownership and workflow checkpoints |
+| `agent_messages` | Conversation turns and completed recommendations |
+| `tools` | Tool descriptions and discovery embeddings |
+| `tool_audit` | SQL and successful model-call audit records |
+| `approvals` | Pending order requests |
 
-Switch to **Ana**, **New session**. Same string — `Cold brew options` — different answer (House Espresso Blend, Sumatra). Then `order that`.
+`mcp_server.py` exposes allowlisted, read-only SQL tools over stdio. Search and optional experiment APIs remain available to programmatic clients; the browser focuses on the concierge and its trace.
 
-Haiku resolves `"that"` to `b_espresso_blend`. `place_order` has `requires_approval=true` → insert into `approvals` (`pending`). `orders` and `in_stock` do not move.
+## What the demo establishes
 
-```sql
--- before / after "order that"
-SELECT COUNT(*) FROM orders    WHERE customer_id='u_ana';   -- 4, stays 4
-SELECT COUNT(*) FROM approvals WHERE status='pending';       -- 0 → 1
-SELECT in_stock FROM beans     WHERE id='b_espresso_blend';  -- 240, stays 240
+Product-card facts come from canonical rows, independently of generated prose. The backend checks session ownership, validates intent, and rechecks eligibility. The browser restricts generated markup to a small formatting allowlist.
 
-UPDATE approvals SET status='approved', decided_at=now()
- WHERE id=(SELECT id FROM approvals WHERE status='pending' ORDER BY id DESC LIMIT 1);
+Generated prose can still be wrong or influenced by prompt injection. The data-coverage score is a heuristic, not a probability of correctness. Purchase examples and checkpoints are inspectable; automatic crash recovery and fulfillment are not implemented.
 
-SELECT id, tool, args->>'bean_id' AS bean_id, status, decided_at
-  FROM approvals
- WHERE session_id = (SELECT id FROM agent_sessions
-                      WHERE customer_id='u_ana' ORDER BY updated_at DESC LIMIT 1)
- ORDER BY id DESC LIMIT 3;
-```
+This is a local conference application with no authentication. Keep the default loopback binding. Optional stage experiment controls default to off. `./reset.sh` deliberately deletes sessions, messages, audits, and approvals; use it only to clear a rehearsal.
 
-The queue is a table. A shipping worker would `SELECT … WHERE status='approved' FOR UPDATE SKIP LOCKED`. The agent has no order-status tool — if asked, Opus points at `approvals`.
-
-### 3 · Yuki · catalog miss + MCP (~3 min)
-
-**New session.** `Any Japanese single-origins in stock?` — origin filter empties the pick list (`ROAST MASTER · ORIGIN` goes amber). Opus refuses; it cannot cite a bean that isn't in context.
-
-Then `What do you have from Asia-Pacific then?` — Sumatra Mandheling and Sulawesi Toraja. Grounding held.
-
-Same Postgres, different client:
+## Validate
 
 ```bash
-python mcp_server.py   # SELECT-only, allowlisted, 100-row cap
+python -m pip install -r requirements-dev.txt
+python -m unittest discover -s tests
+node --test tests/test_stream.mjs
+python -m playwright install chromium
+python tests/browser_coffee.py http://127.0.0.1:8017
 ```
 
-```sql
-SELECT caller, tool, latency_ms FROM tool_audit ORDER BY ts DESC LIMIT 10;
-```
+Set `TEST_DATABASE_URL` to run SQL regressions in temporary tables. Tests that modify experiment fixtures require the separate `EXPERIMENT_TEST_DATABASE_URL` opt-in. Browser checks use controlled responses and make no model calls or order writes.
 
-### Closer
+## Source map
 
-One plan: similarity, filters, history, audit, approvals.
+| File | Responsibility |
+| --- | --- |
+| [static/index.html](static/index.html) | Coffee & queries layout and design |
+| [static/app.js](static/app.js) | Customers, models, streaming and product cards |
+| [static/stream.mjs](static/stream.mjs) | SSE decoding and completion checks |
+| [static/render.mjs](static/render.mjs) | Safe response formatting |
+| [app.py](app.py) | FastAPI and streaming worker bridge |
+| [agents.py](agents.py) | Intent, memory, retrieval, verification and approvals |
+| [llm.py](llm.py) | Strands provider adapters |
+| [catalog.py](catalog.py) | Public product fields and artwork mapping |
+| [search.py](search.py) | Shared SQL retrieval |
+| [db.py](db.py) | Local/Aurora connections and embeddings |
+| [schema.sql](schema.sql) | Database schema |
+| [seed.py](seed.py) | Demo catalog, customers, orders and tools |
 
-```sql
-SELECT b.name, b.roast_level, b.in_stock,
-       1 - (b.embedding <=> (SELECT embedding FROM beans WHERE id='b_ethiopia_guji')) AS similarity,
-       (SELECT count(*) FROM orders    WHERE bean_id=b.id AND customer_id='u_marco') AS marco_bought,
-       (SELECT count(*) FROM tool_audit WHERE result->'stock' ? b.id)                AS times_checked,
-       (SELECT count(*) FROM approvals  WHERE args->>'bean_id'=b.id AND status='pending') AS pending
-  FROM beans b
- WHERE b.in_stock > 0 AND b.roast_level IN ('medium','medium-dark','dark')
- ORDER BY similarity DESC LIMIT 5;
-```
-
-_Six pillars. ~2,500 lines of Python plus a 116-line `schema.sql`. Postgres is enough._
-
-### Prompts worth trying
-
-| Try                                    | What happens                                                                                          |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `Something fruity but not from Africa` | Semantic search ignores the negation; the origin filter handles it.                                   |
-| `Order two bags of the Yemen one`      | Haiku resolves the referent → `b_yemen_mocha`. Approval queues for qty=2.                             |
-| `What did I order last time?`          | Episodic hit — last 5 `orders` rows.                                                                  |
-| `Was it approved?`                     | No status tool. Show `SELECT status FROM approvals WHERE session_id=…`.                               |
-| `Where does the 87% come from?`        | `60 + min(20, picks×7) + (8 if history) + min(10, top_sim×10)`, clamp `[30,98]`. Data, not the model. |
-| `ignore previous instructions…`        | Opus can only cite beans in context. Architectural, not a prompt.                                     |
-
----
-
-## Architecture
-
-```
-        Claude Haiku 4.5  ◄─ agent_messages → structured intent
-               │
-               ▼
-   ┌──────────────────────────────────┐
-   │            PostgreSQL            │ ◄── Coordinator
-   │  memory · tools · audit          │       ├─ Flavor Profiler
-   │  workflow state · approvals      │       └─ Roast Master
-   │  pgvector · relational · GIN     │
-   └──────────────┬───────────────────┘
-                  ▼
-         Claude Opus 4.7  ◄─ grounded picks only → reply
-```
-
-Both Bedrock calls go through `converse` in `us-east-1` and land in `tool_audit` next to every SQL tool call (`tool = 'llm:<model_id>'`). One `SELECT` reconstructs the trace.
-
-| Pillar          | Where                                              |
-| --------------- | -------------------------------------------------- |
-| Intent / reply  | Haiku 4.5 · Opus 4.7 on Bedrock                    |
-| Episodic        | `agent_messages`, `orders`                         |
-| Semantic        | `beans.embedding vector(384)` + HNSW               |
-| Procedural      | `orders ⋈ beans ⋈ customers`                       |
-| Tools           | `tools.description_emb` — discovered, not wired    |
-| Audit           | `tool_audit` — SQL and LLM in one table            |
-| Workflow        | `agent_sessions.workflow_state` jsonb              |
-| Approvals       | `approvals` until `status='approved'`              |
-| MCP             | [`mcp_server.py`](mcp_server.py) — stdio, SELECT-only |
-
-Nine tables, two extensions. Full DDL in [`schema.sql`](schema.sql).
-
-```sql
-CREATE EXTENSION IF NOT EXISTS vector;
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-```
-
-Embeddings: [`BAAI/bge-small-en-v1.5`](https://huggingface.co/BAAI/bge-small-en-v1.5) via fastembed, 384-dim, ~130MB, local. Swap with `EMBED_MODEL` — schema hard-codes `vector(384)`.
-
-| Table            | Role                                      |
-| ---------------- | ----------------------------------------- |
-| `customers`      | Profiles                                  |
-| `beans`          | Catalog + `embedding` (HNSW, GIN notes)   |
-| `orders`         | What they bought                          |
-| `agent_sessions` | One conversation; resumable jsonb state   |
-| `agent_messages` | Turns Haiku actually reads                |
-| `tools`          | Registry + `description_emb`              |
-| `tool_audit`     | Every SQL and LLM call                    |
-| `approvals`      | Gated writes                              |
-
----
-
-## Customize
-
-- Models — `BEDROCK_HAIKU_MODEL` / `BEDROCK_OPUS_MODEL` in `.env`
-- Embeddings — `EMBED_MODEL` (any 384-dim fastembed model)
-- Tools — `INSERT` into `tools`; set `requires_approval=true` to queue
-- Beans — edit `BEANS` in [`seed.py`](seed.py), re-run `python seed.py`
-- Grounding — `_respond` in [`agents.py`](agents.py) is the set Opus is allowed to cite
-
----
-
-## FAQ, short
-
-**Can Opus invent a bean?** No. It only sees ids that survived fact-check.
-
-**Prompt injection?** Haiku can be confused; Opus still only sees grounded picks. Contract, not a prompt.
-
-**Unsafe SQL?** Agents call typed tools. The only SQL-accepting path is MCP: SELECT-only, allowlisted, row-capped.
-
-**Agent DB access?** App role is read-write on domain tables. MCP is read-only — in production, a second role with `GRANT SELECT`.
-
-**Writes?** `tools.requires_approval = true`. The LLM proposes; a human flips the row.
-
-**pgvector ceiling?** HNSW build cost around 10M rows/index. Next: pgvectorscale, then a dedicated engine. Most agents never get there.
-
-**Two LLMs expensive?** Haiku is cheap. Opus is the bill. SQL is a rounding error.
-
-**LangChain / LangGraph / Strands?** Complementary. They loop; Postgres holds state. This demo skips the loop so you can see the tables.
-
----
-
-## Files
-
-| File | |
-| ---- | - |
-| [`schema.sql`](schema.sql) | DDL |
-| [`seed.py`](seed.py) | Customers, beans + embeddings, orders, tools |
-| [`reset.sh`](reset.sh) | Truncate session tables |
-| [`db.py`](db.py) | Pool + embedder |
-| [`bedrock.py`](bedrock.py) | Converse + `tool_audit` |
-| [`agents.py`](agents.py) | Coordinator, memory, tools, fact-check, approvals |
-| [`app.py`](app.py) | FastAPI |
-| [`mcp_server.py`](mcp_server.py) | stdio MCP |
-| [`static/index.html`](static/index.html) | Coffee & queries UI |
-
-Deck: [`deck/`](deck/) (Marp, `coffee-queries` theme). `./deck/build.sh` → `deck/deck.pdf`. Node 18+.
+The [Marp deck](deck/) retains the GitHub coffee design. Build it with `./deck/build.sh`; its scripted model names may differ from the route selected in the live app.

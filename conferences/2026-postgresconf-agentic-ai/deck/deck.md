@@ -2,7 +2,10 @@
 marp: true
 theme: coffee-queries
 paginate: true
-footer: "Coffee & queries · PostgresConf 2026"
+title: "Hybrid Search in PostgreSQL: Combining Vector and Full-Text for Real-World Applications"
+author: "Shayon Sanyal"
+description: "Postgres Summit US 2026 · New York City · September 30, 2026"
+footer: "Coffee & queries · Postgres Summit US 2026 · NYC"
 size: 16:9
 ---
 
@@ -11,23 +14,28 @@ size: 16:9
 
 <p class="product">Coffee & queries</p>
 
-# Building Agentic AI Applications with PostgreSQL as the Backbone
+# Hybrid Search in PostgreSQL
 
-## Memory, tools, MCP, and guardrails — Claude at the edges, one Postgres in the middle
+## Combining Vector and Full-Text for Real-World Applications
 
 <div class="byline">
 Shayon Sanyal · Principal PostgreSQL Specialist SA · Lead, Agentic AI for Databases
 </div>
 
 <div class="meta">
-PostgresConf 2026 · San Pedro (Level C) · Apr 21, 15:00 PDT
+Postgres Summit US 2026 · New York City<br>
+September 30 · 10:30–11:20 EDT · Letterpress
 </div>
 
 <!--
 Speaker notes:
-Three agents, two Claude models on Bedrock, one Postgres. Goal in the next
-50 minutes is to convince you that the data layer for a production agent is
-the boring part — and boring is a feature.
+Official session: Hybrid Search in PostgreSQL: Combining Vector and Full-Text
+for Real-World Applications. Postgres Summit US 2026, September 30,
+10:30–11:20 EDT, Letterpress, Convene, 555 Broadway, New York City.
+Session listing: https://postgresql.us/events/postgressummitus2026/schedule/session/2349-hybrid-search-in-postgresql-combining-vector-and-full-text-for-real-world-applications/
+Coffee & queries is the application example: vector similarity and full-text
+search retrieve candidates, RRF combines their rankings, and relational filters
+keep the results within the customer's budget and available inventory.
 -->
 
 ---
@@ -686,7 +694,7 @@ github.com/shayons/talks
 
 Questions?
 
-[github.com/shayons/talks](https://github.com/shayons/talks) · PostgresConf 2026
+[github.com/shayons/talks](https://github.com/shayons/talks) · Postgres Summit US 2026 · NYC
 
 <!--
 Open the floor. Default to taking questions from the live demo (which is still on screen) so the answers are concrete.

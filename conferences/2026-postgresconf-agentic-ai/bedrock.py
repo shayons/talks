@@ -1,122 +1,12 @@
-"""Bedrock Converse wrapper — one place for model IDs, auth, telemetry, audit.
+"""Shared model telemetry and PostgreSQL audit helpers.
 
-Two models in play:
-
-    Haiku 4.5  — orchestrator / intent parser (fast, cheap, tool-use)
-    Opus  4.7  — response synthesizer (grounded picks → customer-facing text)
-
-Both are addressed through global cross-Region inference profiles in us-east-1.
-Every call is:
-    1. timed + token-counted
-    2. emitted as a telemetry panel for the UI
-    3. logged to tool_audit in the same session
-
-There is no fallback. If Bedrock is unreachable the request fails loudly —
-the whole point of the demo is that the agent is LLM-driven end-to-end.
+The historical module name is retained; invocation now lives in llm.py and
+uses Strands for Bedrock and the direct OpenAI API alike.
 """
 from __future__ import annotations
 
 import json
-import os
-import time
-from typing import Any
 
-import boto3
-from botocore.config import Config
-
-# ---- Model IDs (global cross-region inference profiles) ----------------
-HAIKU_MODEL = os.getenv(
-    "BEDROCK_HAIKU_MODEL",
-    "global.anthropic.claude-haiku-4-5-20251001-v1:0",
-)
-OPUS_MODEL = os.getenv(
-    "BEDROCK_OPUS_MODEL",
-    "global.anthropic.claude-opus-4-7",
-)
-AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
-
-
-# Opus 4.7 dropped the temperature knob; other models still accept it.
-def _inference_config(model_id: str, *, max_tokens: int, temperature: float = 0.0) -> dict:
-    cfg: dict[str, Any] = {"maxTokens": max_tokens}
-    if "opus-4-7" not in model_id:
-        cfg["temperature"] = temperature
-    return cfg
-
-
-_runtime = None
-
-
-def runtime():
-    global _runtime
-    if _runtime is None:
-        _runtime = boto3.client(
-            "bedrock-runtime",
-            region_name=AWS_REGION,
-            config=Config(
-                read_timeout=120,
-                connect_timeout=10,
-                retries={"max_attempts": 2, "mode": "standard"},
-            ),
-        )
-    return _runtime
-
-
-# ------------------------------------------------------------------------
-# Core call — converse with Bedrock
-# ------------------------------------------------------------------------
-def converse(
-    *,
-    model_id: str,
-    system: str,
-    messages: list[dict],
-    tool: dict | None = None,
-    max_tokens: int = 1024,
-) -> dict:
-    """Thin wrapper around bedrock-runtime.converse.
-
-    Returns a dict with the response plus {latency_ms, usage, stop_reason,
-    text, tool_input}. Raises on any Bedrock error — no fallback.
-    """
-    kwargs: dict[str, Any] = {
-        "modelId": model_id,
-        "system": [{"text": system}],
-        "messages": messages,
-        "inferenceConfig": _inference_config(model_id, max_tokens=max_tokens),
-    }
-    if tool:
-        kwargs["toolConfig"] = {
-            "tools": [tool],
-            "toolChoice": {"tool": {"name": tool["toolSpec"]["name"]}},
-        }
-
-    t0 = time.perf_counter()
-    resp = runtime().converse(**kwargs)
-    latency_ms = int((time.perf_counter() - t0) * 1000)
-
-    # Extract text + tool-use output blocks
-    text_parts: list[str] = []
-    tool_input: dict | None = None
-    for block in resp["output"]["message"]["content"]:
-        if "text" in block:
-            text_parts.append(block["text"])
-        elif "toolUse" in block:
-            tool_input = block["toolUse"]["input"]
-
-    return {
-        "model_id": model_id,
-        "latency_ms": latency_ms,
-        "usage": resp.get("usage", {}),
-        "stop_reason": resp.get("stopReason"),
-        "text": "".join(text_parts),
-        "tool_input": tool_input,
-        "raw": resp,
-    }
-
-
-# ------------------------------------------------------------------------
-# Telemetry + audit helpers
-# ------------------------------------------------------------------------
 def emit_llm_panel(
     ctx,
     *,
@@ -134,8 +24,11 @@ def emit_llm_panel(
         f"{call['model_id']}  ·  "
         f"in={usage.get('inputTokens', 0)}  "
         f"out={usage.get('outputTokens', 0)}  "
+        f"·  {call.get('provider', 'bedrock')} / Strands  "
         f"·  stop={call.get('stop_reason', '?')}  ·  {meta}"
     )
+    if call.get("first_text_ms") is not None:
+        footer += f" · first text {call['first_text_ms']} ms"
     ctx.emit_panel(
         agent="coordinator",
         tag=tag,
@@ -173,6 +66,9 @@ def log_llm_audit(
         ],
     }
     result = {
+        "provider": call.get("provider"),
+        "framework": call.get("framework"),
+        "first_text_ms": call.get("first_text_ms"),
         "stop_reason": call.get("stop_reason"),
         "input_tokens": usage.get("inputTokens", 0),
         "output_tokens": usage.get("outputTokens", 0),

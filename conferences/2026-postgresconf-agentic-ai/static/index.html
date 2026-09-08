@@ -4,9 +4,10 @@
     <meta charset="utf-8" />
     <meta
       name="viewport"
-      content="width=device-width,initial-scale=1,maximum-scale=1"
+      content="width=device-width,initial-scale=1"
     />
-    <title>Coffee & queries · Agentic AI on PostgreSQL</title>
+    <title>Coffee & queries · Hybrid Search in PostgreSQL · Postgres Summit US 2026</title>
+    <meta name="description" content="Hybrid Search in PostgreSQL: Combining Vector and Full-Text for Real-World Applications. Shayon Sanyal at Postgres Summit US 2026, New York City, September 30." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -21,7 +22,7 @@
         --surface-2: #f3ebe0;
         --fg: #1c1410;
         --muted: #6b5d52;
-        --subtle: #8a7a6b;
+        --subtle: #736356;
         --primary: #6b3f2a;
         --primary-fg: #f6f1e8;
         --border: #e2d6c6;
@@ -106,7 +107,7 @@
 
       .regulars {
         display: grid;
-        grid-template-columns: 1fr 1fr 1fr auto;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 10px;
         align-items: stretch;
       }
@@ -181,19 +182,20 @@
         border: 1px solid var(--border-strong);
         background: transparent;
         color: var(--primary);
-        border-radius: 14px;
-        padding: 12px 14px;
-        min-width: 108px;
+        border-radius: 8px;
+        padding: 8px 12px;
+        min-height: 40px;
+        flex: 0 0 auto;
+        white-space: nowrap;
         cursor: pointer;
         font-size: 13px;
         font-weight: 600;
-        display: flex;
-        flex-direction: column;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 6px;
+        gap: 8px;
       }
-      .new-session:hover { background: var(--surface); }
+      .new-session:hover:not(:disabled) { background: var(--surface-2); }
       .new-session svg { width: 16px; height: 16px; }
 
       .shell {
@@ -214,11 +216,19 @@
       }
       .chat-head {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         justify-content: space-between;
         gap: 12px;
         padding: 14px 20px;
         border-bottom: 1px solid var(--border);
+      }
+      .chat-actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-left: auto;
       }
       .chat-head .lbl {
         font-family: var(--f-mono);
@@ -331,23 +341,6 @@
         align-items: center;
         gap: 10px;
       }
-      .msg .confidence .bar {
-        flex: 1;
-        height: 4px;
-        background: var(--border);
-        border-radius: 2px;
-        overflow: hidden;
-      }
-      .msg .confidence .bar::after {
-        content: "";
-        display: block;
-        height: 100%;
-        background: var(--primary);
-        width: 0;
-        transition: width 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
-      }
-      .msg .confidence .bar.fill::after { width: var(--w, 90%); }
-
       .thinking {
         display: flex;
         align-items: center;
@@ -412,6 +405,7 @@
       .input-row { display: flex; gap: 8px; }
       .input-row input[type="text"] {
         flex: 1;
+        min-width: 0;
         border: 1px solid var(--border);
         border-radius: 12px;
         padding: 12px 16px;
@@ -738,13 +732,60 @@
       }
       .cite-pop.on { display: block; }
 
+      :focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+      ::selection { background: var(--hybrid-soft); color: var(--fg); }
+      input { caret-color: var(--primary); }
+      button:disabled, select:disabled { opacity: 0.55; cursor: not-allowed; }
+      [hidden] { display: none !important; }
+      .sr-only {
+        position: absolute; width: 1px; height: 1px; padding: 0;
+        overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+      }
+      .connection { color: var(--muted); font-size: 13px; margin-top: 3px; }
+      .retry { margin-top: 6px; background: var(--surface); color: var(--primary); border: 1px solid var(--border-strong); padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+      .model-choice { display: flex; align-items: center; gap: 10px; min-width: 0; }
+      .model-choice label { font-size: 13px; color: var(--muted); }
+      .model-choice select { flex: 1; min-width: 0; max-width: 100%; padding: 7px 8px; border: 1px solid var(--border-strong); border-radius: 6px; color: var(--fg); background: var(--bg); font-size: 14px; }
+      .model-detail { font-family: var(--f-mono); font-size: 10px; line-height: 1.5; color: var(--muted); overflow-wrap: anywhere; margin: 5px 0 12px; }
+      .msg, .product-detail { min-width: 0; overflow-wrap: anywhere; }
+      .msg .body { white-space: pre-wrap; }
+      .msg .body p { margin: 0 0 10px; }
+      .msg.error { border-color: var(--danger); color: var(--danger); }
+      .msg.incomplete { border-style: dashed; }
+      .products { list-style: none; padding: 0; margin: 18px 0 0; }
+      .product { display: grid; grid-template-columns: 112px 1fr; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--border); }
+      .product img { width: 112px; height: 128px; object-fit: contain; border-radius: 8px; background: var(--surface-2); }
+      .product h3 { font-family: var(--f-display); font-size: 21px; line-height: 1.2; font-weight: 500; margin: 0 0 5px; }
+      .product p { margin: 4px 0; font-size: 13px; line-height: 1.4; }
+      .product-origin, .product-notes { color: var(--muted); }
+      .product .product-price { font-size: 17px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+      .product-stock { display: inline-block; margin-left: 12px; color: var(--ok); font-size: 12px; }
+      .product-caption { color: var(--muted); font-size: 11px; margin: 4px 0 0; }
+      .sql, .rows { overflow-x: auto; }
+      .rows .meta { white-space: normal; overflow-wrap: anywhere; }
+
       @media (max-width: 1100px) {
         .app { height: auto; overflow: auto; min-height: 100dvh; }
-        html, body { overflow: auto; }
+        html, body { height: auto; min-height: 100%; overflow: visible; }
         .regulars { grid-template-columns: 1fr; }
-        .shell { grid-template-columns: 1fr; }
+        .shell { grid-template-columns: minmax(0, 1fr); }
         .chat { border-right: 0; border-bottom: 1px solid var(--border); min-height: 70vh; }
         .brand-meta { display: none; }
+        .chat { height: 850px; max-height: 1000px; }
+        .side { max-height: 800px; }
+      }
+      @media (max-width: 540px) {
+        .app { padding: 12px 10px; gap: 10px; }
+        .chat-head, .dock { padding: 14px; }
+        .chat-actions { justify-content: space-between; width: 100%; }
+        .new-session { min-height: 44px; }
+        .chat-body { padding: 16px 12px; }
+        .msg { max-width: 100%; padding: 12px; }
+        .product { grid-template-columns: 76px 1fr; gap: 10px; }
+        .product img { width: 76px; height: 100px; }
+        .product h3 { font-size: 19px; }
+        .product-stock { display: block; margin-left: 0; }
+        footer.footer { flex-wrap: wrap; }
       }
       @media (prefers-reduced-motion: reduce) {
         *, *::before, *::after {
@@ -760,11 +801,11 @@
       <header class="top">
         <div class="brand">
           <h1>Coffee & queries</h1>
-          <p>An agent lab on one PostgreSQL — memory, tools, MCP, and guardrails.</p>
+          <p>Hybrid search in PostgreSQL — vector, full-text, and reciprocal-rank fusion.</p>
         </div>
         <div class="brand-meta">
-          <b>PostgresConf 2026 · San Pedro</b>
-          Three regulars. Two Claude models. One database.
+          <b>Postgres Summit US 2026 · NYC</b>
+          Sep 30 · 10:30–11:20 EDT · Letterpress
         </div>
       </header>
 
@@ -775,26 +816,46 @@
           <div class="chat-head">
             <div>
               <div class="lbl">Conversation</div>
+              <div class="connection" id="connection" role="status">Connecting to the roastery…</div>
+              <button id="retry" class="retry" hidden>Retry connection</button>
             </div>
-            <div class="user-select">
-              <span class="avatar" id="avatar">M</span>
-              <select id="customer" aria-label="Customer"></select>
+            <div class="chat-actions">
+              <div class="user-select">
+                <span class="avatar" id="avatar">M</span>
+                <select id="customer" aria-label="Customer" disabled></select>
+              </div>
+              <button class="new-session" id="reset" type="button" title="Start a fresh session" disabled>
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 12a9 9 0 1 0 3-6.7" />
+                  <path d="M3 4v5h5" />
+                </svg>
+                <span>New session</span>
+              </button>
             </div>
           </div>
 
-          <div class="chat-body" id="chat"></div>
+          <div class="chat-body" id="chat" role="log" aria-label="Conversation" aria-live="off"></div>
+          <div id="announcement" class="sr-only" role="status"></div>
 
           <div class="dock">
-            <div class="label">Stage-guide prompts</div>
+            <div class="model-choice">
+              <label for="modelRoute">Models</label>
+              <select id="modelRoute" disabled aria-describedby="modelDetail"></select>
+            </div>
+            <p id="modelDetail" class="model-detail"></p>
+            <div class="label">Try asking</div>
             <div class="pills" id="pills"></div>
             <div class="input-row">
               <input
                 type="text"
                 id="q"
+                aria-label="Ask the coffee concierge"
+                maxlength="2000"
+                disabled
                 placeholder="Describe what you’re looking for…"
                 autocomplete="off"
               />
-              <button class="send" id="send">Send</button>
+              <button class="send" id="send" disabled>Send</button>
             </div>
           </div>
         </section>
@@ -825,12 +886,12 @@
                     </span>
                     <h4>Memory architecture</h4>
                   </div>
-                  <p>Episodic, semantic, and procedural memory all in Postgres — queried with one SQL dialect, joined in one plan.</p>
+                  <p>Conversation history, semantic search and purchase examples live in Postgres. SQL joins make their context visible in the trace.</p>
                   <span class="section-lbl">Tables</span>
                   <ul>
                     <li>agent_messages · episodic</li>
                     <li>beans.embedding · semantic (pgvector HNSW)</li>
-                    <li>orders ⋈ beans · procedural (few-shot)</li>
+                    <li>orders ⋈ beans · purchase examples (trace)</li>
                   </ul>
                 </div>
                 <div class="agent-card">
@@ -879,12 +940,12 @@
                     </span>
                     <h4>State management</h4>
                   </div>
-                  <p>Workflow plan + step index persisted to <code>agent_sessions.workflow_state</code> at every step boundary — resumable after crash.</p>
+                  <p>Workflow checkpoints and conversation history are stored in <code>agent_sessions</code> and <code>agent_messages</code>. Completed turns inform follow-up questions.</p>
                   <span class="section-lbl">Tables</span>
                   <ul>
                     <li>agent_sessions.workflow_state</li>
                     <li>checkpoints after each step</li>
-                    <li>resume from step_index</li>
+                    <li>inspect the last completed step</li>
                   </ul>
                 </div>
                 <div class="agent-card">
@@ -897,11 +958,11 @@
                     </span>
                     <h4>Grounding & guardrails</h4>
                   </div>
-                  <p>Every claim re-verified against canonical rows, confidence scored from data availability, and sensitive tools block on approval.</p>
+                  <p>Catalog rows are re-read before synthesis. Product cards use those rows; generated prose can still be wrong. Order requests enter a pending approval queue.</p>
                   <span class="section-lbl">Checks</span>
                   <ul>
                     <li>fact-check pass before reply</li>
-                    <li>confidence from row coverage</li>
+                    <li>data-coverage heuristic, not answer accuracy</li>
                     <li>approvals queue for place_order</li>
                   </ul>
                 </div>
@@ -920,508 +981,13 @@
       </div>
 
       <footer class="footer">
-        <span>memory · tools · MCP · state · guardrails — all on PostgreSQL</span>
-        <span>PostgresConf SJ 2026 · San Pedro · Apr 21</span>
+        <span>vector · full-text · RRF — one PostgreSQL catalog</span>
+        <span>Postgres Summit US 2026 · New York City · Sep 30</span>
       </footer>
     </div>
 
     <div class="cite-pop" id="citePop"></div>
 
-    <script>
-      const $ = (s) => document.querySelector(s);
-      const el = (t, c, h) => {
-        const e = document.createElement(t);
-        if (c) e.className = c;
-        if (h !== undefined) e.innerHTML = h;
-        return e;
-      };
-      const esc = (s) =>
-        String(s)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
-      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-      const REGULARS = {
-        u_marco: {
-          name: "Marco",
-          title: "Pour-over regular",
-          ask: "Fruity East African, medium roast.",
-          lesson: "Three kinds of memory in one plan.",
-          cls: "marco",
-          portrait: "/static/portraits/marco.jpg",
-          prompts: [
-            { q: "Cold brew options", label: "Cold brew options" },
-            { q: "Something lighter and more floral", label: "Lighter and more floral" },
-          ],
-        },
-        u_ana: {
-          name: "Ana",
-          title: "Espresso, by the kilo",
-          ask: "Dark, chocolatey, low-acid.",
-          lesson: "Memory continuity + approvals.",
-          cls: "ana",
-          portrait: "/static/portraits/ana.jpg",
-          prompts: [
-            { q: "Cold brew options", label: "Cold brew options" },
-            { q: "order that", label: "Order that" },
-          ],
-        },
-        u_yuki: {
-          name: "Yuki",
-          title: "Tokyo specialty buyer",
-          ask: "Japanese single-origins, siphon.",
-          lesson: "Catalog miss + MCP.",
-          cls: "yuki",
-          portrait: "/static/portraits/yuki.jpg",
-          prompts: [
-            { q: "Any Japanese single-origins in stock?", label: "Japanese single-origins" },
-            { q: "What do you have from Asia-Pacific then?", label: "Asia-Pacific instead" },
-          ],
-        },
-      };
-
-      const FALLBACK_PROMPTS = [
-        { q: "Cold brew options", label: "Cold brew options" },
-        { q: "Smooth espresso", label: "Smooth espresso" },
-        { q: "Light roast pour-over", label: "Light roast" },
-        { q: "Order a bag of cold brew", label: "Place an order" },
-      ];
-
-      function kwify(sql) {
-        let s = esc(sql);
-        s = s.replace(/--[^\n]*/g, (m) => `\u0001${m}\u0002`);
-        s = s.replace(/'[^']*'/g, (m) => `\u0003${m}\u0004`);
-        s = s.replace(/\$\d+/g, (m) => `\u0003${m}\u0004`);
-        s = s.replace(
-          /\b(SELECT|FROM|WHERE|AND|OR|ORDER BY|LIMIT|JOIN|LEFT|INNER|ON|AS|GROUP BY|DESC|ASC|INSERT|INTO|VALUES|UPDATE|SET|RETURNING|WITH|BEGIN|COMMIT|CREATE|TABLE|INDEX|USING|EXTENSION|PRIMARY|KEY|NOT|NULL|DEFAULT|TRUE|FALSE|ANY|IN)\b/g,
-          "\u0005$1\u0006",
-        );
-        s = s.replace(/(&lt;=&gt;|&lt;-&gt;|&lt;#&gt;)/g, "\u0007$1\u0008");
-        s = s.replace(/\u0001/g, '<span class="cmt">').replace(/\u0002/g, "</span>");
-        s = s.replace(/\u0003/g, '<span class="str">').replace(/\u0004/g, "</span>");
-        s = s.replace(/\u0005/g, '<span class="kw">').replace(/\u0006/g, "</span>");
-        s = s.replace(/\u0007/g, '<span class="op">').replace(/\u0008/g, "</span>");
-        return s;
-      }
-
-      const state = {
-        customers: [],
-        customerId: null,
-        sessionId: null,
-        busy: false,
-        startedAt: 0,
-        timer: null,
-      };
-
-      function renderRegulars() {
-        const host = $("#regulars");
-        host.innerHTML = "";
-        const ids = state.customers.map((c) => c.id);
-        const shown = ids.filter((id) => REGULARS[id]);
-        const list = shown.length ? shown : ids.slice(0, 3);
-        list.forEach((id) => {
-          const c = state.customers.find((x) => x.id === id);
-          const meta = REGULARS[id] || {
-            name: c?.name || id,
-            title: c?.summary || "Customer",
-            ask: "",
-            lesson: "",
-            cls: "other",
-          };
-          const face = meta.portrait
-            ? `<img src="${meta.portrait}" alt="">`
-            : `<span class="mono ${meta.cls}">${esc(meta.name.charAt(0))}</span>`;
-          const b = el("button", "regular");
-          b.type = "button";
-          b.setAttribute("aria-pressed", id === state.customerId ? "true" : "false");
-          b.innerHTML = `
-            ${face}
-            <span class="who">
-              <div class="name">${esc(meta.name)}</div>
-              <div class="title">${esc(meta.title)}</div>
-              ${meta.ask ? `<div class="ask">“${esc(meta.ask)}”</div>` : ""}
-              ${meta.lesson ? `<div class="lesson">${esc(meta.lesson)}</div>` : ""}
-            </span>`;
-          b.addEventListener("click", () => {
-            $("#customer").value = id;
-            state.customerId = id;
-            onCustomerChange();
-          });
-          host.appendChild(b);
-        });
-        const reset = el("button", "new-session");
-        reset.id = "reset";
-        reset.title = "Start a fresh session";
-        reset.innerHTML = `
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12a9 9 0 1 0 3-6.7" />
-            <path d="M3 4v5h5" />
-          </svg>
-          <span>New session</span>`;
-        reset.addEventListener("click", resetSession);
-        host.appendChild(reset);
-      }
-
-      function renderPills() {
-        const host = $("#pills");
-        host.innerHTML = "";
-        const prompts = (REGULARS[state.customerId] || {}).prompts || FALLBACK_PROMPTS;
-        prompts.forEach((p) => {
-          const b = el("button", "pill", esc(p.label));
-          b.dataset.q = p.q;
-          b.addEventListener("click", () => run(p.q));
-          host.appendChild(b);
-        });
-      }
-
-      async function init() {
-        const r = await fetch("/api/customers");
-        state.customers = await r.json();
-        const sel = $("#customer");
-        sel.innerHTML = state.customers
-          .map((c) => `<option value="${c.id}">${esc(c.name)}</option>`)
-          .join("");
-        sel.addEventListener("change", () => {
-          state.customerId = sel.value;
-          onCustomerChange();
-        });
-        state.customerId = state.customers[0]?.id;
-        renderRegulars();
-        onCustomerChange();
-
-        $("#send").addEventListener("click", () => {
-          const q = $("#q").value.trim();
-          if (q) run(q);
-        });
-        $("#q").addEventListener("keydown", (e) => {
-          if (e.key === "Enter") {
-            const q = $("#q").value.trim();
-            if (q) run(q);
-          }
-        });
-
-        document.querySelectorAll(".side-tab").forEach((t) => {
-          t.addEventListener("click", () => switchTab(t.dataset.tab));
-        });
-
-        window.addEventListener("keydown", (e) => {
-          const tag = (e.target && e.target.tagName) || "";
-          const typing = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
-          if (typing) return;
-          if (e.key === "1") selectByIndex(0);
-          if (e.key === "2") selectByIndex(1);
-          if (e.key === "3") selectByIndex(2);
-          if (e.key === "/") {
-            e.preventDefault();
-            $("#q").focus();
-          }
-        });
-
-        emptyTelemetry();
-
-        document.addEventListener("mouseover", (e) => {
-          const c = e.target.closest("cite[data-k]");
-          if (!c) return;
-          const pop = $("#citePop");
-          pop.textContent = `Postgres row · ${c.dataset.k}`;
-          pop.classList.add("on");
-          const r = c.getBoundingClientRect();
-          pop.style.left = Math.min(window.innerWidth - 340, r.left) + "px";
-          pop.style.top = r.bottom + 6 + "px";
-        });
-        document.addEventListener("mouseout", (e) => {
-          if (e.target.closest("cite[data-k]"))
-            $("#citePop").classList.remove("on");
-        });
-      }
-
-      function selectByIndex(i) {
-        const c = state.customers[i];
-        if (!c) return;
-        $("#customer").value = c.id;
-        state.customerId = c.id;
-        onCustomerChange();
-      }
-
-      function onCustomerChange() {
-        const c = state.customers.find((x) => x.id === state.customerId);
-        const chat = $("#chat");
-        chat.innerHTML = "";
-        const m = el("div", "msg agent");
-        const firstName = c ? c.name.split(" ")[0] : "there";
-        m.innerHTML = `<span class="label">Coordinator</span>
-    Hey there. I coordinate our roasting and flavor teams to find you the right beans. What kind of coffee are you after, ${esc(firstName)}?`;
-        chat.appendChild(m);
-        $("#avatar").textContent = firstName.charAt(0).toUpperCase();
-        state.sessionId = null;
-        const sid = $("#sid");
-        if (sid) sid.textContent = "—";
-        emptyTelemetry();
-        setTeleCount(0);
-        renderRegulars();
-        renderPills();
-      }
-
-      function emptyTelemetry() {
-        $("#panels").innerHTML = `
-    <div class="empty">
-      <div class="title">No live events yet</div>
-      <div class="hint">Ask something to see the agents work</div>
-    </div>`;
-      }
-
-      function setTeleCount(n) {
-        const node = $("#teleCount");
-        if (node) node.textContent = String(n);
-      }
-
-      function switchTab(name) {
-        document
-          .querySelectorAll(".side-tab")
-          .forEach((t) => t.classList.toggle("on", t.dataset.tab === name));
-        $("#archView").style.display = name === "arch" ? "" : "none";
-        $("#teleView").style.display = name === "tele" ? "" : "none";
-        $("#sideTitleText").textContent =
-          name === "arch" ? "System architecture" : "Agent telemetry";
-        $("#sideSubText").textContent =
-          name === "arch"
-            ? "Multi-agent orchestration on Postgres"
-            : "Live trace of agent activity";
-      }
-
-      function resetSession() {
-        state.sessionId = null;
-        const sid = $("#sid");
-        if (sid) sid.textContent = "—";
-        const node = $("#elapsed");
-        if (node) node.textContent = "0ms";
-        onCustomerChange();
-        switchTab("arch");
-      }
-
-      async function run(query) {
-        if (state.busy) return;
-        state.busy = true;
-        document.querySelectorAll(".pill").forEach((p) => (p.disabled = true));
-        $("#send").disabled = true;
-
-        const chat = $("#chat");
-        const uMsg = el("div", "msg user", esc(query));
-        chat.appendChild(uMsg);
-        chat.scrollTop = chat.scrollHeight;
-        $("#q").value = "";
-
-        const think = el("div", "thinking");
-        think.innerHTML = `<div class="bars"><span></span><span></span><span></span><span></span></div><span>thinking…</span>`;
-        chat.appendChild(think);
-        chat.scrollTop = chat.scrollHeight;
-
-        $("#panels").innerHTML = "";
-        setTeleCount(0);
-        switchTab("tele");
-        state.startedAt = performance.now();
-        clearInterval(state.timer);
-        state.timer = setInterval(() => {
-          const node = $("#elapsed");
-          if (node)
-            node.textContent =
-              Math.round(performance.now() - state.startedAt) + "ms";
-        }, 60);
-
-        let data;
-        try {
-          const res = await fetch("/api/query", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              customer_id: state.customerId,
-              query,
-              session_id: state.sessionId,
-            }),
-          });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          data = await res.json();
-        } catch (err) {
-          think.remove();
-          const e = el("div", "msg agent");
-          e.innerHTML = `<span class="label" style="color:var(--danger)">Error</span>${esc(err.message)}. Is the API running?`;
-          chat.appendChild(e);
-          clearInterval(state.timer);
-          state.busy = false;
-          document.querySelectorAll(".pill").forEach((p) => (p.disabled = false));
-          $("#send").disabled = false;
-          return;
-        }
-
-        state.sessionId = data.session_id;
-        const sidEl = $("#sid");
-        if (sidEl) sidEl.textContent = data.session_id.slice(0, 8);
-
-        await playEvents(data.events, think);
-
-        clearInterval(state.timer);
-        state.busy = false;
-        document.querySelectorAll(".pill").forEach((p) => (p.disabled = false));
-        $("#send").disabled = false;
-      }
-
-      let currentPlan = null;
-
-      async function playEvents(events, think) {
-        currentPlan = null;
-        let responseRendered = false;
-        let n = 0;
-
-        for (const ev of events) {
-          if (ev.type === "plan") {
-            renderPlan(ev);
-            n++;
-            setTeleCount(n);
-            await sleep(280);
-          } else if (ev.type === "step") {
-            updateStep(ev);
-            await sleep(40);
-          } else if (ev.type === "panel") {
-            renderPanel(ev);
-            n++;
-            setTeleCount(n);
-            await sleep(420);
-          } else if (ev.type === "response") {
-            think.remove();
-            await renderResponse(ev);
-            responseRendered = true;
-          }
-        }
-        if (!responseRendered) think.remove();
-      }
-
-      function renderPlan(ev) {
-        const p = el("div", "panel");
-        p.innerHTML = `
-    <div class="panel-head">
-      <span class="tag">PLAN</span>
-      <span class="title">${esc(ev.title)}</span>
-      <span class="dur">~${ev.duration_ms}ms</span>
-    </div>
-    <div class="panel-body">
-      <div class="plan">
-        <ol>
-          ${ev.steps
-            .map(
-              (s, i) => `
-            <li>
-              <span class="n">${String(i + 1).padStart(2, "0")}</span>
-              <span class="t">${esc(s)}</span>
-              <span class="s">queued</span>
-            </li>`,
-            )
-            .join("")}
-        </ol>
-      </div>
-    </div>`;
-        $("#panels").appendChild(p);
-        $("#panels").scrollTop = $("#panels").scrollHeight;
-        currentPlan = p;
-      }
-
-      function updateStep(ev) {
-        if (!currentPlan) return;
-        const li = currentPlan.querySelectorAll(".plan li")[ev.index];
-        if (!li) return;
-        li.classList.remove("active", "done");
-        if (ev.state === "active") {
-          li.classList.add("active");
-          li.querySelector(".s").textContent = "running";
-        } else if (ev.state === "done") {
-          li.classList.add("done");
-          li.querySelector(".s").textContent = "ok";
-        }
-      }
-
-      function renderPanel(ev) {
-        const p = el("div", "panel");
-        const tagCls =
-          ev.tag_class && ev.tag_class !== "cyan" ? ` ${ev.tag_class}` : "";
-        p.innerHTML = `
-    <div class="panel-head">
-      <span class="tag${tagCls}">${esc(ev.tag)}</span>
-      <span class="title">${esc(ev.title)}</span>
-      <span class="dur">${ev.duration_ms ? ev.duration_ms + "ms" : ""}</span>
-    </div>
-    <div class="panel-body"></div>`;
-        const body = p.querySelector(".panel-body");
-
-        if (ev.sql) {
-          const s = el("div", "sql");
-          s.innerHTML = kwify(ev.sql);
-          body.appendChild(s);
-        }
-        if (ev.columns && ev.columns.length) {
-          const cols = ev.columns.length;
-          const gridCols = `repeat(${cols}, minmax(min-content, 1fr))`;
-          const rwrap = el("div", "rows");
-          const head = el("div", "head");
-          head.style.gridTemplateColumns = gridCols;
-          head.innerHTML = ev.columns
-            .map((c) => `<span>${esc(c)}</span>`)
-            .join("");
-          rwrap.appendChild(head);
-          (ev.rows || []).forEach((row, i) => {
-            setTimeout(() => {
-              const r = el("div", "row");
-              r.style.gridTemplateColumns = gridCols;
-              r.innerHTML = row.map((v) => `<span>${esc(v)}</span>`).join("");
-              rwrap.appendChild(r);
-              $("#panels").scrollTop = $("#panels").scrollHeight;
-            }, 100 + i * 80);
-          });
-          if (ev.meta) {
-            setTimeout(() => {
-              const m = el("div", "meta", ev.meta);
-              rwrap.appendChild(m);
-              $("#panels").scrollTop = $("#panels").scrollHeight;
-            }, 100 + (ev.rows || []).length * 80 + 100);
-          }
-          body.appendChild(rwrap);
-        } else if (ev.meta) {
-          const mw = el("div", "rows");
-          mw.appendChild(el("div", "meta", ev.meta));
-          body.appendChild(mw);
-        }
-
-        $("#panels").appendChild(p);
-        $("#panels").scrollTop = $("#panels").scrollHeight;
-      }
-
-      async function renderResponse(ev) {
-        const chat = $("#chat");
-        const m = el("div", "msg agent");
-        m.innerHTML = `<span class="label">Coordinator · grounded response</span><span class="body"></span>`;
-        chat.appendChild(m);
-        const body = m.querySelector(".body");
-
-        const tokens = ev.text.split(/(\s+|<[^>]+>)/).filter(Boolean);
-        for (const t of tokens) {
-          body.innerHTML += t;
-          chat.scrollTop = chat.scrollHeight;
-          if (!t.startsWith("<") && t.trim()) await sleep(12);
-        }
-
-        if (ev.confidence !== undefined) {
-          const c = el("div", "confidence");
-          c.innerHTML = `
-      <span>confidence</span>
-      <div class="bar" style="--w:${ev.confidence}%"></div>
-      <span style="font-weight:500;color:var(--fg)">${ev.confidence}%</span>`;
-          m.appendChild(c);
-          requestAnimationFrame(() =>
-            c.querySelector(".bar").classList.add("fill"),
-          );
-        }
-      }
-
-      init();
-    </script>
+    <script type="module" src="/static/app.js"></script>
   </body>
 </html>

@@ -1,6 +1,9 @@
-# Talking Points · PostgresConf 2026
+# Talking Points · Postgres Summit US 2026 · NYC
 
-> Stage notes for the 50-min dev-track talk. Audience: Postgres devs, builders, committers, hackers.
+> **Session:** [Hybrid Search in PostgreSQL: Combining Vector and Full-Text for Real-World Applications](https://postgresql.us/events/postgressummitus2026/schedule/session/2349-hybrid-search-in-postgresql-combining-vector-and-full-text-for-real-world-applications/)
+> **Speaker:** Shayon Sanyal · September 30, 2026 · 10:30–11:20 EDT · Letterpress, Convene, New York City.
+>
+> Stage notes for the 50-minute Summit session. Audience: Postgres developers and application builders; published level: intermediate.
 > Speak their dialect — access patterns, query plans, index internals, autovacuum, MVCC. Don't sell Postgres _to_ Postgres people. Sell the idea that the agent stack is _ordinary Postgres work_.
 >
 > Scenario scripts live in [../README.md](../README.md). This file is the **narrative through-line**.
@@ -32,7 +35,7 @@
 
 ### 1. Title
 
-_"Coffee & queries. Three agents, two Claude models, one Postgres, no framework. Next 50 minutes I want to convince you the data layer for a production agent is boring — and boring is the feature."_
+_"Welcome to Hybrid Search in PostgreSQL. Coffee & queries is our working example: a coffee request needs meaning, exact terms, and current stock and prices. We'll follow those requirements through vector search, full-text search, and reciprocal-rank fusion in PostgreSQL."_
 
 ### 2. Why are we even having this conversation?
 

@@ -1,0 +1,22 @@
+# Credentials and machine-specific settings
+.env
+.env.*
+!.env.example
+compose.override.yaml
+compose.override.yml
+
+# Dependencies, caches, and local verification output
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+node_modules/
+.impeccable/
+*.log
+.DS_Store
+
+# Interrupted archive builds; published PDFs, HTML, and ZIP are intentional.
+static/take-home.zip.tmp

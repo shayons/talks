@@ -18,13 +18,15 @@ from __future__ import annotations
 import json
 import re
 import time
+import threading
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 from pgvector.psycopg import Vector
 
 from db import conn, embed
+from search import FILTER_SQL, SEARCH_SQL, result_from_row, search_params
 
 
 # =======================================================================
@@ -37,11 +39,27 @@ class AgentContext:
     query: str
     events: list[dict] = field(default_factory=list)
     _plan_step_index: int = 0
+    model_route: str | None = None
+    on_event: Callable[[dict], None] | None = field(default=None, repr=False)
+    cancelled: threading.Event | None = field(default=None, repr=False)
 
     # ---- emission helpers --------------------------------------------
     def emit(self, ev: dict) -> None:
+        self.check_cancelled()
         ev["ts_ms"] = int(time.time() * 1000)
-        self.events.append(ev)
+        # Partial text is transport-only. Persist one complete assistant turn.
+        if ev["type"] != "text_delta":
+            self.events.append(ev)
+        if self.on_event:
+            self.on_event(ev)
+
+    def check_cancelled(self) -> None:
+        if self.cancelled and self.cancelled.is_set():
+            from llm import RunCancelled
+            raise RunCancelled()
+
+    def text_delta(self, text: str) -> None:
+        self.emit({"type": "text_delta", "text": text})
 
     def emit_plan(self, steps: list[str], duration_ms: int, title: str | None = None) -> None:
         self.emit({
@@ -86,13 +104,15 @@ class AgentContext:
             "duration_ms": duration_ms,
         })
 
-    def emit_response(self, text: str, citations: list[dict], confidence: int) -> None:
+    def emit_response(self, text: str, citations: list[dict], confidence: int,
+                      products: list[dict] | None = None) -> None:
         self.emit({
             "type": "response",
             "agent": "coordinator",
             "text": text,
             "citations": citations,
             "confidence": confidence,
+            "products": products or [],
         })
 
 
@@ -236,6 +256,36 @@ def _expand_origin_regions(origins: list[str]) -> list[str]:
 
 ORDER_INTENT_PATTERNS = ["order", "buy", "purchase", "ship me", "place an order", "checkout"]
 
+_BUDGET_CLAUSE_RE = re.compile(
+    r"\b(?:under|below|less\s+than|up\s+to|at\s+most|"
+    r"max(?:imum)?(?:\s+of)?)\s*\$?\s*\d+(?:\.\d{1,2})?\b",
+    re.IGNORECASE,
+)
+_PRICE_TOKEN_RE = re.compile(r"\$\s*\d+(?:\.\d{1,2})?")
+_LEXICAL_NOISE_RE = re.compile(
+    r"\b(?:show\s+me|what\s+do\s+you\s+have|do\s+you\s+have|"
+    r"in\s+stock|available|options?|recommendations?|any|then)\b",
+    re.IGNORECASE,
+)
+
+
+def _lexical_query_text(query: str, intent: dict) -> str:
+    """Keep searchable terms while structured constraints stay relational.
+
+    PostgreSQL's websearch_to_tsquery joins ordinary terms with AND. Passing
+    "bergamot under $20" verbatim therefore asks the FTS index for both
+    "bergamot" and the numeric lexeme "20". Haiku already extracted 2000 as
+    a price constraint, so the lexical branch should search "bergamot" while
+    the shared SQL retrieval applies price_cents <= 2000.
+    """
+    text = query
+    if intent.get("budget_cents") is not None:
+        text = _BUDGET_CLAUSE_RE.sub(" ", text)
+        text = _PRICE_TOKEN_RE.sub(" ", text)
+    text = _LEXICAL_NOISE_RE.sub(" ", text)
+    text = re.sub(r"\s+", " ", text).strip(" ?!.,")
+    return text or query.strip()
+
 
 # ---- Haiku intent parser ------------------------------------------------
 # The deterministic regex parser has been replaced by Haiku 4.5. The LLM
@@ -306,7 +356,8 @@ INTENT_TOOL_SPEC = {
                             "If wants_order=true and the customer is referring to a bean "
                             "that was previously recommended in this conversation (e.g. 'order that', "
                             "'order a bag', 'the cold brew you just showed me'), return the bean id "
-                            "from the most recent recommendation. Null otherwise."
+                            "from the most recent recommendation (for example, the "
+                            "bean labeled as the safest bet). Null otherwise."
                         ),
                     },
                     "reasoning": {
@@ -363,7 +414,10 @@ def parse_intent(ctx: "AgentContext") -> dict:
     read the session's recent messages and resolve references like "order
     that" to a concrete bean id.
     """
-    from bedrock import HAIKU_MODEL, converse, emit_llm_panel, log_llm_audit
+    from llm import converse, emit_llm_panel, log_llm_audit, resolve_route
+
+    route = resolve_route(ctx.model_route)
+    ctx.emit({"type": "status", "text": "Reading your request and conversation history…"})
 
     recent = _load_recent_messages(ctx.session_id, limit=6)
 
@@ -394,11 +448,11 @@ def parse_intent(ctx: "AgentContext") -> dict:
     )
 
     call = converse(
-        model_id=HAIKU_MODEL,
+        route=route, model_id=route.intent_model, cancelled=ctx.cancelled,
         system=system,
         messages=[{"role": "user", "content": [{"text": user_msg}]}],
         tool=INTENT_TOOL_SPEC,
-        max_tokens=500,
+        max_tokens=2048,
     )
 
     parsed = call["tool_input"] or {}
@@ -423,20 +477,20 @@ def parse_intent(ctx: "AgentContext") -> dict:
 
     emit_llm_panel(
         ctx,
-        tag="LLM · HAIKU · INTENT",
-        title="Haiku 4.5 parsed the customer request via tool-use",
+        tag="LLM · INTENT",
+        title=f"{route.intent_model} parsed the customer request",
         call=call,
         preview_cols=["field", "value"],
         preview_rows=[
             ["brew_method", intent["brew_method"] or "(unspecified)"],
             ["explicit_roasts", ", ".join(intent["explicit_roasts"]) or "(none)"],
             ["origins", ", ".join(intent["origins"]) or "(none)"],
-            ["budget_cents", str(intent["budget_cents"]) if intent["budget_cents"] else "(none)"],
+            ["budget_cents", str(intent["budget_cents"]) if intent["budget_cents"] is not None else "(none)"],
             ["wants_order", "yes" if intent["wants_order"] else "no"],
             ["order_referent_bean_id", intent["order_referent_bean_id"] or "(none)"],
             ["reasoning", intent["_llm_reasoning"] or "—"],
         ],
-        meta="structured JSON via Converse tool-use · referential 'order that' resolves here",
+        meta="Strands tool-use · schema-validated intent · referential 'order that' resolves here",
     )
     log_llm_audit(
         session_id=ctx.session_id,
@@ -524,9 +578,9 @@ SELECT name, description, requires_approval, owner_agent,
 def save_workflow_state(session_id: str, state: dict) -> None:
     """Checkpoint the plan + current step index to Postgres.
 
-    Every step boundary writes here. If the process dies, the next call to
-    run_query could resume from `workflow_state->>'step_index'` — this is
-    the "state management" pillar.
+    Every step boundary writes here so progress is inspectable and a
+    production recovery loop has a durable starting point. This demo does
+    not automatically replay a partially completed turn.
     """
     with conn() as c, c.cursor() as cur:
         cur.execute(
@@ -563,6 +617,14 @@ def request_approval(
 # Coordinator
 # =======================================================================
 class CoordinatorAgent:
+    @staticmethod
+    def _eligibility_params(intent: dict) -> dict:
+        return {
+            "budget": intent.get("budget_cents"),
+            "roasts": intent.get("explicit_roasts") or BREW_ROAST_MAP.get(intent.get("brew_method"), []),
+            "origins": intent.get("origins") or [], "stock_only": True,
+        }
+
     def handle(self, ctx: AgentContext) -> None:
         # Step 0 is intent parsing (LLM). We emit the plan first so the panel
         # order in the UI still reads top-to-bottom.
@@ -570,14 +632,15 @@ class CoordinatorAgent:
         # The 5 steps below are coarse-grained by design — they group the
         # panels that get emitted within each step. For the full per-panel
         # narration (HAIKU · INTENT, TOOL REGISTRY · DISCOVER, MEMORY ·
-        # EPISODIC, MEMORY · PROFILE, MEMORY · PROCEDURAL, MEMORY · SEMANTIC,
+        # EPISODIC, MEMORY · PROFILE, MEMORY · PROCEDURAL,
+        # RETRIEVAL · HYBRID RRF,
         # ROAST MASTER · FILTER, TOOL · CHECK_INVENTORY, GUARDRAIL · FACT-CHECK,
         # GROUNDING, GUARDRAIL · APPROVAL, LLM · OPUS · SYNTHESIZE) see the
         # individual telemetry panels that stream in below the PLAN.
         steps = [
             "Haiku 4.5 parses intent · rank tools by description_emb similarity",
             f"Episodic (last 5 orders) + profile + procedural (similar-cohort JOIN) for {self._first_name(ctx)}",
-            "Flavor Profiler · pgvector HNSW cosine search over beans.embedding",
+            "Flavor Profiler · fuse pgvector + full-text ranks with RRF",
             "Roast Master · SQL roast/budget filter + audited check_inventory",
             "Fact-check every pick against beans · approval queue · Opus 4.7 synthesis",
         ]
@@ -738,12 +801,14 @@ SELECT b.name, c.name AS customer, COUNT(*) AS times_ordered,
         verified: list[dict] = []
         if picks:
             sql = """
-SELECT id, name, roast_level, in_stock, price_cents
-  FROM beans
- WHERE id = ANY(%s);""".strip()
+SELECT b.id, b.name, b.roast_level, b.in_stock, b.price_cents,
+       b.origin, b.process, b.flavor_notes, b.description
+  FROM beans b
+ WHERE b.id = ANY(%(ids)s)
+""".strip() + "\n" + FILTER_SQL
             t0 = time.perf_counter()
             with conn() as c, c.cursor() as cur:
-                cur.execute(sql, ([p["id"] for p in picks],))
+                cur.execute(sql, {"ids": [p["id"] for p in picks], **self._eligibility_params(intent)})
                 canon = {r[0]: r for r in cur.fetchall()}
             dur = int((time.perf_counter() - t0) * 1000)
 
@@ -753,7 +818,10 @@ SELECT id, name, roast_level, in_stock, price_cents
                 ok = bool(row and row[3] > 0)
                 check_rows.append([p["name"], "beans." + p["id"], "pass" if ok else "FAIL"])
                 if ok:
-                    verified.append(p)
+                    verified.append({**p, "name": row[1], "roast_level": row[2],
+                                     "in_stock": row[3], "price_cents": row[4],
+                                     "origin": row[5], "process": row[6],
+                                     "flavor_notes": row[7], "description": row[8]})
 
             ctx.emit_panel(
                 agent="coordinator",
@@ -796,7 +864,7 @@ SELECT id, name, roast_level, in_stock, price_cents
                     # prior bean dropped out of this turn's picks — re-hydrate
                     # it from the beans table so the order still references
                     # the thing we actually recommended.
-                    hydrated = self._hydrate_bean(prior["id"])
+                    hydrated = self._hydrate_bean(prior["id"], intent)
                     if hydrated:
                         verified = [hydrated] + verified
 
@@ -810,11 +878,11 @@ SELECT id, name, roast_level, in_stock, price_cents
             agent="coordinator",
             tag="GROUNDING",
             tag_class="green",
-            title=f"Every claim cited · {len(verified)}/{len(verified)} grounded"
+            title=f"{len(verified)} catalog rows supplied for synthesis"
                   if verified else "No stocked bean matched — refusing to invent one",
             columns=["bean", "source_row", "stock"],
             rows=rows,
-            meta="grounded against the <b>beans</b> table · no invention",
+            meta="catalog context verified against beans; generated prose is not independently fact-checked",
             duration_ms=1,
         )
 
@@ -893,6 +961,7 @@ SELECT id, name, roast_level, in_stock, price_cents
         # ---- order approval workflow (guardrail) ----------------------
         if intent.get("wants_order") and verified:
             top = verified[0]
+            ctx.check_cancelled()
             args = {"customer_id": ctx.customer_id, "bean_id": top["id"], "qty": 1}
             approval_id = request_approval(
                 session_id=ctx.session_id,
@@ -919,10 +988,12 @@ SELECT id, name, roast_level, in_stock, price_cents
                 duration_ms=1,
             )
 
-        # synthesize text (no LLM — template assembly)
+        # synthesize customer-facing text with Opus from verified rows only
         text = self._synthesize(ctx, intent, history, verified)
         citations = [{"key": f"beans.{p['id']}", "label": p["name"]} for p in verified]
-        ctx.emit_response(text, citations, confidence)
+        from catalog import product_details
+        ctx.emit_response(text, citations, confidence,
+                          products=[product_details(p) for p in verified])
 
     def _confidence(self, picks: list[dict], history: list[dict]) -> int:
         """Confidence based on data availability — not a fudge factor.
@@ -1018,14 +1089,14 @@ SELECT id, name, roast_level, in_stock, price_cents
             return None
         return {"id": key.removeprefix("beans."), "name": top.get("label", "")}
 
-    def _hydrate_bean(self, bean_id: str) -> dict | None:
+    def _hydrate_bean(self, bean_id: str, intent: dict | None = None) -> dict | None:
         """Fetch a bean row in the shape the rest of _respond expects."""
         with conn() as c, c.cursor() as cur:
             cur.execute(
-                """SELECT id, name, roast_level, process, flavor_notes,
-                          price_cents, in_stock, origin
-                     FROM beans WHERE id = %s""",
-                (bean_id,),
+                """SELECT b.id, b.name, b.roast_level, b.process, b.flavor_notes,
+                          b.price_cents, b.in_stock, b.origin
+                     FROM beans b WHERE b.id = %(bean_id)s""" + FILTER_SQL,
+                {"bean_id": bean_id, **self._eligibility_params(intent or {})},
             )
             r = cur.fetchone()
         if not r:
@@ -1041,19 +1112,15 @@ SELECT id, name, roast_level, in_stock, price_cents
 
 
     def _synthesize(self, ctx, intent, history, picks) -> str:
-        """Opus 4.7 writes the customer-facing reply from the grounded picks.
+        """Stream a reply from current catalog rows through a Strands Agent.
 
-        Everything that reaches this function has already been:
-          * filtered by the Roast Master
-          * fact-checked against the live `beans` table
-          * re-verified for in-stock > 0
-
-        Opus only composes text from that verified set — it cannot invent
-        beans because the system prompt and the schema constrain it to
-        bean ids we pass in. Citations are still enforced in code via the
-        grounding panel.
+        Input rows are checked in SQL; generated prose is not independently
+        fact-checked. The Agent has no database or order tools.
         """
-        from bedrock import OPUS_MODEL, converse, emit_llm_panel, log_llm_audit
+        from llm import converse, emit_llm_panel, log_llm_audit, resolve_route
+
+        route = resolve_route(ctx.model_route)
+        ctx.emit({"type": "status", "text": "Writing your reply from the catalog results…"})
 
         first_name = self._first_name(ctx)
 
@@ -1076,15 +1143,16 @@ SELECT id, name, roast_level, in_stock, price_cents
                 f"Write a brief, warm refusal."
             )
             call = converse(
-                model_id=OPUS_MODEL,
+                route=route, model_id=route.response_model,
+                on_text=ctx.text_delta, cancelled=ctx.cancelled,
                 system=system,
                 messages=[{"role": "user", "content": [{"text": user_msg}]}],
-                max_tokens=200,
+                max_tokens=4096,
             )
             emit_llm_panel(
                 ctx,
-                tag="LLM · OPUS · SYNTHESIZE",
-                title="Opus 4.7 composed the refusal (no grounded picks)",
+                tag="LLM · RESPONSE",
+                title=f"{route.response_model} streamed the catalog refusal",
                 call=call,
                 preview_cols=["output"],
                 preview_rows=[[call["text"][:300]]],
@@ -1103,7 +1171,10 @@ SELECT id, name, roast_level, in_stock, price_cents
         bean_block = "\n".join(
             f"- id={p['id']} | name={p['name']} | origin={p.get('origin','?')} | "
             f"roast={p['roast_level']} | notes={', '.join(p['flavor_notes'])} | "
-            f"price=${p['price_cents']/100:.2f}/bag | in_stock={p['in_stock']}"
+            f"price=${p['price_cents']/100:.2f}/bag | in_stock={p['in_stock']} | "
+            f"vector_rank={p.get('semantic_rank') or 'none'} | "
+            f"lexical_rank={p.get('lexical_rank') or 'none'} | "
+            f"lexical_match={'yes' if p.get('text_match') else 'no'}"
             for p in picks
         )
         history_block = "\n".join(
@@ -1135,15 +1206,16 @@ SELECT id, name, roast_level, in_stock, price_cents
                 f"Write the confirmation reply."
             )
             call = converse(
-                model_id=OPUS_MODEL,
+                route=route, model_id=route.response_model,
+                on_text=ctx.text_delta, cancelled=ctx.cancelled,
                 system=system,
                 messages=[{"role": "user", "content": [{"text": user_msg}]}],
-                max_tokens=400,
+                max_tokens=4096,
             )
             emit_llm_panel(
                 ctx,
-                tag="LLM · OPUS · SYNTHESIZE",
-                title="Opus 4.7 composed the order confirmation",
+                tag="LLM · RESPONSE",
+                title=f"{route.response_model} streamed the pending-approval acknowledgement",
                 call=call,
                 preview_cols=["output"],
                 preview_rows=[[call["text"][:400]]],
@@ -1196,6 +1268,11 @@ SELECT id, name, roast_level, in_stock, price_cents
             "    adjacent suggestion if one is clearly close (e.g. 'Sulawesi from "
             "    Indonesia' when someone asks for 'Asia-Pacific'), but label it "
             "    honestly as adjacent, not as a match."
+            "\n11. Retrieval provenance is included for every pick. If at least one "
+            "    pick has lexical_match=yes, lead with those exact-term matches. "
+            "    A lexical_match=no pick may be offered only as a clearly labeled "
+            "    semantic neighbor or adjacent alternative; never imply it matched "
+            "    the customer's exact term or that it is the only other inventory."
         )
         user_msg = (
             f"Customer name: {first_name}\n"
@@ -1208,19 +1285,20 @@ SELECT id, name, roast_level, in_stock, price_cents
             f"Compose the recommendation reply."
         )
         call = converse(
-            model_id=OPUS_MODEL,
+            route=route, model_id=route.response_model,
+            on_text=ctx.text_delta, cancelled=ctx.cancelled,
             system=system,
             messages=[{"role": "user", "content": [{"text": user_msg}]}],
-            max_tokens=600,
+            max_tokens=4096,
         )
         emit_llm_panel(
             ctx,
-            tag="LLM · OPUS · SYNTHESIZE",
-            title=f"Opus 4.7 composed a grounded reply from {len(picks)} picks",
+            tag="LLM · RESPONSE",
+            title=f"{route.response_model} streamed a reply from {len(picks)} catalog picks",
             call=call,
             preview_cols=["output"],
             preview_rows=[[call["text"][:600]]],
-            meta="system prompt restricts output to the grounded picks · citations enforced",
+            meta="Strands Agent · catalog context supplied · generated prose is not independently fact-checked",
         )
         log_llm_audit(
             session_id=ctx.session_id,
@@ -1233,63 +1311,68 @@ SELECT id, name, roast_level, in_stock, price_cents
 
 
 # =======================================================================
-# Flavor Profiler — pgvector semantic search
+# Flavor Profiler — hybrid pgvector + full-text search
 # =======================================================================
 class FlavorProfilerAgent:
     def profile(self, ctx: AgentContext, intent: dict, history: list[dict]) -> list[dict]:
         # The embed input is anchored on the *request* and its brew-method flavor
         # seed. Customer history is applied as a soft bias via the procedural
         # memory panel and the Roast Master's filter — not by concatenating it
-        # into the embedding, which lets strong preferences (Ana's dark espresso
+        # into the embedding, which lets strong preferences (Maya's dark espresso
         # history) overwhelm the actual request ("cold brew").
         seed = BREW_FLAVOR_SEED.get(intent["brew_method"] or "", "")
         embed_input = f"{ctx.query}. {seed}" if seed else ctx.query
+        lexical_input = _lexical_query_text(ctx.query, intent)
 
         t0 = time.perf_counter()
         q_vec = embed(embed_input)
         embed_ms = int((time.perf_counter() - t0) * 1000)
 
-        # Build the similarity SQL — real pgvector cosine distance
-        sql = """
-SELECT id, name, roast_level, process, flavor_notes, price_cents, in_stock, origin,
-       1 - (embedding <=> $1) AS score
-  FROM beans
- ORDER BY embedding <=> $1
- LIMIT 6;""".strip()
-
+        # Both search branches enforce SQL eligibility before their candidate
+        # limits. The agent and comparison lab execute the same RRF statement.
+        allowed = intent.get("explicit_roasts") or BREW_ROAST_MAP.get(intent.get("brew_method"), [])
+        params = search_params(
+            q_vec, lexical_input, budget=intent.get("budget_cents"),
+            roasts=allowed, origins=intent.get("origins") or [],
+        )
+        sql = SEARCH_SQL
         t1 = time.perf_counter()
         with conn() as c, c.cursor() as cur:
-            vec = Vector(q_vec)
-            cur.execute(sql.replace("$1", "%s"), (vec, vec))
-            rows = cur.fetchall()
+            cur.execute(sql, params)
+            rows = cur.fetchall()[:6]
         search_ms = int((time.perf_counter() - t1) * 1000)
 
-        # panel
+        # Put both retrieval ranks on stage. A result can win through semantic
+        # recall, lexical precision, or agreement between the two systems.
         display_rows = [
-            [r[1], r[2], ", ".join(r[4])[:36], f"{r[8]:.2f}"]  # name, roast, notes, score
+            [
+                r[1],
+                f"#{r[9]} · {float(r[8]):.2f}" if r[9] is not None else "—",
+                (
+                    f"#{r[11]} · {max(float(r[10]), float(r[12])):.2f}"
+                    if r[11] is not None
+                    else "—"
+                ),
+                f"{float(r[13]):.4f}",
+            ]
             for r in rows
         ]
         ctx.emit_panel(
             agent="flavor_profiler",
-            tag="MEMORY · SEMANTIC",
-            title="pgvector cosine search over beans.embedding",
+            tag="RETRIEVAL · HYBRID RRF",
+            title="pgvector + PostgreSQL full-text search, fused by rank",
             sql=sql,
-            columns=["bean", "roast", "flavor notes", "score"],
+            columns=["bean", "vector rank", "lexical rank", "RRF"],
             rows=display_rows,
-            meta=f"HNSW index · {embed_ms}ms embed + {search_ms}ms query · top-6 returned",
+            meta=(
+                f"Cosine + full-text · RRF k=60 · filters before candidate limits · "
+                f"lexical terms: {lexical_input} · "
+                f"{embed_ms}ms embed + {search_ms}ms query · top-6 returned"
+            ),
             duration_ms=embed_ms + search_ms,
         )
 
-        return [
-            {
-                "id": r[0], "name": r[1], "roast_level": r[2],
-                "process": r[3], "flavor_notes": r[4],
-                "price_cents": r[5], "in_stock": r[6],
-                "origin": r[7], "score": float(r[8]),
-                "one_liner": self._one_liner(r),
-            }
-            for r in rows
-        ]
+        return [result_from_row(row) for row in rows]
 
     @staticmethod
     def _one_liner(row) -> str:
@@ -1322,11 +1405,11 @@ class RoastMasterAgent:
             ctx.emit_panel(
                 agent="roast_master",
                 tag="ROAST MASTER · FILTER",
-                title=f"Brew-method filter: {intent.get('brew_label') or 'explicit roasts'}",
+                title=f"Eligibility recheck: {intent.get('brew_label') or 'explicit roasts'}",
                 sql=f"-- roast_level IN {tuple(sorted(allowed))!r}",
                 columns=["allowed_roast", "matched?"],
                 rows=rows,
-                meta="filter applied <b>in Postgres</b>, not in the model — saves tokens, stays grounded",
+                meta="SQL applied eligibility before ranking; Python rechecks the returned candidates",
                 duration_ms=0,
             )
 
@@ -1336,10 +1419,10 @@ class RoastMasterAgent:
         ]
 
         # budget filter
-        if intent["budget_cents"]:
+        if intent["budget_cents"] is not None:
             filtered = [c for c in filtered if c["price_cents"] <= intent["budget_cents"]]
 
-        # origin filter — SQL-level ILIKE in Python because we already have the
+        # Defensive origin recheck after the shared SQL eligibility filter; the
         # candidate rows in memory. Catalog-miss demo (Scenario 3) lives here:
         # asking for "Japanese single-origins" returns an empty set, fact-check
         # stays empty, Opus takes the refusal path. Without this filter, pgvector
@@ -1360,7 +1443,7 @@ class RoastMasterAgent:
                 tag="ROAST MASTER · ORIGIN",
                 title=f"Origin filter: {', '.join(origins)}",
                 sql=(
-                    "-- pseudo: beans.origin ILIKE ANY "
+                    "-- defensive Python recheck after SQL origin filtering: "
                     + str(tuple(f"%{o}%" for o in origins))
                 ),
                 columns=["requested_origin", "matched?"],
@@ -1438,14 +1521,37 @@ SELECT id, name, in_stock
 # =======================================================================
 # Public entry point for FastAPI
 # =======================================================================
+class UnknownCustomerError(ValueError):
+    pass
+
+
+class SessionNotFoundError(LookupError):
+    pass
+
+
+class SessionCustomerMismatchError(PermissionError):
+    pass
+
+
 def ensure_session(session_id: str | None, customer_id: str) -> str:
-    """Create-or-load an agent session. Returns a uuid string."""
+    """Create or load a session without crossing customer boundaries."""
     with conn() as c, c.cursor() as cur:
         if session_id:
-            cur.execute("SELECT id FROM agent_sessions WHERE id=%s", (session_id,))
+            cur.execute(
+                "SELECT id, customer_id FROM agent_sessions WHERE id=%s",
+                (session_id,),
+            )
             r = cur.fetchone()
-            if r:
-                return str(r[0])
+            if not r:
+                raise SessionNotFoundError(f"session {session_id!r} was not found")
+            if r[1] != customer_id:
+                raise SessionCustomerMismatchError(
+                    "session does not belong to the requested customer"
+                )
+            return str(r[0])
+        cur.execute("SELECT 1 FROM customers WHERE id=%s", (customer_id,))
+        if cur.fetchone() is None:
+            raise UnknownCustomerError(f"customer {customer_id!r} was not found")
         cur.execute(
             "INSERT INTO agent_sessions (customer_id) VALUES (%s) RETURNING id",
             (customer_id,),
@@ -1455,8 +1561,15 @@ def ensure_session(session_id: str | None, customer_id: str) -> str:
     return str(new_id)
 
 
-def run_query(customer_id: str, query: str, session_id: str | None = None) -> dict:
+def run_query(customer_id: str, query: str, session_id: str | None = None, *,
+              model_route: str | None = None, on_event: Callable[[dict], None] | None = None,
+              cancelled: threading.Event | None = None) -> dict:
+    from llm import resolve_route
+    route = resolve_route(model_route)
     sid = ensure_session(session_id, customer_id)
+    ctx = AgentContext(session_id=sid, customer_id=customer_id, query=query,
+                       model_route=route.id, on_event=on_event, cancelled=cancelled)
+    ctx.emit({"type": "session", "session_id": sid, "models": vars(route)})
 
     # record the user message (episodic memory)
     with conn() as c, c.cursor() as cur:
@@ -1466,16 +1579,17 @@ def run_query(customer_id: str, query: str, session_id: str | None = None) -> di
         )
         c.commit()
 
-    ctx = AgentContext(session_id=sid, customer_id=customer_id, query=query)
     CoordinatorAgent().handle(ctx)
 
     # record the agent message too
     with conn() as c, c.cursor() as cur:
+        ctx.check_cancelled()
         final = next((e for e in ctx.events if e["type"] == "response"), None)
         if final:
             cur.execute(
                 "INSERT INTO agent_messages (session_id, role, agent, content) VALUES (%s,'agent','coordinator',%s)",
-                (sid, json.dumps({"text": final["text"], "citations": final["citations"]})),
+                (sid, json.dumps({"text": final["text"], "citations": final["citations"],
+                                  "products": final["products"]})),
             )
             c.commit()
 
