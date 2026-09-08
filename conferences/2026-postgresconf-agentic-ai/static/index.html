@@ -131,6 +131,13 @@
           0 0 0 5px var(--bg),
           var(--paper-shadow);
       }
+      .regular img {
+        width: 56px;
+        height: 72px;
+        border-radius: 8px;
+        object-fit: cover;
+        flex-shrink: 0;
+      }
       .mono {
         width: 44px;
         height: 44px;
@@ -930,9 +937,9 @@
       };
       const esc = (s) =>
         String(s)
-          .replace(/&/g, "&")
-          .replace(/</g, "<")
-          .replace(/>/g, ">");
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
       const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
       const REGULARS = {
@@ -942,6 +949,7 @@
           ask: "Fruity East African, medium roast.",
           lesson: "Three kinds of memory in one plan.",
           cls: "marco",
+          portrait: "/static/portraits/marco.jpg",
           prompts: [
             { q: "Cold brew options", label: "Cold brew options" },
             { q: "Something lighter and more floral", label: "Lighter and more floral" },
@@ -953,6 +961,7 @@
           ask: "Dark, chocolatey, low-acid.",
           lesson: "Memory continuity + approvals.",
           cls: "ana",
+          portrait: "/static/portraits/ana.jpg",
           prompts: [
             { q: "Cold brew options", label: "Cold brew options" },
             { q: "order that", label: "Order that" },
@@ -964,6 +973,7 @@
           ask: "Japanese single-origins, siphon.",
           lesson: "Catalog miss + MCP.",
           cls: "yuki",
+          portrait: "/static/portraits/yuki.jpg",
           prompts: [
             { q: "Any Japanese single-origins in stock?", label: "Japanese single-origins" },
             { q: "What do you have from Asia-Pacific then?", label: "Asia-Pacific instead" },
@@ -987,7 +997,7 @@
           /\b(SELECT|FROM|WHERE|AND|OR|ORDER BY|LIMIT|JOIN|LEFT|INNER|ON|AS|GROUP BY|DESC|ASC|INSERT|INTO|VALUES|UPDATE|SET|RETURNING|WITH|BEGIN|COMMIT|CREATE|TABLE|INDEX|USING|EXTENSION|PRIMARY|KEY|NOT|NULL|DEFAULT|TRUE|FALSE|ANY|IN)\b/g,
           "\u0005$1\u0006",
         );
-        s = s.replace(/(<=>|<->|<#>)/g, "\u0007$1\u0008");
+        s = s.replace(/(&lt;=&gt;|&lt;-&gt;|&lt;#&gt;)/g, "\u0007$1\u0008");
         s = s.replace(/\u0001/g, '<span class="cmt">').replace(/\u0002/g, "</span>");
         s = s.replace(/\u0003/g, '<span class="str">').replace(/\u0004/g, "</span>");
         s = s.replace(/\u0005/g, '<span class="kw">').replace(/\u0006/g, "</span>");
@@ -1019,11 +1029,14 @@
             lesson: "",
             cls: "other",
           };
+          const face = meta.portrait
+            ? `<img src="${meta.portrait}" alt="">`
+            : `<span class="mono ${meta.cls}">${esc(meta.name.charAt(0))}</span>`;
           const b = el("button", "regular");
           b.type = "button";
           b.setAttribute("aria-pressed", id === state.customerId ? "true" : "false");
           b.innerHTML = `
-            <span class="mono ${meta.cls}">${esc(meta.name.charAt(0))}</span>
+            ${face}
             <span class="who">
               <div class="name">${esc(meta.name)}</div>
               <div class="title">${esc(meta.title)}</div>

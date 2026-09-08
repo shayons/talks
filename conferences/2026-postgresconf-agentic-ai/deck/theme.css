@@ -1,108 +1,97 @@
-/* @theme postgres-dark
+/* @theme coffee-queries
  *
- * Pure-black dark theme for stage projection.
- * Palette: black background, cream text, amber + postgres-blue accents.
- * Matches the warm-dev aesthetic of the live demo UI.
+ * Warm paper deck for Coffee & queries.
+ * Cream ground, espresso ink, roast accent — matches the live demo.
+ * High-contrast for mixed hall lighting.
  */
 
 @import "default";
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;1,400&display=swap");
 
 :root {
-  --pg-bg: #000000; /* pure black */
-  --pg-bg-raised: #111111; /* panels, code blocks */
-  --pg-line: #2a2a2a; /* subtle borders */
-  --pg-ink: #ffffff; /* primary body text — pure white for projector contrast */
-  --pg-ink-dim: #d8c8ad; /* secondary cream (italic captions, asides) */
-  --pg-ink-mut: #a3a3a3; /* captions, page numbers */
-  --pg-blue: #4d9fff; /* eyebrow labels — electric blue, high energy on black */
-  --pg-blue-strong: #3d8ae6; /* h3 subheaders — slightly deeper electric */
-  --pg-amber: #ffcf88; /* named emphasis — strong tags, service names, code */
-  --pg-amber-d: #e0933a; /* heading underline */
-  --pg-ok: #a3d466; /* success */
-  --pg-warn: #ffcf88;
-  --pg-err: #ec8e7c;
-  --pg-quote: #4ce2b6;
+  --cq-bg: #f6f1e8;
+  --cq-bg-raised: #fffbf4;
+  --cq-bg-warm: #efe6d8;
+  --cq-line: #e2d6c6;
+  --cq-line-strong: #cbb9a4;
+  --cq-ink: #1c1410;
+  --cq-ink-mut: #6b5d52;
+  --cq-ink-dim: #8a7a6b;
+  --cq-roast: #6b3f2a;
+  --cq-roast-soft: #ead9cf;
+  --cq-sage: #3f5c4b;
+  --cq-ok: #3f5c4b;
+  --cq-warn: #8a5a2a;
+  --cq-err: #8f2d2d;
+  --cq-code-bg: #1c1410;
+  --cq-code-ink: #f6f1e8;
 }
 
 section {
-  background-color: var(--pg-bg);
-  color: var(--pg-ink);
-  font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
+  background-color: var(--cq-bg);
+  color: var(--cq-ink);
+  font-family: "Source Sans 3", "Helvetica Neue", system-ui, sans-serif;
   font-size: 26px;
   line-height: 1.45;
   padding: 44px 72px 56px;
   letter-spacing: 0.1px;
 }
 
-/* ------ Typography ------ */
-h1,
-h2,
-h3,
-h4 {
-  color: var(--pg-ink);
-  font-weight: 700;
-  letter-spacing: -0.3px;
+h1, h2, h3, h4 {
+  color: var(--cq-ink);
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.03em;
   margin: 0 0 0.4em;
 }
 h1 {
-  font-size: 58px;
+  font-size: 54px;
   line-height: 1.1;
-  border-bottom: 3px solid var(--pg-amber);
+  border-bottom: 2px solid var(--cq-roast);
   padding-bottom: 18px;
   margin-bottom: 28px;
 }
 h2 {
-  font-size: 42px;
-  color: var(--pg-ink);
+  font-size: 40px;
 }
 h3 {
-  font-size: 30px;
-  color: var(--pg-blue-strong);
+  font-size: 28px;
+  color: var(--cq-roast);
+  font-family: "Source Sans 3", sans-serif;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 strong {
-  color: var(--pg-amber);
+  color: var(--cq-roast);
   font-weight: 700;
 }
 em {
-  color: var(--pg-ink-dim);
+  color: var(--cq-ink-mut);
   font-style: italic;
 }
-
-p {
-  margin: 0 0 0.6em;
-}
-
+p { margin: 0 0 0.6em; }
 a {
-  color: var(--pg-blue);
+  color: var(--cq-roast);
   text-decoration: none;
-  border-bottom: 1px dashed var(--pg-blue);
+  border-bottom: 1px dashed var(--cq-line-strong);
 }
 
-/* ------ Lists ------ */
-ul,
-ol {
-  margin: 0.2em 0 0.6em 1.2em;
-}
-li {
-  margin-bottom: 0.35em;
-}
-li::marker {
-  color: var(--pg-amber);
-}
+ul, ol { margin: 0.2em 0 0.6em 1.2em; }
+li { margin-bottom: 0.35em; }
+li::marker { color: var(--cq-roast); }
 
-/* ------ Code blocks ------ */
 code {
-  font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
-  font-size: 0.9em;
-  color: var(--pg-amber);
-  background: var(--pg-bg-raised);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.88em;
+  color: var(--cq-roast);
+  background: var(--cq-roast-soft);
   padding: 1px 6px;
   border-radius: 4px;
 }
 pre {
-  background: var(--pg-bg-raised);
-  border: 1px solid var(--pg-line);
-  border-radius: 8px;
+  background: var(--cq-code-bg);
+  border: 1px solid var(--cq-ink);
+  border-radius: 10px;
   padding: 20px 24px;
   overflow-x: auto;
   font-size: 20px;
@@ -112,43 +101,20 @@ pre {
 pre code {
   background: transparent;
   padding: 0;
-  color: var(--pg-ink);
+  color: var(--cq-code-ink);
   font-size: inherit;
 }
 
-/* Marp / highlight.js token colors against the dark backdrop */
-.hljs-keyword,
-.hljs-built_in,
-.hljs-type {
-  color: var(--pg-amber);
+.hljs-keyword, .hljs-built_in, .hljs-type {
+  color: #e8c9a3;
   font-weight: 600;
 }
-.hljs-string,
-.hljs-number {
-  color: var(--pg-quote);
-}
-.hljs-comment {
-  color: var(--pg-ink-mut);
-  font-style: italic;
-}
-.hljs-function,
-.hljs-title,
-.hljs-name {
-  color: var(--pg-blue);
-}
-.hljs-operator,
-.hljs-punctuation {
-  color: var(--pg-ink-dim);
-}
-.hljs-variable,
-.hljs-attr,
-.hljs-literal {
-  color: var(--pg-ink);
-}
+.hljs-string, .hljs-number { color: #c5d5c8; }
+.hljs-comment { color: #8a7a6b; font-style: italic; }
+.hljs-function, .hljs-title, .hljs-name { color: #d5e2d8; }
+.hljs-operator, .hljs-punctuation { color: #cbb9a4; }
+.hljs-variable, .hljs-attr, .hljs-literal { color: var(--cq-code-ink); }
 
-/* ------ Tables ------ */
-/* Force transparent cells with !important — Marp's default theme ships with
-   light-bg table rules that beat ours due to @import cascade order. */
 section table {
   width: 100%;
   border-collapse: collapse;
@@ -158,21 +124,22 @@ section table {
 }
 section table th,
 section table td {
-  border: 1px solid var(--pg-line);
+  border: 1px solid var(--cq-line);
   padding: 9px 12px;
   text-align: left;
   vertical-align: top;
   background: transparent !important;
   background-color: transparent !important;
-  color: var(--pg-ink) !important;
+  color: var(--cq-ink) !important;
 }
 section table th {
-  color: var(--pg-amber) !important;
+  color: var(--cq-roast) !important;
   font-weight: 700;
   letter-spacing: 0.4px;
   text-transform: uppercase;
   font-size: 0.82em;
-  border-bottom: 2px solid var(--pg-amber);
+  font-family: "Source Sans 3", sans-serif;
+  border-bottom: 2px solid var(--cq-roast);
 }
 section table tr,
 section table tbody tr,
@@ -192,71 +159,70 @@ section table td code,
 section table th code,
 section table td strong {
   background: transparent !important;
-  color: var(--pg-amber) !important;
+  color: var(--cq-roast) !important;
   padding: 0;
 }
-section table td strong {
-  color: var(--pg-amber) !important;
-  font-weight: 700;
-}
 
-/* ------ Blockquotes (used for key-takeaways) ------ */
 blockquote {
-  border-left: 4px solid var(--pg-amber);
-  background: var(--pg-bg-raised);
-  color: var(--pg-ink);
+  border-left: 4px solid var(--cq-roast);
+  background: var(--cq-bg-raised);
+  color: var(--cq-ink);
   margin: 14px 0;
   padding: 18px 24px;
   border-radius: 0 8px 8px 0;
   font-size: 0.95em;
 }
-blockquote p:last-child {
-  margin-bottom: 0;
-}
-blockquote strong {
-  color: var(--pg-amber);
-}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote strong { color: var(--cq-roast); }
 
-/* ------ Horizontal rule ------ */
 hr {
   border: 0;
   height: 1px;
-  background: var(--pg-line);
+  background: var(--cq-line);
   margin: 24px 0;
 }
 
-/* ------ Footer / page numbers (Marp auto-injects) ------ */
 section::after {
-  color: var(--pg-ink-mut);
-  font-family: "JetBrains Mono", monospace;
-  font-size: 14px;
+  color: var(--cq-ink-dim);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 13px;
   font-weight: 500;
 }
 footer {
-  color: var(--pg-ink-mut);
-  font-size: 14px;
-  font-family: "JetBrains Mono", monospace;
-  letter-spacing: 1px;
+  color: var(--cq-ink-dim);
+  font-size: 13px;
+  font-family: "IBM Plex Mono", monospace;
+  letter-spacing: 0.08em;
 }
 
-/* ------ Special slide layouts ------ */
+/* ------ Title ------ */
 section.title {
   justify-content: center;
   text-align: center;
-  background: linear-gradient(140deg, #000000 0%, #0b0b0b 60%, #181818 100%);
+  background: var(--cq-bg);
+}
+section.title .product {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 22px;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--cq-roast);
+  letter-spacing: 0;
+  margin: 0 0 18px;
 }
 section.title h1 {
-  font-size: 54px;
+  font-size: 50px;
   line-height: 1.12;
   border: 0;
-  color: var(--pg-ink);
+  color: var(--cq-ink);
   padding: 0;
   margin: 0 auto 18px;
-  max-width: 90%;
+  max-width: 92%;
 }
 section.title h2 {
-  color: var(--pg-amber);
-  font-size: 28px;
+  color: var(--cq-ink-mut);
+  font-family: "Source Sans 3", sans-serif;
+  font-size: 26px;
   font-weight: 400;
   font-style: italic;
   line-height: 1.4;
@@ -264,24 +230,23 @@ section.title h2 {
   margin: 0 auto;
 }
 section.title .meta {
-  color: var(--pg-ink-mut);
-  font-family: "JetBrains Mono", monospace;
-  font-size: 18px;
-  letter-spacing: 2px;
+  color: var(--cq-ink-dim);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 16px;
+  letter-spacing: 0.12em;
   margin-top: 44px;
 }
 section.title .byline {
-  color: var(--pg-ink);
-  font-family: "Inter", system-ui, sans-serif;
+  color: var(--cq-ink);
+  font-family: "Source Sans 3", sans-serif;
   font-size: 20px;
   font-weight: 500;
-  letter-spacing: 0.3px;
   margin-top: 36px;
-  opacity: 0.92;
 }
 
+/* ------ Bio ------ */
 section.bio {
-  background: linear-gradient(140deg, #000000 0%, #111111 100%);
+  background: var(--cq-bg);
   justify-content: center;
   padding: 48px 72px;
 }
@@ -303,15 +268,9 @@ section.bio .bio-photo img {
   aspect-ratio: 3 / 4;
   object-fit: cover;
   border-radius: 12px;
-  border: 2px solid var(--pg-amber);
-  /* Stronger, multi-layer glow so the effect survives slideshow renderers
-     that flatten subtle shadows. Combines a tight inner amber halo, a mid
-     soft glow, and a wider warm atmosphere. */
   box-shadow:
-    0 0 0 4px rgba(240, 184, 119, 0.18),
-    0 0 24px rgba(240, 184, 119, 0.45),
-    0 0 60px rgba(240, 184, 119, 0.25),
-    0 12px 48px rgba(240, 184, 119, 0.20);
+    0 0 0 1px rgba(28, 20, 16, 0.08),
+    0 18px 40px -24px rgba(28, 20, 16, 0.45);
 }
 section.bio .bio-text {
   display: flex;
@@ -319,23 +278,24 @@ section.bio .bio-text {
   justify-content: center;
 }
 section.bio h2 {
-  font-size: 20px;
-  color: var(--pg-blue);
-  letter-spacing: 3px;
+  font-size: 14px;
+  font-family: "IBM Plex Mono", monospace;
+  color: var(--cq-roast);
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: 500;
   margin: 0 0 12px;
 }
 section.bio h1 {
   border: 0;
   padding: 0;
-  font-size: 54px;
-  color: var(--pg-amber);
+  font-size: 52px;
+  color: var(--cq-ink);
   margin: 0 0 14px;
   line-height: 1.05;
 }
 section.bio .bio-text strong {
-  color: var(--pg-ink);
+  color: var(--cq-ink);
   font-size: 22px;
   font-weight: 600;
   display: block;
@@ -344,55 +304,59 @@ section.bio .bio-text strong {
 section.bio .bio-text p {
   font-size: 20px;
   line-height: 1.5;
-  color: var(--pg-ink);
+  color: var(--cq-ink);
   margin: 12px 0;
 }
 section.bio .bio-links {
-  color: var(--pg-ink-mut);
-  font-family: "JetBrains Mono", monospace;
+  color: var(--cq-ink-mut);
+  font-family: "IBM Plex Mono", monospace;
   font-size: 16px;
-  letter-spacing: 1.5px;
+  letter-spacing: 0.04em;
   margin-top: 18px;
 }
 
+/* ------ Takeaway ------ */
 section.takeaway {
-  background: linear-gradient(140deg, #000000 0%, #141414 100%);
+  background: var(--cq-bg);
   justify-content: center;
 }
 section.takeaway h2 {
-  font-size: 26px;
-  color: var(--pg-blue);
-  letter-spacing: 3px;
+  font-size: 16px;
+  font-family: "IBM Plex Mono", monospace;
+  color: var(--cq-roast);
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 24px;
 }
 section.takeaway h1 {
   border: 0;
   padding: 0;
-  font-size: 54px;
-  line-height: 1.15;
-  color: var(--pg-amber);
-  max-width: 80%;
+  font-size: 48px;
+  line-height: 1.18;
+  color: var(--cq-ink);
+  max-width: 86%;
   margin: 0 auto 24px;
 }
 section.takeaway p {
-  color: var(--pg-ink);
-  font-size: 28px;
+  color: var(--cq-ink-mut);
+  font-size: 26px;
   max-width: 78%;
   margin: 0 auto;
   line-height: 1.5;
 }
 
+/* ------ Section divider ------ */
 section.section-divider {
   justify-content: center;
   text-align: center;
-  background: linear-gradient(140deg, #000000 0%, #121212 100%);
+  background: var(--cq-bg-warm);
 }
 section.section-divider h2 {
-  font-size: 28px;
-  color: var(--pg-blue);
-  letter-spacing: 4px;
+  font-size: 16px;
+  font-family: "IBM Plex Mono", monospace;
+  color: var(--cq-roast);
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   margin-bottom: 10px;
 }
@@ -400,53 +364,94 @@ section.section-divider h1 {
   font-size: 72px;
   border: 0;
   padding: 0;
-  color: var(--pg-ink);
+  color: var(--cq-ink);
 }
 
-section.code-first pre {
-  font-size: 22px;
+/* ------ Regulars ------ */
+section.regulars {
+  justify-content: center;
 }
-section.code-first h2 {
-  font-size: 32px;
-  margin-bottom: 16px;
+section.regulars h2 {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 14px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cq-roast);
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+section.regulars h1 {
+  border: 0;
+  padding: 0;
+  font-size: 42px;
+  margin-bottom: 28px;
+}
+.regulars-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 28px;
+  width: 100%;
+}
+.regulars-grid figure {
+  margin: 0;
+  background: var(--cq-bg-raised);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(28, 20, 16, 0.06);
+}
+.regulars-grid img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  display: block;
+}
+.regulars-grid figcaption {
+  padding: 14px 16px 16px;
+  text-align: left;
+}
+.regulars-grid figcaption strong {
+  display: block;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 24px;
+  color: var(--cq-ink);
+  font-weight: 600;
+}
+.regulars-grid figcaption span {
+  display: block;
+  margin-top: 4px;
+  font-size: 16px;
+  color: var(--cq-ink);
+}
+.regulars-grid figcaption em {
+  display: block;
+  margin-top: 6px;
+  font-size: 15px;
+  font-style: italic;
+  color: var(--cq-ink-mut);
+}
+.portrait-note {
+  margin-top: 18px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 13px;
+  color: var(--cq-ink-dim);
+  letter-spacing: 0.02em;
 }
 
-/* Dense slides — used when a slide legitimately has a lot of content and
-   would otherwise collide with the paginate footer. Shrinks the base font,
-   tightens margins, and compresses code-block font. */
+section.code-first pre { font-size: 22px; }
+section.code-first h2 { font-size: 32px; margin-bottom: 16px; }
+
 section.dense {
   font-size: 22px;
   line-height: 1.4;
   padding: 36px 64px 48px;
 }
-section.dense h2 {
-  font-size: 34px;
-  margin-bottom: 14px;
-}
-section.dense h1 {
-  font-size: 46px;
-  padding-bottom: 14px;
-  margin-bottom: 22px;
-}
-section.dense pre {
-  font-size: 18px;
-  padding: 14px 18px;
-  line-height: 1.4;
-  margin: 10px 0;
-}
-section.dense ul,
-section.dense ol {
-  margin: 0.15em 0 0.45em 1.2em;
-}
-section.dense li {
-  margin-bottom: 0.25em;
-}
-section.dense p {
-  margin: 0 0 0.4em;
-}
+section.dense h2 { font-size: 34px; margin-bottom: 14px; }
+section.dense h1 { font-size: 46px; padding-bottom: 14px; margin-bottom: 22px; }
+section.dense pre { font-size: 18px; padding: 14px 18px; line-height: 1.4; margin: 10px 0; }
+section.dense ul, section.dense ol { margin: 0.15em 0 0.45em 1.2em; }
+section.dense li { margin-bottom: 0.25em; }
+section.dense p { margin: 0 0 0.4em; }
 
-/* Architecture diagram — rendered as an SVG image; the Marp image syntax
-   gives us full width, centered automatically. */
 section img[alt*="Architecture"] {
   display: block;
   max-width: 100%;
@@ -456,9 +461,9 @@ section img[alt*="Architecture"] {
 }
 .arch-caption {
   text-align: center;
-  font-family: "Instrument Serif", Georgia, serif;
+  font-family: "Fraunces", Georgia, serif;
   font-style: italic;
-  color: var(--pg-ink-dim);
+  color: var(--cq-ink-mut);
   font-size: 18px;
   margin-top: 2px;
 }
@@ -466,16 +471,19 @@ section img[alt*="Architecture"] {
 section.thanks {
   justify-content: center;
   text-align: center;
-  background: linear-gradient(140deg, #000000 0%, #141414 100%);
+  background: var(--cq-bg);
 }
 section.thanks h1 {
   border: 0;
   font-size: 88px;
-  color: var(--pg-amber);
+  color: var(--cq-ink);
   padding: 0;
 }
 section.thanks p {
-  color: var(--pg-ink-dim);
-  font-size: 24px;
-  letter-spacing: 1px;
+  color: var(--cq-ink-mut);
+  font-size: 22px;
+  letter-spacing: 0.02em;
+}
+section.thanks a {
+  border: 0;
 }

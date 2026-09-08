@@ -3,7 +3,7 @@
 > Stage notes for the 50-min dev-track talk. Audience: Postgres devs, builders, committers, hackers.
 > Speak their dialect — access patterns, query plans, index internals, autovacuum, MVCC. Don't sell Postgres _to_ Postgres people. Sell the idea that the agent stack is _ordinary Postgres work_.
 >
-> Scenario scripts (what to type, what to show in psql, what to say per panel) live in [../README.md](../README.md). This file is the **narrative through-line** — one paragraph per slide, plus the time budget.
+> Scenario scripts live in [../README.md](../README.md). This file is the **narrative through-line**.
 
 ---
 
@@ -18,10 +18,10 @@
 | Tools as a table                | 12–14  | 4 min      | Registry → discovery SQL → MCP                                         |
 | Workflow state + limits         | 15–16  | 3 min      | JSONB checkpoint, then the honesty slide on when it's not enough       |
 | Guardrails                      | 17     | 2 min      | Fact-check · confidence · approvals                                    |
-| **Demo** (divider + live)       | 18     | **12 min** | 3 scenarios · see README for per-turn scripts                          |
-| Operational realities           | 19–23  | 8 min      | Divider + HNSW, autovacuum, pool sizing, coreference                   |
-| Honesty slide                   | 24     | 2 min      | When _not_ to do this — buys credibility                               |
-| Closer + references             | 25–29  | 3 min      | "Every role, one plan" SQL · where it lands · references · repo · Q&A  |
+| **Regulars + demo**             | 18–19  | **12 min** | Three faces, then live · see README for per-turn scripts               |
+| Operational realities           | 20–24  | 8 min      | Divider + HNSW, autovacuum, pool sizing, coreference                   |
+| Honesty slide                   | 25     | 2 min      | When _not_ to do this — buys credibility                               |
+| Closer + references             | 26–30  | 3 min      | "Every role, one plan" SQL · where it lands · references · repo · Q&A  |
 | **Buffer**                      |        | **3 min**  | Demo gods, a deep question, finding the right tab                      |
 
 **Rule of thumb on stage:** 5 minutes behind at the demo → skip operational realities (20–23), jump to the closer. The demo is the payload. The tuning slides are appendix.
@@ -32,7 +32,7 @@
 
 ### 1. Title
 
-_"Three agents, two Claude models, one Postgres, no framework. Next 50 minutes I want to convince you the data layer for a production agent is boring — and boring is the feature."_
+_"Coffee & queries. Three agents, two Claude models, one Postgres, no framework. Next 50 minutes I want to convince you the data layer for a production agent is boring — and boring is the feature."_
 
 ### 2. Why are we even having this conversation?
 
@@ -174,27 +174,37 @@ Fact-check → confidence from data → approval queue. Walk through the order:
 
 _"Opus physically cannot hallucinate a bean we don't have, because the system prompt restricts it to the ids we pass in, and fact-check drops anything stale from that list. Safety isn't a prompt. It's a context boundary."_
 
-### 18. DEMO (12 min)
+### 18. Three regulars
 
-Switch to browser + psql side-by-side. Full per-turn scripts with psql callouts and narration in **[README.md § Stage guide](../README.md#stage-guide--everything-you-need-while-presenting)**.
+Hold the slide. Name them once so the room can follow the demo:
 
-Condensed running order for stage timing:
+- Marco — pour-over, East African fruit. Three memories in one plan.
+- Ana — espresso by the kilo. Continuity, then a gated write.
+- Yuki — Tokyo buyer. The catalog has no Japanese origin. That's the refusal.
 
-- **Scenario 1 · Marco · ~4 min** — two turns on cold brew. Beat to land: the procedural memory panel. Episodic + semantic + procedural in one query plan. After turn 2, jump to psql and run the single-SELECT trace from the README. _"Twelve rows. That's the entire turn — every LLM call, every SQL tool call, latencies, tokens. No dashboards."_
-- **Scenario 2 · Ana · ~4 min** — two turns, same "cold brew" prompt as Marco (different answer, because memory), then `order that`. Beat: the three-beat psql check — `orders` unchanged, `approvals +1`, `beans.in_stock` unchanged. _"The write didn't happen. The **intent to write** landed in a row. A human flips the bit."_ Run the `UPDATE approvals SET status='approved'` so people see the other end, then `SELECT id, tool, status, decided_at FROM approvals WHERE session_id=…` and narrate: _"No background worker polled this. A human ran an UPDATE. In production a shipping worker would do `SELECT … WHERE status='approved' FOR UPDATE SKIP LOCKED` against the same table. That's the whole workflow service."_ If someone asks the chat _"was it approved?"_ — Opus refuses gracefully and points at the approvals queue. Safety net, not the payoff; the psql row is the payoff.
-- **Scenario 3 · Yuki · ~3 min** — Japanese single-origins. Catalog doesn't have one. Fact-check drops everything. Opus refuses warmly. _"The guardrail isn't the system prompt. The guardrail is that Opus cannot cite a bean that isn't in its context — and an empty list stays empty."_ Pivot to the MCP terminal: same `tool_audit` table, different client. _"No new API. No new auth. One Postgres."_
+_"Same agents. Same prompts. Different rows. Memory is the personality."_
 
-**1 min floating buffer** for demo gods or a mid-turn hand-raise.
+Click through to the live UI — the same three faces are on the regulars row. Press 1 / 2 / 3.
 
-**Behind schedule?** Cut Scenario 3's MCP terminal, keep the refusal. The refusal is the point.
+### 19. DEMO (12 min)
 
-### 19. Operational Realities (divider)
+Switch to browser + psql side-by-side. Scripts in **[README.md § Stage guide](../README.md#stage-guide)**.
+
+Condensed running order:
+
+- **Marco · ~4 min** — two turns on cold brew. Beat: the procedural memory panel. After turn 2, the single-SELECT `tool_audit` trace. _"Twelve rows. That's the entire turn."_
+- **Ana · ~4 min** — same "cold brew" prompt (different answer), then `order that`. Beat: `orders` unchanged, `approvals +1`, `in_stock` unchanged. A human `UPDATE`s the row.
+- **Yuki · ~3 min** — Japanese single-origins. Empty pick list. Warm refusal. Then MCP on the same `tool_audit` table.
+
+**Behind schedule?** Cut Yuki's MCP terminal, keep the refusal.
+
+### 20. Operational Realities (divider)
 
 Section-divider slide. Brief beat to signal the mode shift from architecture to production.
 
 _"Everything up to here was architecture. The next four slides are what it takes to keep this pattern up at 2am — the part that earns the trust of a room full of Postgres operators."_
 
-### 20. pgvector: HNSW tuning
+### 21. pgvector: HNSW tuning
 
 The committers want this slide. Three knobs:
 
@@ -206,7 +216,7 @@ Name the shape: recall climbs fast, saturates around 0.98. Latency climbs linear
 
 Committer note: _"pgvector 0.7 shipped parallel HNSW builds. Still on 0.5 or 0.6 with single-threaded builds? That's your first easy upgrade."_
 
-### 21. Autovacuum on append-heavy tables
+### 22. Autovacuum on append-heavy tables
 
 `agent_messages` and `tool_audit` are write-mostly. Default autovacuum is tuned for OLTP mutation — it triggers on dead tuples you never create.
 
@@ -216,7 +226,7 @@ _"Half the room nods because they've lived it. The other half just learned why t
 
 For the deeply-interested: TOAST on `content jsonb` in `agent_messages`. Long prompt histories toast — set `toast_tuple_target` to match your typical payload. Measure with `pg_column_size`.
 
-### 22. Connection pooling
+### 23. Connection pooling
 
 One turn = 8–15 queries. 50 concurrent sessions = ~500 queries in flight. Don't point those at raw backends.
 
@@ -224,7 +234,7 @@ PgBouncer in transaction mode, prepared statements on (1.21+), `default_pool_siz
 
 _"This is standard OLTP advice. Agents are OLTP with LLM calls on either side. The pooling story doesn't change."_
 
-### 23. Chat continuity ("order that")
+### 24. Chat continuity ("order that")
 
 The coreference problem. Re-embedding turn 2 lands somewhere else, because "order a bag" semantically matches "generic order" more than "that espresso blend we just pitched." Naive implementation → customer sees a bait-and-switch.
 
@@ -232,7 +242,7 @@ The fix: Haiku's tool schema includes `order_referent_bean_id`. Haiku reads the 
 
 _"The LLM and the coordinator share a memory. That memory is a boring SQL table. The thing that would be a brittle state machine in some other architecture is a structured field in a tool schema — and the source of truth is `agent_messages`."_
 
-### 24. When NOT to do this
+### 25. When NOT to do this
 
 Land all five bullets. This is the slide that buys you credibility. Read the fifth with a smile:
 
@@ -242,7 +252,7 @@ Land the pivot:
 
 _"I'm not here to tell you Postgres is the answer for every agent workload. I'm here to tell you it's the answer for most agent workloads, most of the time — and the tradeoff conversation should start with the access pattern, not the vendor logo."_
 
-### 25. Every role, one plan
+### 26. Every role, one plan
 
 The closer SQL. Read it out loud — don't rush. Name each subquery:
 
@@ -253,7 +263,7 @@ The closer SQL. Read it out loud — don't rush. Name each subquery:
 
 _"One plan. One optimizer. One transaction. Draw this when your vectors are in Pinecone, your state is in Postgres, and your audit is in DynamoDB."_
 
-### 26. Where this pattern lands in practice
+### 27. Where this pattern lands in practice
 
 Softer framing than a war story. Observation across independent teams, not a personal victory lap. This slide is also where you reconcile the "no framework" repo with the "frameworks are fine" reality.
 
@@ -267,19 +277,19 @@ Close with the humbler read: _"Smart teams keep reinventing this. That's the str
 
 Offer to share specifics off-stage on the three use-case bullets.
 
-### 27. Architecture reference
+### 28. Architecture reference
 
 Don't read the table. It's for the recording.
 
 _"This is for when you're back at your desk trying to remember which column does what. Slides are on GitHub."_
 
-### 28. Run it yourself
+### 29. Run it yourself
 
-Point at the URL.
+Point at github.com/shayons/talks.
 
 _"Clone it, run it, break it. Schema is 116 lines. `agents.py` reads top to bottom. No framework to fight."_
 
-### 29. Thank you
+### 30. Thank you
 
 Open the floor. Default to taking questions against the live demo (still on screen) so answers stay concrete.
 

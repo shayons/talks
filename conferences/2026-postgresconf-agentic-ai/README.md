@@ -251,4 +251,4 @@ Embeddings: [`BAAI/bge-small-en-v1.5`](https://huggingface.co/BAAI/bge-small-en-
 | [`mcp_server.py`](mcp_server.py) | stdio MCP |
 | [`static/index.html`](static/index.html) | Coffee & queries UI |
 
-Deck: [`deck/`](deck/) (Marp). `./deck/build.sh` → `deck/deck.pdf`. Node 18+.
+Deck: [`deck/`](deck/) (Marp, `coffee-queries` theme). `./deck/build.sh` → `deck/deck.pdf`. Node 18+.

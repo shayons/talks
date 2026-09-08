@@ -1,17 +1,19 @@
 ---
 marp: true
-theme: postgres-dark
+theme: coffee-queries
 paginate: true
-footer: "PostgresConf 2026 · Apr 21"
+footer: "Coffee & queries · PostgresConf 2026"
 size: 16:9
 ---
 
 <!-- _class: title -->
 <!-- _paginate: false -->
 
+<p class="product">Coffee & queries</p>
+
 # Building Agentic AI Applications with PostgreSQL as the Backbone
 
-## Memory systems, tool registries, MCP integration, and guardrails for production agents
+## Memory, tools, MCP, and guardrails — Claude at the edges, one Postgres in the middle
 
 <div class="byline">
 Shayon Sanyal · Principal PostgreSQL Specialist SA · Lead, Agentic AI for Databases
@@ -154,9 +156,9 @@ The real win is consistency across vectors + relational + audit + workflow state
 
 ---
 
-## AI Coffee Roastery — Architecture
+## Coffee & queries — Architecture
 
-![AI Coffee Roastery architecture: User request enters via FastAPI, Claude Haiku parses intent, one PostgreSQL database holds three memory types and operational state, the dashed Agents box on the right orchestrates three agents read-write against Postgres, Claude Opus synthesizes a grounded reply, customer-facing reply returned](assets/architecture.svg)
+![Coffee & queries architecture: User request enters via FastAPI, Claude Haiku parses intent, one PostgreSQL database holds three memory types and operational state, the dashed Agents box on the right orchestrates three agents read-write against Postgres, Claude Opus synthesizes a grounded reply, customer-facing reply returned](assets/architecture.svg)
 
 <!--
 Haiku reads the conversation and produces structured intent — including
@@ -374,6 +376,50 @@ The LLM physically cannot hallucinate a bean we don't have because the system pr
 
 ---
 
+<!-- _class: regulars -->
+<!-- _paginate: false -->
+
+## The shop
+
+# Three regulars. Three lessons.
+
+<div class="regulars-grid">
+<figure>
+<img src="assets/marco.jpg" alt="Marco">
+<figcaption>
+<strong>Marco</strong>
+<span>Three memories, one plan</span>
+<em>Fruity East African, pour-over</em>
+</figcaption>
+</figure>
+<figure>
+<img src="assets/ana.jpg" alt="Ana">
+<figcaption>
+<strong>Ana</strong>
+<span>Continuity + gated writes</span>
+<em>Dark espresso, buys in quantity</em>
+</figcaption>
+</figure>
+<figure>
+<img src="assets/yuki.jpg" alt="Yuki">
+<figcaption>
+<strong>Yuki</strong>
+<span>Catalog miss + MCP</span>
+<em>Tokyo buyer, Japanese origins</em>
+</figcaption>
+</figure>
+</div>
+
+<p class="portrait-note">Portraits are generated. The regulars are fictional.</p>
+
+<!--
+Click a card in the demo (or press 1 / 2 / 3). Same agents, same prompts —
+different rows in customers, orders, and agent_messages. Memory is the
+personality. Yuki's first ask has no catalog match on purpose.
+-->
+
+---
+
 <!-- _class: section-divider -->
 <!-- _paginate: false -->
 
@@ -384,11 +430,11 @@ The LLM physically cannot hallucinate a bean we don't have because the system pr
 Three agents, one Postgres, live.
 
 <!--
-Switch to the browser tab on localhost:8000. Run the two-turn script:
+Switch to the browser tab on localhost:8000. Click a regular (or 1 / 2 / 3).
 
-  1. "Cold brew options"  → Opus pitches House Espresso Blend.
-  2. "Order a bag"        → Haiku resolves "a bag" to b_espresso_blend,
-                             approval row appears, Opus confirms same bean.
+  1. Marco — "Cold brew options" then "Something lighter and more floral"
+  2. Ana   — same "Cold brew options", then "order that"
+  3. Yuki  — "Any Japanese single-origins in stock?"
 
 While the turn runs, tab over to psql and show tool_audit filling up —
 SQL tool calls and llm:* rows in the same table, same session_id. If
@@ -614,7 +660,8 @@ reinventing the same thing" than by "I personally shipped this".
 ## Run it yourself
 
 ```bash
-# Repo link coming soon — for now, the pattern:
+git clone https://github.com/shayons/talks.git
+cd talks/conferences/2026-postgresconf-agentic-ai
 
 createdb coffee
 psql coffee -f schema.sql
@@ -629,6 +676,8 @@ python app.py     # → http://localhost:8000
 
 Needs **pgvector 0.5+** (for HNSW) and AWS credentials with Bedrock access.
 
+github.com/shayons/talks
+
 ---
 
 <!-- _class: thanks -->
@@ -637,7 +686,7 @@ Needs **pgvector 0.5+** (for HNSW) and AWS credentials with Bedrock access.
 
 Questions?
 
-Repo + slides · _coming soon_ · PostgresConf 2026
+[github.com/shayons/talks](https://github.com/shayons/talks) · PostgresConf 2026
 
 <!--
 Open the floor. Default to taking questions from the live demo (which is still on screen) so the answers are concrete.
