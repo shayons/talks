@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 export DEMO_MODE="${DEMO_MODE:-local}"
-export DATABASE_URL="${DATABASE_URL:-postgresql://coffee:coffee@127.0.0.1:5432/coffee}"
+export DATABASE_URL="${DATABASE_URL:-postgresql://coffee:coffee@127.0.0.1:5433/coffee}"
 export APP_HOST="${APP_HOST:-127.0.0.1}"
 export APP_PORT="${APP_PORT:-8017}"
 export ENABLE_STAGE_CONTROLS="${ENABLE_STAGE_CONTROLS:-0}"

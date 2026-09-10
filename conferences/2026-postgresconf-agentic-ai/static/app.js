@@ -1,5 +1,6 @@
 import { consumeEvents } from "./stream.mjs";
 import { safeMarkup } from "./render.mjs";
+import {showPersonaBrief, personaBriefOpen} from "./persona-brief.mjs?v=20260910.2";
 
 const $ = (s) => document.querySelector(s);
 const el = (t, c, h) => {
@@ -19,36 +20,57 @@ const REGULARS = {
     name: "Marco",
     title: "Pour-over regular",
     ask: "Fruity East African, medium roast.",
-    lesson: "Three kinds of memory in one plan.",
+    lesson: "Taste, retrieval, and a useful follow-up.",
+    personality: "Curious and happy to try something new, but particular about the cup. He describes the flavors he wants and expects the next suggestion to build on the last.",
+    takeaway: "Combine what someone means with what the catalog says.",
+    watch: "Inspect the keyword and vector ranks in the trace, then follow the recommendation back to its catalog row.",
+    steps: [
+      "Inspect the retrieved coffees, their rank contributions, and the verified price and stock.",
+      "Look for conversation history in the trace and see how the new request changes the recommendation.",
+    ],
     cls: "marco",
     portrait: "/static/portraits/marco.jpg",
     prompts: [
       { q: "Cold brew options", label: "Cold brew options" },
-      { q: "Something lighter and more floral", label: "Lighter and more floral" },
+      { q: "Something lighter and more floral", label: "Lighter and more floral", followUp: true },
     ],
   },
   u_ana: {
     name: "Ana",
     title: "Espresso, by the kilo",
     ask: "Dark, chocolatey, low-acid.",
-    lesson: "Memory continuity + approvals.",
+    lesson: "Remember the coffee. Queue the order.",
+    personality: "Decisive and practical, with a soft spot for a rich espresso. Once she finds a coffee she likes, she expects “that one” to mean the same coffee in the next turn.",
+    takeaway: "Conversation memory connects a recommendation to an action.",
+    watch: "Compare the recommended coffee with the pending approval. The request should keep the same bean; it does not complete a purchase.",
+    steps: [
+      "Note the name of the recommended coffee and its canonical product card.",
+      "Check that the same bean is queued for approval. No payment, fulfillment, or inventory change occurs.",
+    ],
     cls: "ana",
     portrait: "/static/portraits/ana.jpg",
     prompts: [
       { q: "Cold brew options", label: "Cold brew options" },
-      { q: "order that", label: "Order that" },
+      { q: "order that", label: "Order that", followUp: true, requiresRecommendation: true },
     ],
   },
   u_yuki: {
     name: "Yuki",
     title: "Tokyo specialty buyer",
     ask: "Japanese single-origins, siphon.",
-    lesson: "Catalog miss + MCP.",
+    lesson: "Respect the origin. Explain the gap.",
+    personality: "Careful, inquisitive, and precise about provenance. She is open to an alternative, but wants the shop to be clear about what it actually carries before broadening her search.",
+    takeaway: "A similar flavor cannot satisfy an origin constraint.",
+    watch: "Check the origin filter and the empty catalog result, then let the customer explicitly broaden the request.",
+    steps: [
+      "Inspect the origin filter and any matching rows. If none qualify, the reply should say so and show no product cards.",
+      "Broaden to Asia-Pacific, then check the origins of the coffees returned.",
+    ],
     cls: "yuki",
     portrait: "/static/portraits/yuki.jpg",
     prompts: [
       { q: "Any Japanese single-origins in stock?", label: "Japanese single-origins" },
-      { q: "What do you have from Asia-Pacific then?", label: "Asia-Pacific instead" },
+      { q: "What do you have from Asia-Pacific then?", label: "Asia-Pacific instead", followUp: true },
     ],
   },
 };
@@ -86,6 +108,8 @@ const state = {
   routes: [],
   startedAt: 0,
   timer: null,
+  completedTurns: 0,
+  hasRecommendation: false,
 };
 
 function renderRegulars() {
@@ -108,6 +132,9 @@ function renderRegulars() {
       : `<span class="mono ${meta.cls}">${esc(c.name.charAt(0))}</span>`;
     const b = el("button", "regular");
     b.type = "button";
+    b.dataset.customer = id;
+    b.setAttribute("aria-haspopup", "dialog");
+    b.setAttribute("aria-controls", "persona-brief");
     b.setAttribute("aria-pressed", id === state.customerId ? "true" : "false");
     b.innerHTML = `
       ${face}
@@ -115,16 +142,45 @@ function renderRegulars() {
         <div class="name">${esc(c.name)}</div>
         <div class="title">${esc(meta.title)}</div>
         ${meta.ask ? `<div class="ask">“${esc(meta.ask)}”</div>` : ""}
-        ${meta.lesson ? `<div class="lesson">${esc(meta.lesson)}</div>` : ""}
+        <div class="lesson">Meet ${esc(c.name.split(" ")[0])} <span aria-hidden="true">↗</span></div>
       </span>`;
     b.addEventListener("click", () => {
       if (state.busy) return;
-      $("#customer").value = id;
-      state.customerId = id;
-      onCustomerChange();
+      previewCustomer(id);
     });
     host.appendChild(b);
   });
+}
+
+function previewCustomer(id) {
+  if (state.busy || !state.ready) return;
+  const customer = state.customers.find(c => c.id === id);
+  if (!customer) return;
+  const meta = REGULARS[id] || {};
+  const prompt = (meta.prompts || FALLBACK_PROMPTS)[0];
+  showPersonaBrief({
+    name: customer.name, title: meta.title || "Coffee regular", portrait: meta.portrait,
+    personality: meta.personality || "Meet a regular and explore a recommendation based on their saved coffee preferences.",
+    preferences: customer.summary,
+    request: prompt.q, lesson: meta.watch || "Follow the recommendation back to the catalog facts in the trace.",
+    actionLabel: "Use this request",
+    onChoose: () => {
+      if (state.busy || !state.ready) return;
+      if (state.customerId !== id) {
+        state.customerId = id;
+        $("#customer").value = id;
+        onCustomerChange();
+      }
+      $("#q").value = prompt.q;
+      switchTab("guide");
+      $("#q").focus();
+    },
+  });
+}
+
+function promptEnabled(prompt) {
+  if (prompt.requiresRecommendation) return state.hasRecommendation;
+  return !prompt.followUp || state.completedTurns > 0;
 }
 
 function renderPills() {
@@ -134,9 +190,35 @@ function renderPills() {
   prompts.forEach((p) => {
     const b = el("button", "pill", esc(p.label));
     b.dataset.q = p.q;
+    if (p.followUp) b.dataset.followUp = "true";
+    if (!promptEnabled(p)) b.title = p.requiresRecommendation
+      ? "Get a coffee recommendation before ordering that coffee."
+      : "Send the first question, then continue in the same session.";
     b.addEventListener("click", () => run(p.q));
     host.appendChild(b);
   });
+}
+
+function renderGuide() {
+  const customer = state.customers.find(c => c.id === state.customerId);
+  const meta = REGULARS[state.customerId] || {};
+  const prompts = meta.prompts || FALLBACK_PROMPTS.slice(0, 2);
+  $("#guideView").innerHTML = `
+    <div class="demo-guide">
+      <p class="guide-eyebrow">A short demo with ${esc(customer?.name || "a regular")}</p>
+      <h2>${esc(meta.takeaway || "Follow the answer back to the catalog.")}</h2>
+      <ol class="guide-steps">
+        ${prompts.map((prompt, i) => `<li>
+          <span class="guide-number" aria-hidden="true">0${i + 1}</span>
+          <div><h3>${i === 0 ? "Ask" : "Follow up"}</h3>
+          <p class="guide-question">“${esc(prompt.q)}”</p>
+          <p>${esc(meta.steps?.[i] || "Inspect the live trace and catalog-backed product cards.")}</p></div>
+        </li>`).join("")}
+      </ol>
+      <div class="guide-takeaway"><strong>What to watch</strong><p>${esc(meta.watch || "Use the trace to inspect what the database returned.")}</p></div>
+      <a href="/" data-route class="guide-link">Compare keyword, vector, and hybrid in the Lab <span aria-hidden="true">→</span></a>
+      <p class="guide-note">Use the suggested questions below the conversation. The live trace opens when you send.</p>
+    </div>`;
 }
 
 async function getJSON(url) {
@@ -148,6 +230,10 @@ async function getJSON(url) {
 function syncControls() {
   document.querySelectorAll(".regular, .new-session, .pill, #customer, #modelRoute, #q, #send")
     .forEach((control) => { control.disabled = state.busy || !state.ready; });
+  const prompts = (REGULARS[state.customerId] || {}).prompts || FALLBACK_PROMPTS;
+  document.querySelectorAll(".pill").forEach((control, i) => {
+    control.disabled ||= !promptEnabled(prompts[i]);
+  });
   $("#chat").setAttribute("aria-busy", String(state.busy));
 }
 
@@ -214,6 +300,8 @@ document.querySelectorAll(".side-tab").forEach((t) => {
   t.addEventListener("click", () => switchTab(t.dataset.tab));
 });
 window.addEventListener("keydown", (e) => {
+  if (document.body.dataset.view !== "concierge") return;
+  if (personaBriefOpen()) return;
   if (e.ctrlKey || e.metaKey || e.altKey || e.target.isContentEditable) return;
   if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
   if (e.key === "1") selectByIndex(0);
@@ -240,9 +328,7 @@ function selectByIndex(i) {
   if (state.busy || !state.ready) return;
   const c = state.customers[i];
   if (!c) return;
-  $("#customer").value = c.id;
-  state.customerId = c.id;
-  onCustomerChange();
+  previewCustomer(c.id);
 }
 
 function onCustomerChange() {
@@ -259,12 +345,16 @@ function onCustomerChange() {
   chat.appendChild(m);
   $("#avatar").textContent = firstName.charAt(0).toUpperCase();
   state.sessionId = null;
+  state.completedTurns = 0;
+  state.hasRecommendation = false;
   const sid = $("#sid");
   if (sid) sid.textContent = "—";
   emptyTelemetry();
   setTeleCount(0);
   renderRegulars();
   renderPills();
+  renderGuide();
+  switchTab("guide");
   syncControls();
 }
 
@@ -284,13 +374,18 @@ function setTeleCount(n) {
 function switchTab(name) {
   document
     .querySelectorAll(".side-tab")
-    .forEach((t) => t.classList.toggle("on", t.dataset.tab === name));
+    .forEach((t) => {
+      t.classList.toggle("on", t.dataset.tab === name);
+      t.setAttribute("aria-pressed", String(t.dataset.tab === name));
+    });
+  $("#guideView").style.display = name === "guide" ? "" : "none";
   $("#archView").style.display = name === "arch" ? "" : "none";
   $("#teleView").style.display = name === "tele" ? "" : "none";
   $("#sideTitleText").textContent =
-    name === "arch" ? "System architecture" : "Agent telemetry";
+    name === "guide" ? "The demo, in two turns" : name === "arch" ? "System architecture" : "Agent telemetry";
   $("#sideSubText").textContent =
-    name === "arch"
+    name === "guide" ? "A question, a follow-up, and the evidence."
+      : name === "arch"
       ? "Multi-agent orchestration on Postgres"
       : "Live trace of agent activity";
 }
@@ -303,7 +398,7 @@ function resetSession() {
   const node = $("#elapsed");
   if (node) node.textContent = "0ms";
   onCustomerChange();
-  switchTab("arch");
+  switchTab("guide");
 }
 
 let currentPlan = null;
@@ -385,6 +480,9 @@ async function run(query) {
     if (!done || !finalResponse) throw new Error("The server did not complete the reply.");
     const atBottom = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 90;
     finishResponse(reply(), finalResponse);
+    state.completedTurns++;
+    state.hasRecommendation = Boolean(finalResponse.products?.length);
+    renderPills();
     // Keep the completed answer and first product in view when the card list
     // expands; jumping to the last card hides the recommendation just read.
     if (atBottom) chat.scrollTop = message.offsetTop - chat.offsetTop;

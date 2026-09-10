@@ -9,6 +9,47 @@ The browser and FastAPI share an origin. Provider credentials stay on the server
 - `GET /api/health`: database connectivity.
 - `GET /api/search/status`: catalog and index readiness.
 
+## Search and catalog
+
+The shell serves `/`, `/catalog`, `/experiments`, and `/concierge`. Navigation keeps loaded views in memory, including the active chat stream and draft. Each page loads its JavaScript module on first use.
+
+`GET /api/catalog` returns `products`, `total`, `truncated`, and `embedding_model`. The list is bounded to 200 products and includes descriptions and embedding dimension counts. `GET /api/catalog/{bean_id}` returns one public product plus `weighted_fields`, its stored `search_document`, and the numeric `embedding`. Unknown IDs return 404; database failures return a generic 503. Neither endpoint exposes customer context.
+
+`POST /api/search` accepts:
+
+```json
+{
+  "query": "bergamot",
+  "budget": 2000,
+  "roasts": [],
+  "origins": [],
+  "stock_only": true,
+  "fuzzy": false,
+  "candidates": 8,
+  "rrf_k": 60,
+  "min_cosine": null,
+  "explain": false
+}
+```
+
+Budget is in cents; null removes the cap. Candidate depth is 1–100, RRF k is 1–200, and optional minimum cosine is −1 to 1. Eligibility filters precede candidate limits. The cosine threshold removes semantic candidates before fusion, preserving any independent lexical contribution.
+
+The response includes fused `results` with independent lexical/semantic ranks and scores, canonical product fields, highlighted text tokens, `eligible_count`, `parsed_query`, lexical `excluded` rows and reasons, `settings`, actual parameterized `sql`, diagnostic SQL, timings, and model ID. Lists are views of those ranks; the browser does not recompute similarities. Counts and diagnostics share the comparison's repeatable-read snapshot. `explain: true` adds a real `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)` plan from a second execution.
+
+## Conference experiments
+
+`GET /api/experiments/status` reports whether presenter controls are enabled, durable price-demo state, and fixture readiness. Blind judging uses ordinary read-only search requests; choices stay in browser memory.
+
+The following JSON POST routes require `ENABLE_STAGE_CONTROLS=1` and reject cross-origin requests:
+
+| Route | Body | Effect |
+| --- | --- | --- |
+| `/api/experiments/price` | `{"action":"raise"}` or `{"action":"restore"}` | Reversible $19/$24 change to `b_ethiopia_yirg`, with conflict detection and durable undo state. |
+| `/api/experiments/index/prepare` | `{}` | Idempotently creates the separate 12,000-row, 384-dimensional synthetic fixture and its HNSW index. |
+| `/api/experiments/index/compare` | `{"ef_search":40,"filtered":true,"iterative":false}` | Read-only exact/HNSW execution comparison with neighbor IDs, recall @20, timings, and actual plans. |
+
+`ef_search` is bounded to 20–400. The filtered fixture selects one of twenty categories. The response reports whether `points_hnsw` was actually used and explains cache/order effects and the difference between neighbor recovery and relevance. No experiment touches customer conversations, approvals, or inventory quantities.
+
 ## Chat request
 
 `POST /api/query/stream` accepts:

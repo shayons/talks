@@ -11,6 +11,7 @@ import re
 from pgvector.psycopg import Vector
 
 from db import EMBED_MODEL, conn, embed
+from catalog import product_details
 
 
 FILTER_SQL = """
@@ -38,6 +39,7 @@ semantic AS (
   SELECT id, 1 - distance AS semantic_score,
          row_number() OVER (ORDER BY distance, id) AS semantic_rank
     FROM semantic_candidates
+   WHERE (%(min_cosine)s::float IS NULL OR 1 - distance >= %(min_cosine)s)
 ),
 lexical_candidates AS MATERIALIZED (
   SELECT b.id,
@@ -126,12 +128,13 @@ def excluded_from_row(row, params):
 
 
 def search_params(vector, query, *, budget=None, roasts=(), origins=(),
-                  stock_only=True, fuzzy=False, candidates=12, rrf_k=60):
+                  stock_only=True, fuzzy=False, candidates=12, rrf_k=60, min_cosine=None):
     return {
         "embedding": Vector(vector), "query": query, "budget": budget,
         "roasts": list(roasts), "origins": list(origins),
         "stock_only": stock_only, "fuzzy": fuzzy,
         "candidates": candidates, "rrf_k": rrf_k,
+        "min_cosine": min_cosine,
     }
 
 
@@ -162,11 +165,16 @@ def compare_search(query: str, *, explain=False, **options) -> dict:
         start_sql = time.perf_counter()
         cur.execute(SEARCH_SQL, params)
         results = [result_from_row(row) for row in cur.fetchall()]
+        results = [{**row, **product_details(row)} for row in results]
         query_ms = (time.perf_counter() - start_sql) * 1000
         start_diagnostics = time.perf_counter()
         cur.execute(EXCLUDED_SQL, params)
         excluded_rows = cur.fetchall()
         excluded = [excluded_from_row(row, params) for row in excluded_rows]
+        cur.execute('SELECT count(*) FROM beans b WHERE TRUE\n' + FILTER_SQL, params)
+        eligible_count = cur.fetchone()[0]
+        cur.execute("SELECT websearch_to_tsquery('english', %s)::text", (query,))
+        parsed_query = cur.fetchone()[0]
         diagnostics_ms = (time.perf_counter() - start_diagnostics) * 1000
         plan = None
         if explain:
@@ -174,6 +182,7 @@ def compare_search(query: str, *, explain=False, **options) -> dict:
             plan = cur.fetchone()[0][0]
     return {
         "query": query, "results": results, "excluded": excluded,
+        "eligible_count": eligible_count, "parsed_query": parsed_query,
         "excluded_total": excluded_rows[0][11] if excluded_rows else 0,
         "excluded_sql": EXCLUDED_SQL.replace("%%", "%"),
         "timing": {"embedding_ms": round(embed_ms, 2), "query_ms": round(query_ms, 2),

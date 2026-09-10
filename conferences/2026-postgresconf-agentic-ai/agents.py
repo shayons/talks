@@ -638,11 +638,11 @@ class CoordinatorAgent:
         # GROUNDING, GUARDRAIL · APPROVAL, LLM · OPUS · SYNTHESIZE) see the
         # individual telemetry panels that stream in below the PLAN.
         steps = [
-            "Haiku 4.5 parses intent · rank tools by description_emb similarity",
+            "Parse intent · rank tools by description_emb similarity",
             f"Episodic (last 5 orders) + profile + procedural (similar-cohort JOIN) for {self._first_name(ctx)}",
             "Flavor Profiler · fuse pgvector + full-text ranks with RRF",
             "Roast Master · SQL roast/budget filter + audited check_inventory",
-            "Fact-check every pick against beans · approval queue · Opus 4.7 synthesis",
+            "Fact-check every pick against beans · approval queue · generate reply",
         ]
         ctx.emit_plan(steps, duration_ms=45)
 
@@ -867,6 +867,11 @@ SELECT b.id, b.name, b.roast_level, b.in_stock, b.price_cents,
                     hydrated = self._hydrate_bean(prior["id"], intent)
                     if hydrated:
                         verified = [hydrated] + verified
+
+        # The acknowledgement, citations, and product card describe the one
+        # bean that will be queued for approval.
+        if intent.get("wants_order"):
+            verified = verified[:1]
 
         rows = [
             [p["name"], "beans." + p["id"], f"in_stock={p['in_stock']}"]

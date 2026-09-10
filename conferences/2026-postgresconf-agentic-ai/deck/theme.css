@@ -116,10 +116,11 @@ pre code {
 .hljs-variable, .hljs-attr, .hljs-literal { color: var(--cq-code-ink); }
 
 section table {
+  display: table;
   width: 100%;
   border-collapse: collapse;
   margin: 10px 0 14px;
-  font-size: 0.78em;
+  font-size: 0.85em;
   background: transparent !important;
 }
 section table th,
@@ -401,8 +402,9 @@ section.regulars h1 {
 }
 .regulars-grid img {
   width: 100%;
-  aspect-ratio: 3 / 4;
+  height: 268px;
   object-fit: cover;
+  object-position: center 32%;
   display: block;
 }
 .regulars-grid figcaption {
@@ -487,3 +489,86 @@ section.thanks p {
 section.thanks a {
   border: 0;
 }
+
+/* Presentation evidence stays readable at 1280 × 720. */
+.journey-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  margin: 18px 0 28px;
+}
+.journey-grid > div {
+  background: var(--cq-bg-raised);
+  border-top: 3px solid var(--cq-sage);
+  padding: 24px;
+}
+.journey-grid p { font-size: 24px; }
+.eyebrow {
+  display: block;
+  color: var(--cq-sage);
+  font: 500 15px "IBM Plex Mono", monospace;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.formula {
+  color: var(--cq-sage);
+  font-size: 36px;
+  padding: 20px 0;
+  text-align: center;
+}
+.caption {
+  color: var(--cq-ink-mut);
+  font-size: 18px;
+  margin: 16px 0 0;
+}
+section.diagram-slide img {
+  display: block;
+  width: 100%;
+  height: 460px;
+  object-fit: contain;
+  margin: 0;
+}
+section.diagram-slide > p:has(img) { margin: 0; }
+.evidence-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.05fr;
+  gap: 36px;
+  align-items: center;
+  margin: 20px 0;
+}
+.evidence-grid p, .evidence-grid li { font-size: 24px; }
+.evidence-image {
+  background: var(--cq-bg-raised);
+  border: 1px solid var(--cq-line-strong);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.evidence-image p { margin: 0; }
+.evidence-image img {
+  display: block;
+  width: 100%;
+  max-height: 450px;
+  object-fit: contain;
+}
+.walkthrough-grid { grid-template-columns: 1.2fr 1fr; }
+section.demo-slide { font-size: 24px; }
+section.demo-slide h1 {
+  font-size: 42px;
+  border: 0;
+  padding-bottom: 0;
+  margin-bottom: 22px;
+}
+section.demo-slide h2 {
+  color: var(--cq-sage);
+  font: 500 16px "IBM Plex Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+section.demo-slide table { font-size: 22px; }
+.stage-url {
+  font: 500 20px "IBM Plex Mono", monospace;
+  color: var(--cq-sage);
+  margin-top: 22px;
+}
+section.references li { font-size: 24px; margin-bottom: 16px; }

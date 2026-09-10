@@ -1,332 +1,377 @@
-# Talking Points · Postgres Summit US 2026 · NYC
+# Talking points · Postgres Summit US 2026
 
-> **Session:** [Hybrid Search in PostgreSQL: Combining Vector and Full-Text for Real-World Applications](https://postgresql.us/events/postgressummitus2026/schedule/session/2349-hybrid-search-in-postgresql-combining-vector-and-full-text-for-real-world-applications/)
-> **Speaker:** Shayon Sanyal · September 30, 2026 · 10:30–11:20 EDT · Letterpress, Convene, New York City.
->
-> Stage notes for the 50-minute Summit session. Audience: Postgres developers and application builders; published level: intermediate.
-> Speak their dialect — access patterns, query plans, index internals, autovacuum, MVCC. Don't sell Postgres _to_ Postgres people. Sell the idea that the agent stack is _ordinary Postgres work_.
->
-> Scenario scripts live in [../README.md](../README.md). This file is the **narrative through-line**.
+**Hybrid Search in PostgreSQL: Combining Vector and Full-Text for Real-World Applications**
 
----
+Shayon Sanyal · September 30, 2026 · 10:30–11:20 EDT · Letterpress, Convene,
+555 Broadway, New York City. Session details checked against the
+[official listing](https://postgresql.us/events/postgressummitus2026/schedule/session/2349-hybrid-search-in-postgresql-combining-vector-and-full-text-for-real-world-applications/)
+on September 10, 2026.
 
-## Time budget · 50 minutes total
+The story: **words find explicit matches, vectors find related meaning, and
+PostgreSQL keeps candidates inside the customer's constraints.** The agent
+applies that retrieval contract in a conversation.
 
-| Block                           | Slides | Budget     | Notes                                                                  |
-| ------------------------------- | ------ | ---------- | ---------------------------------------------------------------------- |
-| Title + hook + bio              | 1–3    | 1.5 min    | Hook slide lands the "why"; 20–30 sec bio, move on                     |
-| Problem → thesis → architecture | 4–8    | 6 min      | Frame the seven-system stack, land the one-DB claim, show the diagram  |
-| Latency + cost                  | 9      | 2 min      | Shape of the distribution, not numbers                                 |
-| Memory types                    | 10–11  | 4 min      | Three memory types, then the procedural JOIN — this is the first "wow" |
-| Tools as a table                | 12–14  | 4 min      | Registry → discovery SQL → MCP                                         |
-| Workflow state + limits         | 15–16  | 3 min      | JSONB checkpoint, then the honesty slide on when it's not enough       |
-| Guardrails                      | 17     | 2 min      | Fact-check · confidence · approvals                                    |
-| **Regulars + demo**             | 18–19  | **12 min** | Three faces, then live · see README for per-turn scripts               |
-| Operational realities           | 20–24  | 8 min      | Divider + HNSW, autovacuum, pool sizing, coreference                   |
-| Honesty slide                   | 25     | 2 min      | When _not_ to do this — buys credibility                               |
-| Closer + references             | 26–30  | 3 min      | "Every role, one plan" SQL · where it lands · references · repo · Q&A  |
-| **Buffer**                      |        | **3 min**  | Demo gods, a deep question, finding the right tab                      |
+Use [deck.md](deck.md), the [paper PDF](deck.pdf), or the
+[black-and-cream PDF](deck-dark.pdf) for the same slides,
+[the seven-minute demo](../docs/DEMO.md) for the browser sequence, and
+[SQL patterns](SQL_PATTERNS.md) for parameterized examples. Slide numbers below
+are physical PDF page numbers, including title and divider slides.
 
-**Rule of thumb on stage:** 5 minutes behind at the demo → skip operational realities (20–23), jump to the closer. The demo is the payload. The tuning slides are appendix.
+## Fifty-minute run of show
 
----
+| Elapsed | Slides | Budget | What to land |
+| --- | --- | --- | --- |
+| 0:00–4:00 | 1–5 | 4 min | The request, the two comparisons, the people |
+| 4:00–15:00 | 6–13 | 11 min | Schema, candidate branches, eligibility, RRF, tuning |
+| 15:00–22:00 | 14 | 7 min | Lab → one explanation → Concierge |
+| 22:00–32:00 | 15–20 | 10 min | Embeddings, HNSW, two-minute clickthrough, plans and measurements |
+| 32:00–35:00 | 21–22 | 3 min | Required terms, relevance evaluation and extensions |
+| 35:00–40:00 | 23–25 | 5 min | Conversation, continuity, pending approvals, honest boundaries |
+| 40:00–42:00 | 26–28 | 2 min | Takeaways, runnable repo, questions |
+| 42:00–44:00 | — | 2 min | Buffer |
+| 44:00–50:00 | 28; 29–31 as needed | 6 min | Q&A and optional appendix |
+
+The ten-minute index block includes the **two-minute Catalog walkthrough**.
+Do not add fixture preparation or the price mutation to the main run.
+
+## Rehearsal setup
+
+1. Start the project database with `./scripts/postgres18.sh start`, then
+   `./run-demo.sh`. Open Lab at `http://localhost:8017/`, Catalog at `/catalog`,
+   and Concierge at `/concierge`. Status should report PostgreSQL 18.
+2. Warm Leo's Lab request and Catalog's default bergamot walkthrough. Confirm
+   status reports embeddings and the expected catalog. The first embedding
+   use may download the model.
+3. Check the example price. If a previous stage price experiment is active,
+   use its restore control before rehearsing; do not overwrite unrelated edits.
+4. Select the intended Concierge model route and complete one recommendation.
+   A healthy database does not establish model access. Use **New session** for
+   the stage conversation; do not delete history to create a fresh session.
+5. Keep `deck.pdf` open as the offline fallback. Embedded screenshots show
+   actual UI with the HNSW illustration explicitly identified.
+6. Optional: prepare the synthetic index fixture in advance with stage controls
+   enabled, then confirm the measured HNSW plan. Never prepare it while filling
+   a pause on stage.
+
+The Lab examples are Leo, Maya, and Yuki. Concierge names come from PostgreSQL;
+fresh seeds use Marco, Ana, and Yuki. Introduce the **espresso regular** in
+Concierge rather than assuming a display name. The portrait/personality is a
+fictional narrative aid; catalog and preference facts have a separate source.
 
 ## Slide-by-slide narration
 
-### 1. Title
+### 1. Hybrid Search in PostgreSQL
 
-_"Welcome to Hybrid Search in PostgreSQL. Coffee & queries is our working example: a coffee request needs meaning, exact terms, and current stock and prices. We'll follow those requirements through vector search, full-text search, and reciprocal-rank fusion in PostgreSQL."_
+“Coffee & queries is our working example. A recommendation needs relevant
+meaning, explicit terms, and current price and stock. We'll follow those
+requirements through two retrieval methods, RRF, and the query plan.”
 
-### 2. Why are we even having this conversation?
+### 2. Start with the customer's request
 
-The hook. Deliver the 30-second opener — the full version is in the speaker notes on the slide. The short version for stage:
+Read the request. Bergamot is an explicit word; related citrus and floral notes
+may be useful too. Twenty dollars is a requirement. Establish these separate
+jobs before showing a model or an architecture diagram.
 
-_"The minute you ship an agent, it stops being a Python script. It becomes a zoo of databases pretending to be one system. Different auth. Different failure modes. Different 2am pages."_
+### 3. About me
 
-Don't enumerate or count the systems here — slide 4 does that. This slide lands the hook; slide 4 pays it off with the specific seven.
+Twenty seconds: name, role, why retrieval and PostgreSQL matter to your work.
+Move to the example.
 
-### 3. Bio
+### 4. Two questions. Two comparisons.
 
-20 seconds. Name, role, "I ship this pattern for a living, here's what works." Move.
+Model-only versus catalog-grounded explains **why retrieval matters**. Without
+catalog access, a model cannot establish this shop's current inventory and
+prices. It may guess, offer general advice, or correctly ask for that data.
+Do not manufacture a failure or equate eloquence with factual support.
 
-### 4. The problem — seven systems
+Keyword versus vector versus hybrid explains **why combine retrieval methods**.
+A grounded answer alone does not prove hybrid beats vector retrieval.
 
-Read the list out loud. Pause. Then:
+A before/after control is a useful future UI extension, not a shipped toggle
+in this version. Hold model, request, generation settings, and shared system
+instructions constant; disclose catalog/history/tools available to each side.
+For a clean stage demo, a labeled captured run is more predictable than two
+fresh model calls. See the comparison design in `docs/DEMO.md`.
 
-_"Seven auth boundaries. Seven failure modes. Seven things to page on at 2am. And before you ask — yes, I've run this stack. That's why I'm standing here."_
+### 5. Meet the regulars
 
-For the committers:
+Leo: curious and precise, with a budget. Maya: looking for the idea of dessert.
+Yuki: wants a particular origin. Their briefs give the audience a reason to care
+about the filters and vocabulary mismatch. Don't read the full profiles.
 
-_"Every arrow between those boxes is an RPC, a serialization boundary, and an eventual-consistency window you have to reason about. Postgres solved this for OLTP decades ago. Agents are OLTP with vectors and a long tail of JSONB."_
+### 6. One row, two search representations
 
-### 5. The thesis
+Point to text, vector, and relational columns. The same domain row carries
+multiple representations. The demo uses 384 dimensions from
+`BAAI/bge-small-en-v1.5`; dimensions are a model choice, not a universal optimum.
+Evaluate your domain and languages. Equal dimensions do not make embeddings
+from different models compatible.
 
-One database. One transactional snapshot. LLMs at the edges, SQL in the middle. That sentence is the whole talk.
+### 7. Give important text more weight
 
-### 6. Why one database, not five
+Name, origin, and flavor notes are A; description is B. This is an excerpt of
+the generated column in `schema.sql`; null handling is omitted for readability.
+`coffee_flavor_text` is the repo's immutable text-array helper. Show stored
+lexemes in Catalog later. English full-text matching uses normalized lexemes,
+not exact byte equality. Refresh embeddings when their source content changes.
 
-The slide that matters for the hackers. Don't dunk on vector DBs — that's the weak version. Go strong:
+### 8. Retrieve lexical candidates
 
-- **One optimizer** sees vector ops, filters, joins together. It pushes predicates through HNSW, reorders joins by selectivity, shares sort orders. Pinecone + Postgres + Redis can't share a plan.
-- **One transaction** — the audit row, the approval, the state checkpoint all commit or none do. No dual-write. No outbox. No compensating logic when Kafka lag spikes.
-- **One MVCC snapshot** — your similarity score and your inventory count came from the _same_ visible state. Vector DB says bean X is close; Postgres says bean X is out of stock; they disagree because they were taken at different times. Here they can't.
+Name the match predicate, lexical ranking, eligibility, and candidate limit.
+Parameter 32 in `ts_rank_cd` is normalization, not a hybrid weighting factor.
+`websearch_to_tsquery` supports quoted phrases, OR and exclusions. The optional
+trigram feature in Lab adds name candidates; keep it off for the first demo.
 
-_"This isn't a Postgres talk. It's a distributed-systems-avoidance talk. Postgres happens to be the thing we're avoiding distributing."_
+### 9. Retrieve semantic candidates
 
-### 7. Architecture
+The ascending distance operator plus LIMIT leaves an indexable query form.
+The planner can still choose a sequential scan. Display similarity as
+`1 - distance`; it is not calibrated confidence. Semantic matching depends on
+the selected model, corpus, and request, including language support.
 
-Point at the diagram. Haiku on top (intent, coref). Three agents in the dashed box, all reading and writing Postgres. Opus on the bottom (synthesis from grounded picks only). Everything the agents need — memory, tools, audit, state, approvals — in one Postgres box.
+### 10. Eligibility comes first
 
-_"Two Bedrock calls per turn. Everything else is a SQL transaction."_
+Apply the same predicates inside both branches before their candidate limits.
+Filtering after top-N selection can miss eligible alternatives. This is a
+logical SQL property, not a promise that HNSW visits only eligible nodes.
+The ANN distinction comes on slide 18. Origin matching in this demo is a
+case-insensitive substring; production country rules should use canonical codes.
 
-### 8. Haiku parses, Opus synthesizes
+### 11. Fuse ranks, not incompatible raw scores
 
-Two models, two jobs. Haiku is cheap and fast — structured extraction via Converse tool-use. Opus is slow and expensive — the generator. Split by what each is good at.
+Read one arithmetic row. Coffee A contributes from keyword rank 1 and vector
+rank 3. Coffee B appears only in vector and contributes zero from keyword.
+These are illustrative candidates, not a stored catalog result.
 
-The contract between them — `intent → grounded picks → citations` — is a data shape, not a prompt. Swap either model without touching Postgres.
+RRF rewards agreement without requiring raw score calibration. It discards
+score-gap information, so evaluate it against a baseline. “Hybrid always wins”
+is not a conclusion this demo supports.
 
-_"If you've ever built a pipeline where the cheap worker does extraction and the expensive worker does synthesis, this is that pattern. Claude happens to be the workers."_
+### 12. RRF is a full outer join
 
-### 9. Latency and cost
+Walk through candidate selection, `row_number`, `FULL OUTER JOIN`, zero for a
+missing branch, and the final ordering. The complete query is in `search.py`
+and Lab's **SQL** tab. No need to fit the entire statement on a slide.
 
-Don't quote Bedrock prices — they move. Show the shape: milliseconds of SQL, seconds of Opus.
+The comparison and diagnostic reads use a repeatable-read snapshot. EXPLAIN
+runs the statement again. CTEs are not a declaration that both branches execute
+simultaneously; look for workers and actual scan nodes in the plan.
 
-_"Everyone in this room assumes agents are expensive because agents include LLMs. You're right about the cost. You're wrong about where it lives. The database work is free. The model is the tax."_
+### 13. Three knobs that change different things
 
-For a room that runs OLTP at p99s measured in milliseconds, this is where they realize the DB isn't the bottleneck they thought it was.
+Candidate depth determines who can enter fusion; RRF k determines rank decay;
+minimum cosine trims the semantic branch. Defaults are 12 candidates and k=60.
+An optional cosine threshold does not apply to the lexical branch of the union.
+HNSW `ef_search` is separate from all three. Vary one knob per comparison.
 
-### 10. Three memory types, one database
+### 14. Live demo · seven minutes
 
-Terminology honesty up front — "procedural memory" is cog-sci borrowed loosely. If someone corrects you from the floor, agree: _"cohort memory works too, the point is the access pattern."_ Move on.
+Follow [docs/DEMO.md](../docs/DEMO.md). The order is deliberate:
 
-Map each type to its access pattern:
+1. Leo: brief → **Compare this request**, then compare three rankings.
+2. Maya: “dessert,” then inspect returned flavors rather than assuming a winner.
+3. One coffee: **Why this coffee** → **SQL**. Save a lengthy plan read for later.
+4. Yuki: origin constraint, eligible count, appropriate empty result if absent.
+5. Concierge: espresso regular → **Use this request** → Send. Wait for the
+   completed recommendation, note its bean ID, then **Order that**.
 
-- **Episodic** → `WHERE session_id=$1 ORDER BY ts DESC`. This is `pg_stat_statements`'s dream query.
-- **Semantic** → `ORDER BY embedding <=> $1` on HNSW. Btree-shaped access, different index type.
-- **Procedural** → the JOIN that falls out of having both in the same database.
+Opening/closing a brief preserves the draft and current conversation. `1/2/3`
+open the same briefs. **Use this request** prepares text without sending;
+switching customers starts a new conversation. Follow-up controls require a
+completed reply; ordering additionally requires a product recommendation.
 
-_"So the three-memory-types framing isn't really a claim about how LLMs remember things. It's a claim about how many index types and access patterns your data layer has to support, and whether a single planner can see all of them at once. The cog-sci vocabulary is a hook to make it memorable; the query plan is the point."_
+Show the pending approval for that actual ID. The acknowledgment and product
+card should agree. There is no payment, fulfillment, or stock decrement.
 
-### 11. The procedural memory query
+### 15. From a coffee's text to its vector
 
-First "wow" slide. Read the SQL out loud — slowly — and name three things in one plan:
+Open Catalog, select a coffee, compare its source text with weighted fields,
+and inspect the semantic embedding. The slide screenshot is an actual stored
+vector heatmap. Components are learned values without assigned flavor names.
+Continue below the semantic embedding using **Follow a query through HNSW →**.
 
-1. `SELECT %s::vector AS v` → the current request's embedding
-2. `b.embedding <=> v` → pgvector cosine similarity (uses HNSW)
-3. `JOIN orders JOIN customers` → relational cohort lookup
+### 16. HNSW: navigate broadly, then search locally
 
-_"Three systems' worth of architecture diagrams, in one CTE. `EXPLAIN` this and you see an Index Scan on HNSW, a Hash Join on customers, an aggregate on orders — one plan. A vector DB can't express this without round-tripping to your OLTP store, and when it does, the scores are stale."_
+Expand the acronym once: Hierarchical Navigable Small World. Sparse upper
+layers help navigate to a region. Descent keeps the current entry point. The
+base search explores multiple candidate alternatives. The schematic is a
+teaching picture, not a graph exported from the PostgreSQL index.
 
-For the planners in the room:
+### 17. Follow this query through the graph
 
-_"If you care about query planning, this is the slide. The planner has visibility into selectivity on both the vector side and the relational side. Push-down works. A separate vector store gives up that visibility the moment the score leaves the index."_
+Use the two-minute extension in `docs/DEMO.md`:
 
-### 12. Tools are a table
+- Query `bergamot`, ef=4. **Trace query** if needed.
+- **Next step**: inspect the full-vector distances of neighbors at an upper layer.
+- Advance until descent; identify the same point on the next level.
+- At layer 0, show the bounded candidate set and highlighted examined links.
+- Jump to the final step. Compare its top three with exhaustive neighbors.
+- Set ef=16; this resets the illustration. Jump to the final step and compare.
 
-Show the schema. Highlight three columns:
+Rotate once and click a coffee to make the illustration tangible. Avoid
+spending the whole segment on the camera controls.
 
-- `description_emb` — a vector column next to text columns. Normal.
-- `input_schema jsonb` — JSON Schema validated client-side, stored server-side.
-- `requires_approval boolean` — row-level flag, checked by the coordinator.
+The query and catalog embeddings are real. Layer membership, links and bridges
+are constructed by the demo. Coordinates use PCA and small display offsets;
+all distance calculations still use 384 dimensions. This is **not pgvector's
+stored graph or a recorded index traversal**. The walkthrough has no budget,
+stock, or origin filters and changes no database configuration. Do not transfer
+its recovery numbers to a claim about pgvector.
 
-_"It's a table. If you know Postgres, you already know how to back it up, replicate it, audit it, grant on it, partition it. No new operational surface."_
+### 18. A SQL filter is not an ANN pre-filter
 
-### 13. Semantic tool discovery in one query
+Approximate index scans may visit neighbors later rejected by executor filters.
+More search breadth or iterative scanning can help produce enough eligible
+results, but still does not establish exact recall. Iterative scans require
+pgvector 0.8+ and remain subject to scan/memory limits. Use `SET LOCAL` inside
+a transaction when experimenting with a query-specific setting.
 
-Dynamic discovery, not a static toolbox. Add a tool → INSERT a row → it's available on the next request. No code deploy, no prompt template change.
+For selective filters, compare a relationally filtered exact scan. Partial
+indexes or partitioning can help when their shape matches the workload; neither
+is a blanket prescription.
 
-_"Your change-management window just became `BEGIN; INSERT; COMMIT;`."_
+### 19. Read the plan that actually ran
 
-Plug the unification: `tool_audit` captures both SQL tool calls and LLM calls (as `tool='llm:<model_id>'`). One SELECT = complete execution trace. No correlating across four dashboards.
+Inspect the Lab's **EXPLAIN** output. Identify scan type, index name, rows,
+filters, sorts, buffers, and workers. A 16-row catalog can sensibly use a table
+scan. Do not force HNSW and present the forced plan as the natural choice.
+Explain that embedding, SQL, diagnostics, and model latency are separate costs.
+A warm single query is not a production latency percentile.
 
-### 14. MCP — same Postgres, different client
+### 20. Measure the index separately
 
-Two interfaces, one store. Agent writes via FastAPI. External MCP hosts (Claude Desktop, Cursor) read via `mcp_server.py`.
+The separate experiment creates 12,000 synthetic 384-d vectors and a real HNSW
+index. The baseline is exact neighbors, not relevance labels. Recall@20 asks
+how many exact neighbors ANN recovered for that query and filter.
 
-The enforcement is the point:
+If prepared, show **Compare indexes**, `hnsw_used`, and the plan. Both methods
+use explicit planner settings, exact runs first, and cache/order effects are
+reported. The fixture is a demonstration of measurement, not a benchmark of a
+representative customer corpus. No unsourced latency or recall curve belongs
+on stage.
 
-- SQL parsed client-side to reject anything that isn't a single `SELECT`.
-- Row cap enforced.
-- In production, add a read-only Postgres role (`GRANT SELECT`). The _database_ refuses writes — belt and suspenders.
+### 21. Need an exact term? Make it a constraint.
 
-_"The demo uses client-side parsing. In production, add the role. The role is the belt. If the parser has a bug, the role still stops it. Same model we already trust for BI readers and exfil-sensitive reporting."_
+RRF combines the union of two candidate sets. The published session also asks
+about “similar to this question AND contains these terms.” Put the required
+text predicate inside semantic retrieval for that stricter contract. It uses
+lexemes, so explain quoted phrases or identifiers according to the actual text
+configuration. If a semantic acceptance threshold is required, specify it too.
 
-### 15. Workflow state is a column
+This is a parameterized extension pattern, not a shipped Lab mode. The runnable
+example is in `SQL_PATTERNS.md`. GIN plus distance sorting may be effective for
+a selective subset; the actual plan settles the physical execution question.
+
+### 22. Evaluate the result, then add complexity
 
-JSONB, checkpointed after every step. Same transaction as the side effects — the checkpoint cannot drift from the work it describes. Process dies mid-task? Next invocation reads `workflow_state->>'step_index'` and resumes.
+Keep relevance judgments separate from eligibility checks and ANN recovery.
+Blind judging hides method labels; a handful of clicks is not a rigorous study.
+Include paraphrases, exact terms, empty cases, and representative constraints.
 
-_"Every time someone reaches for Temporal to solve 'what if the agent crashes mid-task,' they're solving a problem Postgres solves with a `COMMIT`. Look at the transaction boundary. The checkpoint is atomic with the side effect. You can't get that from a separate workflow service without a two-phase commit or an outbox."_
-
-### 16. When JSONB stops being enough
-
-The honesty slide before the honesty slide. Where Temporal, Cadence, and Step Functions earn their keep:
-
-- Workflows measured in days or weeks with external callbacks
-- Saga compensation across services you don't own
-- High-fanout parallelism — hundreds of parallel steps per workflow
-
-_"Most agents don't have these problems. The ones that do shouldn't pretend Postgres solves them. Pick your tool for the access pattern you actually have, not the one on the slide deck."_
-
-### 17. Three guardrail layers
-
-Fact-check → confidence from data → approval queue. Walk through the order:
-
-1. Before calling Opus: re-read every candidate bean from `beans`, verify `in_stock > 0`. Failures are **dropped**. Not papered over.
-2. Confidence from row coverage, history match, top similarity. Not a model-reported number. Not a fudge factor.
-3. Write-intent tool with `requires_approval=true`? Don't execute. Insert into `approvals`, `status='pending'`. A human flips the bit.
-
-_"Opus physically cannot hallucinate a bean we don't have, because the system prompt restricts it to the ids we pass in, and fact-check drops anything stale from that list. Safety isn't a prompt. It's a context boundary."_
-
-### 18. Three regulars
-
-Hold the slide. Name them once so the room can follow the demo:
-
-- Marco — pour-over, East African fruit. Three memories in one plan.
-- Ana — espresso by the kilo. Continuity, then a gated write.
-- Yuki — Tokyo buyer. The catalog has no Japanese origin. That's the refusal.
-
-_"Same agents. Same prompts. Different rows. Memory is the personality."_
-
-Click through to the live UI — the same three faces are on the regulars row. Press 1 / 2 / 3.
-
-### 19. DEMO (12 min)
-
-Switch to browser + psql side-by-side. Scripts in **[README.md § Stage guide](../README.md#stage-guide)**.
-
-Condensed running order:
-
-- **Marco · ~4 min** — two turns on cold brew. Beat: the procedural memory panel. After turn 2, the single-SELECT `tool_audit` trace. _"Twelve rows. That's the entire turn."_
-- **Ana · ~4 min** — same "cold brew" prompt (different answer), then `order that`. Beat: `orders` unchanged, `approvals +1`, `in_stock` unchanged. A human `UPDATE`s the row.
-- **Yuki · ~3 min** — Japanese single-origins. Empty pick list. Warm refusal. Then MCP on the same `tool_audit` table.
-
-**Behind schedule?** Cut Yuki's MCP terminal, keep the refusal.
-
-### 20. Operational Realities (divider)
-
-Section-divider slide. Brief beat to signal the mode shift from architecture to production.
-
-_"Everything up to here was architecture. The next four slides are what it takes to keep this pattern up at 2am — the part that earns the trust of a room full of Postgres operators."_
-
-### 21. pgvector: HNSW tuning
-
-The committers want this slide. Three knobs:
-
-- `m` — graph connectivity. Build-time. Higher = better recall, bigger index, slower build.
-- `ef_construction` — build-time candidate list. Higher = better recall, slower build.
-- `hnsw.ef_search` — query-time candidate list. Tunable per session with `SET`.
-
-Name the shape: recall climbs fast, saturates around 0.98. Latency climbs linearly with `ef_search`. Most agents are on the flat part at default. Real call: start at the default, measure recall against a small ground-truth set, don't tune until you have a problem.
-
-Committer note: _"pgvector 0.7 shipped parallel HNSW builds. Still on 0.5 or 0.6 with single-threaded builds? That's your first easy upgrade."_
-
-### 22. Autovacuum on append-heavy tables
-
-`agent_messages` and `tool_audit` are write-mostly. Default autovacuum is tuned for OLTP mutation — it triggers on dead tuples you never create.
-
-Turn on `autovacuum_vacuum_insert_scale_factor` (PG13+). Name the failure: without it, you get index bloat and query plan flips at ~10M rows because stats go stale.
-
-_"Half the room nods because they've lived it. The other half just learned why their first agent prototype melted at 30 concurrent users."_
-
-For the deeply-interested: TOAST on `content jsonb` in `agent_messages`. Long prompt histories toast — set `toast_tuple_target` to match your typical payload. Measure with `pg_column_size`.
-
-### 23. Connection pooling
-
-One turn = 8–15 queries. 50 concurrent sessions = ~500 queries in flight. Don't point those at raw backends.
-
-PgBouncer in transaction mode, prepared statements on (1.21+), `default_pool_size` matched to your backend count. Or RDS Proxy if you're on AWS and don't want to run a pooler.
-
-_"This is standard OLTP advice. Agents are OLTP with LLM calls on either side. The pooling story doesn't change."_
-
-### 24. Chat continuity ("order that")
-
-The coreference problem. Re-embedding turn 2 lands somewhere else, because "order a bag" semantically matches "generic order" more than "that espresso blend we just pitched." Naive implementation → customer sees a bait-and-switch.
-
-The fix: Haiku's tool schema includes `order_referent_bean_id`. Haiku reads the last six turns from `agent_messages` and returns the bean id from the previous recommendation. Coordinator pins that id.
-
-_"The LLM and the coordinator share a memory. That memory is a boring SQL table. The thing that would be a brittle state machine in some other architecture is a structured field in a tool schema — and the source of truth is `agent_messages`."_
-
-### 25. When NOT to do this
-
-Land all five bullets. This is the slide that buys you credibility. Read the fifth with a smile:
-
-_"'Just use Postgres' assumes someone in your org knows how to operate Postgres. If your platform team only does DynamoDB, factor that in."_
-
-Land the pivot:
-
-_"I'm not here to tell you Postgres is the answer for every agent workload. I'm here to tell you it's the answer for most agent workloads, most of the time — and the tradeoff conversation should start with the access pattern, not the vendor logo."_
-
-### 26. Every role, one plan
-
-The closer SQL. Read it out loud — don't rush. Name each subquery:
-
-- `b.embedding <=> (SELECT embedding FROM beans WHERE id='b_ethiopia_guji')` — semantic
-- `SELECT count(*) FROM orders WHERE ... customer_id='u_marco'` — episodic
-- `SELECT count(*) FROM tool_audit WHERE result->'stock' ? b.id` — audit
-- `SELECT count(*) FROM approvals WHERE args->>'bean_id'=b.id AND status='pending'` — workflow
-
-_"One plan. One optimizer. One transaction. Draw this when your vectors are in Pinecone, your state is in Postgres, and your audit is in DynamoDB."_
-
-### 27. Where this pattern lands in practice
-
-Softer framing than a war story. Observation across independent teams, not a personal victory lap. This slide is also where you reconcile the "no framework" repo with the "frameworks are fine" reality.
-
-**Verbal bridge — say this before the bullets:**
-
-_"The demo repo deliberately ships without a framework, so you can read the orchestration top-to-bottom. But in production, most teams pick one — LangChain, LangGraph, Strands, AgentCore — and the pattern I've been showing you slots underneath whatever they pick. It's not a choice between Postgres and LangGraph. It's a choice about what each layer is good for."_
-
-Then land the clean-seam argument: **frameworks handle prompt orchestration and agent loops; Postgres handles state, memory, audit, approvals.** Name the integrations on stage — `PostgresSaver` is a JSONB column with a nice API, Strands memory backends, AgentCore session stores. The frameworks already know Postgres is the bottom half; they just don't always say it out loud.
-
-Close with the humbler read: _"Smart teams keep reinventing this. That's the strongest signal it's right."_
-
-Offer to share specifics off-stage on the three use-case bullets.
-
-### 28. Architecture reference
-
-Don't read the table. It's for the recording.
-
-_"This is for when you're back at your desk trying to remember which column does what. Slides are on GitHub."_
-
-### 29. Run it yourself
-
-Point at github.com/shayons/talks.
-
-_"Clone it, run it, break it. Schema is 116 lines. `agents.py` reads top to bottom. No framework to fight."_
-
-### 30. Thank you
-
-Open the floor. Default to taking questions against the live demo (still on screen) so answers stay concrete.
-
----
-
-## Anticipated questions (rehearse once)
-
-| Question                                               | Answer anchor                                                                                                                                                                                                                                                                                                     |
-| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "What about at 100M vectors?"                          | HNSW builds slow down. Try **pgvectorscale** (StreamingDiskANN on Postgres) first — it's the least-disruptive jump. Beyond that, IVFFlat for faster builds, or shard. At that scale, the real question is "do my access patterns still need relational JOINs at query time?" If yes, stay Postgres. If no, leave. |
-| "Why not pgvector.rs / DiskANN / ScaNN?"               | No strong opinion — they solve the index. The talk is about the _plan_ containing vectors + relational + audit. Any of those indexes plug into the same argument.                                                                                                                                                 |
-| "Isn't JSONB for workflow state a footgun?"            | Only if you write unvalidated JSON. We validate on the way in (pydantic), query with `->>` and `?`, index with GIN where it matters. Same rules as every JSONB table.                                                                                                                                             |
-| "What happens when agent_messages grows to 100M rows?" | Partition by month on `(session_id, ts)`. Old partitions go read-only or archived. HNSW on a partitioned table is fine as long as you query with the partition key.                                                                                                                                               |
-| "Why Bedrock specifically?"                            | Incidental. The data layer doesn't care. Swap to OpenAI, Anthropic direct, or Ollama — the `tool_audit` row just has a different `tool='llm:…'` value.                                                                                                                                                            |
-| "How do you handle PII in agent_messages?"             | Same way you handle PII anywhere in Postgres — column-level encryption, row-level security, audit the readers. Agents aren't a new PII problem; they just surface the existing one faster.                                                                                                                        |
-| "pgvector locks on `UPDATE`?"                          | HNSW does not rebuild on UPDATE; it handles inserts incrementally. Bulk rebuilds use `REINDEX CONCURRENTLY`. The hot path we care about (agent reads) is not blocked by writes.                                                                                                                                   |
-| "Procedural memory is just RAG on the orders table."   | Correct. The difference is the retrieval runs in the same plan as the candidate ranking — the planner can reorder. In RAG-over-API, the order is fixed by your code. Not a huge deal at small scale, real at scale.                                                                                               |
-| "Why no LangChain/LangGraph?"                          | They're fine libraries — `PostgresSaver` is a wrapper around a JSONB column. If your JSONB column is right there, the wrapper is optional. Use it if you like; don't require it.                                                                                                                                  |
-| "What's the one thing you'd do differently?"           | Start with `tool_audit` as a partitioned hypertable from day one. We didn't, and we've cut over in production. Not painful, but I'd skip the step.                                                                                                                                                                |
-
----
-
-## Cadence notes
-
-- **Pace check at slide 11.** Past 15 minutes into the talk? You're behind — the demo will run long. Skip slide 9 (latency/cost) to recover.
-- **Don't read the SQL slides.** Name the three things in the query and move. The audience reads faster than you speak.
-- **Demo running long?** Cut Scenario 3's MCP terminal. Keep the refusal.
-- **psql misbehaving?** Slide 25 ("Every role, one plan") is the fallback. Same argument without the live DB.
-- **Finished early?** Open questions. Don't pad.
-
----
-
-## One-line version
-
-If someone asks in the hallway to describe the talk in one sentence:
-
-> _"The data plane for a production agent collapses into one Postgres — episodic, semantic, and procedural memory, tool registry, audit, workflow state, approvals, and an MCP surface — and the orchestration layer you'd otherwise import is ~2,500 lines of Python."_
+After establishing a baseline, try bounded preference/popularity tie-breaks or
+separately ranked metadata signals. Relationship expansion can define allowed
+categories before retrieval; appendix slide 29 shows the SQL. These are design
+extensions, not currently exposed Lab controls.
+
+### 23. Add a conversation around the same retrieval
+
+The architecture matches current source: FastAPI, Strands model calls, Python
+orchestration, PostgreSQL retrieval, canonical rechecks, structured product
+cards, and streamed prose. Intent and response are separate model roles;
+models are selected by route, not fixed by the slide deck.
+
+The agent uses history and stores audits/checkpoints/pending approvals. It does
+not put the entire turn into one database transaction. Avoid claiming prompt
+constraints make generated prose incapable of hallucination.
+
+### 24. “Order that” should refer to the same coffee
+
+Follow-up intent resolves a bean ID from the same customer's session. The
+coordinator rechecks current facts and queues one bag for one verified bean.
+The reply, cards, and pending approval should match. Use whichever coffee the
+live run actually returned.
+
+An approval row is an inspectable request. Manually setting its status does not
+execute a fulfillment worker; none is provided here.
+
+### 25. Be precise about what the app proves
+
+Read the distinction most relevant to the room. Canonical cards are stronger
+than generated prose. Checkpoints are inspectable but not an automatic recovery
+engine. SQL/model audits use separate commits; they are not an atomic whole-turn
+ledger. Data coverage is a heuristic, not confidence calibration. Authentication,
+tenant isolation and load targets need work beyond this local demo.
+
+### 26. Three things to take home
+
+“Retrieve for meaning. Filter for eligibility. Measure before you tune.”
+Tie each line back to the opening request. The evidence is the returned rows
+and the plan, not the number of components on the architecture diagram.
+
+### 27. Run it yourself
+
+Point to the repo and README. The slide starts after dedicated database setup.
+Use Python 3.11+, PostgreSQL 18, the initializer and `./run-demo.sh`; the browser
+address is **8017**, not the old 8000. The project database listens on 5433.
+Existing databases use documented migrations.
+Do not run the destructive `schema.sql` to refresh an existing populated demo.
+
+### 28. Thank you.
+
+“What does your query need to preserve?” Invite questions against the live Lab,
+then use the appendix if needed.
+
+### 29. Appendix · expand a relationship before retrieval
+
+The synthetic category tree maps Asia-Pacific → Indonesia → Sumatra. Recursive
+expansion yields names used to constrain semantic ranking. `UNION` deduplicates
+names in this name-only traversal; it terminates even with cycles. Production
+needs canonical relationships and access rules, not substring geography.
+This extension is not implemented as a Lab mode.
+
+### 30. Appendix · operate the measured workload
+
+HNSW m and ef_construction change graph construction. ef_search changes search
+breadth. Measure recall, filtered returned count, build/update costs, and memory.
+Manage text weights and document refresh alongside embeddings. Observe pool
+waits, concurrent SQL, maintenance and retention. Do not infer 500 queries in
+flight from 50 sessions with ten sequential queries each.
+
+### 31. References and reproducible paths
+
+The technical references are primary sources. Versioned PostgreSQL/pgvector
+links anchor the SQL behavior. Repo source anchors the app behavior; recorded
+plans anchor performance claims. Rehearse again after changing data or models.
+
+## Questions to prepare for
+
+| Question | Answer anchor |
+| --- | --- |
+| Why not just ask the model? | Without catalog access, it cannot establish current shop facts. It may correctly ask for data. Grounding versus model-only and hybrid versus vector are separate comparisons. |
+| Does hybrid always beat vector? | No. Evaluate per query class. Exact terms and paraphrases create different strengths; fusion can also dilute a strong branch. |
+| Why RRF instead of adding scores? | Ranks avoid assuming lexical and cosine scores share a scale. RRF loses score-gap information; evaluate weighted/reranked alternatives only against a baseline. |
+| Why not require text matches in every result? | That is valid when terms are mandatory. Slide 21 shows that candidate-set change. It can exclude useful paraphrases when words are only hints. |
+| Are the 3D graph's edges real? | Embeddings and distances are real. Topology/layout/traversal belong to the teaching implementation; pgvector's index is not instrumented. |
+| Why doesn't the coffee query use HNSW? | Check EXPLAIN. A table scan may be cheaper on 16 rows. The separate fixture demonstrates a real HNSW scan. |
+| Does a WHERE clause pre-filter HNSW? | Not necessarily. pgvector can scan approximate neighbors before executor filtering. Measure recall and returned count; consider iterative scans and selective exact search. |
+| Can the two branches run in parallel? | They are logically independent, but the CTE syntax makes no concurrency promise. Inspect the plan. Separate application requests also require snapshot-consistency choices. |
+| Is it multilingual? | The SQL pattern is reusable, but this demo uses English FTS and a particular embedding model. Evaluate language support; don't generalize from this corpus. |
+| How large can this go? | This repo does not establish a row-count limit. Measure representative dimensions, selectivity, recall, memory, update rates and concurrency before choosing a scale strategy. |
+| Is the response guaranteed correct? | No. Canonical cards constrain product facts, but generated prose can still be wrong. A data-coverage heuristic is not a probability of truth. |
+| Does an approved order execute? | No. The demo stops at pending approvals; there is no payment or fulfillment worker. |
+| Does a crash resume automatically? | No. Messages/checkpoints are persisted; automatic replay and side-effect idempotency need a recovery design. |
+| Why no framework? | The repo uses Strands for model calls. Python controls the database steps. The retrieval contract is independent of that choice. |
+
+## Pace and failure fallbacks
+
+- **At 15 minutes:** start slide 14's core demo. If behind, inspect one coffee
+  and one trace; keep Yuki's eligibility lesson and the approval boundary.
+- **Model failure:** finish Lab; explain Concierge using slides 23–25. Never
+  present an incomplete stream as proof of continuity or an approval.
+- **Graph/API failure:** use slides 16–17. Label the screenshot as a captured
+  illustration; do not claim a current index trace.
+- **Database unavailable:** use the SQL and arithmetic slides. They explain the
+  design but do not establish a successful live run.
+- **At 32 minutes:** move to slide 21. Do not start fixture preparation or a
+  price change. The experiment can be discussed from slide 20.
+- **At 42 minutes:** finish at slide 28. Appendix is for questions.

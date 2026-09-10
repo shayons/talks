@@ -14,6 +14,7 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 node_modules/
+.local/
 .impeccable/
 *.log
 .DS_Store

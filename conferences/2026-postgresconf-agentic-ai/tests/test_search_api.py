@@ -18,6 +18,8 @@ class SearchApiTests(unittest.TestCase):
             {"query": "coffee", "candidates": 0},
             {"query": "coffee", "candidates": 101},
             {"query": "coffee", "rrf_k": 0},
+            {"query": "coffee", "min_cosine": 1.1},
+            {"query": "coffee", "min_cosine": -1.1},
             {"query": "coffee", "roasts": ["burnt"]},
             {"query": "coffee", "origins": [""]},
             {"query": "coffee", "origins": ["a" * 101]},
@@ -34,6 +36,11 @@ class SearchApiTests(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(search.call_args.kwargs['budget'], 0)
             self.assertEqual(search.call_args.kwargs['query'], 'coffee')
+
+    def test_optional_cosine_threshold_reaches_shared_search(self):
+        with patch('app.compare_search', return_value={"results": []}) as search:
+            self.assertEqual(self.client.post('/api/search', json={"query": "coffee", "min_cosine": 0}).status_code, 200)
+            self.assertEqual(search.call_args.kwargs['min_cosine'], 0)
 
     def test_internal_error_details_are_not_returned(self):
         with patch('app.compare_search', side_effect=RuntimeError('private database connection detail')):

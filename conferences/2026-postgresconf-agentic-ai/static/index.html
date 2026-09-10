@@ -795,20 +795,143 @@
         }
       }
     </style>
+    <link rel="stylesheet" href="/static/lab.css?v=20260910.2" />
+    <link rel="stylesheet" href="/static/hnsw.css?v=20260910.2" />
   </head>
   <body>
+    <!-- The supplied Coffee & queries design governs this extension: cream paper,
+         brown controls, serif headings, three regulars, shared filters, and three
+         ranking columns. Lab, Catalog, Experiments, and Concierge share one shell.
+         All ranking evidence and catalog facts come from PostgreSQL. -->
+    <a class="skip-link" href="#main-content">Skip to content</a>
     <div class="app">
       <header class="top">
         <div class="brand">
-          <h1>Coffee & queries</h1>
-          <p>Hybrid search in PostgreSQL — vector, full-text, and reciprocal-rank fusion.</p>
+          <a href="/" data-route>Coffee & queries</a>
+          <p>PostgreSQL Search Lab</p>
         </div>
         <div class="brand-meta">
           <b>Postgres Summit US 2026 · NYC</b>
           Sep 30 · 10:30–11:20 EDT · Letterpress
         </div>
+        <nav class="main-nav" aria-label="Main navigation">
+          <a href="/" data-route>Lab</a>
+          <a href="/catalog" data-route>Catalog</a>
+          <a href="/experiments" data-route>Experiments</a>
+          <a href="/concierge" data-route>Concierge</a>
+        </nav>
       </header>
 
+      <main id="main-content" tabindex="-1">
+      <section id="view-lab" class="lab-page" hidden>
+        <div class="page-heading heading-row">
+          <h1>Three regulars, three lessons.</h1>
+          <button class="quiet-button" id="write-own" type="button">Write your own</button>
+        </div>
+        <div id="lab-regulars" class="lab-regulars" aria-label="Example requests"></div>
+        <p class="fine-print">Meet a regular, then compare their request. Fictional scenarios · illustrative portraits and packaging.</p>
+        <form id="search-form" class="paper search-controls" aria-label="Search and filters">
+          <label for="lab-query">Request</label>
+          <div class="query-row">
+            <input id="lab-query" placeholder="bergamot, dessert, an origin…" value="bergamot" maxlength="500" required autocomplete="off" />
+            <button class="action" type="submit" id="run-search">Search</button>
+          </div>
+          <div class="filter-grid">
+            <div>
+              <label for="lab-budget">Budget <output id="budget-value" for="lab-budget">$20.00</output></label>
+              <input type="range" id="lab-budget" min="0" max="50" step="0.5" value="20" />
+              <button class="text-button" type="button" id="clear-budget">Clear budget</button>
+            </div>
+            <label>Roast<select id="lab-roast"><option value="">Any roast</option><option>light</option><option>medium-light</option><option>medium</option><option>medium-dark</option><option>dark</option></select></label>
+            <label>Origin<select id="lab-origin"><option value="">Any origin</option><option>Japan</option></select></label>
+            <label class="check-field"><input type="checkbox" id="lab-stock" checked /> In stock only</label>
+          </div>
+          <details class="retrieval-settings">
+            <summary>Retrieval settings</summary>
+            <div class="filter-grid">
+              <label>Candidate depth<input type="number" id="lab-candidates" min="1" max="100" value="8" required /></label>
+              <label>RRF k<input type="number" id="lab-rrf" min="1" max="200" value="60" required /></label>
+              <label>Minimum cosine<input type="number" id="lab-cosine" min="-1" max="1" step="0.01" placeholder="No threshold" /></label>
+              <label class="check-field"><input type="checkbox" id="lab-fuzzy" /> pg_trgm name matching</label>
+            </div>
+            <p class="fine-print">Shared filters run before candidate limits. Each branch contributes 1 / (k + rank) to RRF. An optional cosine threshold removes weak vector candidates before fusion.</p>
+          </details>
+        </form>
+        <div id="search-status" class="status-line" role="status">Connecting to PostgreSQL…</div>
+        <div class="method-switch button-group" aria-label="Ranking to display">
+          <button type="button" data-method="keyword" aria-pressed="false">Keyword</button>
+          <button type="button" data-method="vector" aria-pressed="false">Vector</button>
+          <button type="button" data-method="hybrid" aria-pressed="true">Hybrid</button>
+        </div>
+        <div id="search-results" class="ranking-grid" data-mobile-method="hybrid" aria-label="Search comparison"></div>
+        <section class="paper inspector" id="inspector" aria-labelledby="inspector-heading">
+          <div class="heading-row">
+            <h2 id="inspector-heading">Inside the ranking</h2>
+            <div class="button-group" aria-label="Ranking evidence">
+              <button type="button" data-inspector="explain" aria-pressed="true">Why this coffee</button>
+              <button type="button" data-inspector="sql" aria-pressed="false">SQL</button>
+              <button type="button" data-inspector="plan" aria-pressed="false">EXPLAIN</button>
+              <button type="button" data-inspector="export" aria-pressed="false">Export</button>
+            </div>
+          </div>
+          <div id="inspector-content" aria-live="polite"><p>Select a coffee to inspect its eligibility and rank contributions.</p></div>
+        </section>
+      </section>
+
+      <section id="view-catalog" class="lab-page" hidden>
+        <div class="page-heading">
+          <h1>Small enough to inspect.</h1>
+          <p>Every ranking starts with this catalog. Choose a coffee to inspect its weighted text document and embedding.</p>
+        </div>
+        <div class="heading-row catalog-toolbar">
+          <span id="catalog-status" role="status">Loading the catalog…</span>
+          <button class="quiet-button" type="button" id="catalog-refresh">Refresh catalog</button>
+        </div>
+        <div class="catalog-layout">
+          <div id="catalog-list" class="catalog-list" aria-label="Coffee catalog"></div>
+          <section id="catalog-detail" class="paper catalog-detail" aria-label="Selected coffee" aria-live="polite"><p>Select a coffee to see its details.</p></section>
+        </div>
+        <section id="catalog-hnsw" class="paper" aria-label="HNSW query walkthrough"></section>
+      </section>
+
+      <section id="view-experiments" class="lab-page" hidden>
+        <div class="page-heading">
+          <h1>Three ways to test the lesson.</h1>
+          <p>Judge the rankings, change a price, and compare exact search with HNSW. Each exercise makes a different tradeoff visible.</p>
+        </div>
+        <section class="paper experiment" aria-labelledby="blind-heading">
+          <div class="heading-row"><h2 id="blind-heading">Blind judging</h2><button class="quiet-button" id="blind-refresh" type="button">New round</button></div>
+          <p>Method labels are hidden. Pick the list you would serve for each regular, then reveal the methods. Your choices stay on this page.</p>
+          <div id="blind-status" role="status"></div>
+          <div id="blind-rounds"></div>
+          <div class="heading-row"><button class="action" id="blind-reveal" type="button" disabled>Reveal methods</button><p id="blind-summary" class="fine-print" aria-live="polite"></p></div>
+        </section>
+        <p id="stage-status" class="status-line" role="status">Checking presenter controls…</p>
+        <section class="paper experiment" aria-labelledby="price-heading">
+          <h2 id="price-heading">Same coffee. New price.</h2>
+          <p>Raise Ethiopia Yirgacheffe from $19 to $24, then rerun Leo’s $20 request. Its flavor stays the same; its eligibility changes. Restore returns the original price.</p>
+          <p class="fine-print">This changes the shared PostgreSQL catalog, including the Lab and Concierge.</p>
+          <div class="experiment-controls"><strong id="price-current"></strong><button class="action" id="price-raise" type="button" disabled>Raise to $24</button><button class="quiet-button" id="price-restore" type="button" disabled>Restore $19 price</button></div>
+          <div id="price-status" role="status"></div>
+          <div id="price-results" class="two-columns"></div>
+        </section>
+        <section class="paper experiment" aria-labelledby="index-heading">
+          <h2 id="index-heading">Exact vs. approximate</h2>
+          <p>A separate fixture holds 12,000 synthetic vectors with 384 dimensions. Compare PostgreSQL’s exact neighbors with a real pgvector HNSW index.</p>
+          <div id="fixture-status" class="fine-print" role="status"></div>
+          <div class="filter-grid">
+            <label>HNSW ef_search<input id="index-ef" type="number" min="20" max="400" value="40" required /></label>
+            <label class="check-field"><input id="index-filter" type="checkbox" checked /> Filter to one category</label>
+            <label class="check-field"><input id="index-iterative" type="checkbox" /> Iterative scan</label>
+          </div>
+          <div class="experiment-controls"><button class="quiet-button" id="index-prepare" type="button" disabled>Prepare fixture</button><button class="action" id="index-compare" type="button" disabled>Compare indexes</button></div>
+          <div id="index-status" role="status"></div>
+          <div id="index-results"></div>
+        </section>
+      </section>
+
+      <section id="view-concierge" hidden>
+      <h1 class="sr-only">Coffee concierge</h1>
       <div class="regulars" id="regulars"></div>
 
       <div class="shell">
@@ -862,18 +985,20 @@
 
         <aside class="side">
           <div class="side-head">
-            <div class="side-title" id="sideTitleText">System architecture</div>
-            <div class="side-sub" id="sideSubText">Multi-agent orchestration on Postgres</div>
+            <div class="side-title" id="sideTitleText">The demo, in two turns</div>
+            <div class="side-sub" id="sideSubText">A question, a follow-up, and the evidence.</div>
           </div>
           <div class="side-tabs">
-            <button class="side-tab on" data-tab="arch">Architecture</button>
-            <button class="side-tab" data-tab="tele">
+            <button class="side-tab on" data-tab="guide" aria-pressed="true">Demo guide</button>
+            <button class="side-tab" data-tab="arch" aria-pressed="false">Architecture</button>
+            <button class="side-tab" data-tab="tele" aria-pressed="false">
               Agent telemetry
               <span class="count" id="teleCount">0</span>
             </button>
           </div>
           <div class="side-body">
-            <div id="archView">
+            <div id="guideView"></div>
+            <div id="archView" style="display: none">
               <div class="arch-brand">PostgreSQL + pgvector · one system, every role</div>
               <div class="agents">
                 <div class="agent-card primary">
@@ -980,6 +1105,8 @@
         </aside>
       </div>
 
+      </section>
+      </main>
       <footer class="footer">
         <span>vector · full-text · RRF — one PostgreSQL catalog</span>
         <span>Postgres Summit US 2026 · New York City · Sep 30</span>
@@ -988,6 +1115,6 @@
 
     <div class="cite-pop" id="citePop"></div>
 
-    <script type="module" src="/static/app.js"></script>
+    <script type="module" src="/static/site.js?v=20260910.4"></script>
   </body>
 </html>

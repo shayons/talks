@@ -68,7 +68,7 @@ def database_url() -> str:
         return _aurora_dsn()
     return os.getenv(
         "DATABASE_URL",
-        "postgresql://coffee:coffee@localhost:5432/coffee",
+        "postgresql://coffee:coffee@127.0.0.1:5433/coffee",
     )
 
 # fastembed uses BAAI/bge-small-en-v1.5 by default — 384-dim, ONNX, ~130MB.

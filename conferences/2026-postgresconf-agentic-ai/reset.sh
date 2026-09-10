@@ -90,7 +90,7 @@ else
   }
   PGPASSWORD="${PGPASSWORD:-coffee}" \
     psql -h "${PGHOST:-127.0.0.1}" \
-         -p "${PGPORT:-5432}" \
+         -p "${PGPORT:-5433}" \
          -U "${PGUSER:-coffee}" \
          -d "${PGDATABASE:-coffee}" \
          -v ON_ERROR_STOP=1 \

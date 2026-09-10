@@ -34,6 +34,7 @@ from agents import (
 )
 from db import close_pool, conn
 from search import compare_search, search_status
+from catalog import read_catalog, embedding_snapshot
 from llm import RunCancelled, chat_configuration, resolve_route
 from experiments import (ExperimentConflict, price_status, change_price,
                          fixture_status, prepare_fixture, compare_indexes)
@@ -57,8 +58,50 @@ app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 
 @app.get("/", include_in_schema=False)
+@app.get("/catalog", include_in_schema=False)
+@app.get("/experiments", include_in_schema=False)
+@app.get("/concierge", include_in_schema=False)
 def index() -> FileResponse:
     return FileResponse(STATIC / "index.html")
+
+
+@app.get('/api/catalog')
+def api_catalog():
+    try:
+        return read_catalog()
+    except Exception as exc:
+        logger.exception('catalog read failed')
+        raise HTTPException(status_code=503, detail='The catalog is unavailable. Retry when PostgreSQL is ready.') from exc
+
+
+@app.get('/api/catalog/{bean_id}')
+def api_catalog_detail(bean_id: str):
+    if len(bean_id) > 64:
+        raise HTTPException(status_code=404, detail='Coffee not found.')
+    try:
+        product = read_catalog(bean_id)
+    except Exception as exc:
+        logger.exception('catalog detail failed')
+        raise HTTPException(status_code=503, detail='This coffee could not be loaded. Please retry.') from exc
+    if product is None:
+        raise HTTPException(status_code=404, detail='Coffee not found.')
+    return product
+
+
+class WalkthroughIn(BaseModel):
+    query: str = Field(min_length=1, max_length=500)
+
+
+@app.post('/api/search/walkthrough')
+def api_walkthrough(body: WalkthroughIn):
+    query = body.query.strip()
+    if not query:
+        raise HTTPException(status_code=400, detail='Enter a query to trace.')
+    try:
+        return embedding_snapshot(query)
+    except Exception as exc:
+        logger.exception('embedding walkthrough failed')
+        raise HTTPException(status_code=503, detail='The walkthrough is unavailable. Check PostgreSQL and the local embedding model, then retry.') from exc
 
 
 @app.get("/api/health")
@@ -217,6 +260,7 @@ class SearchIn(BaseModel):
     fuzzy: bool = False
     candidates: int = Field(default=12, ge=1, le=100)
     rrf_k: int = Field(default=60, ge=1, le=200)
+    min_cosine: float | None = Field(default=None, ge=-1, le=1)
     explain: bool = False
 
 

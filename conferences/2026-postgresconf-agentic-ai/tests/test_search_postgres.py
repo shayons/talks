@@ -53,6 +53,15 @@ class PostgresSearchTests(unittest.TestCase):
     def test_zero_budget_is_not_ignored(self):
         self.assertEqual(self.search(budget=0), [])
 
+    def test_cosine_threshold_removes_only_vector_contribution(self):
+        row, = self.search(budget=2000, min_cosine=0.99)
+        self.assertEqual(row['id'], 'affordable')
+        self.assertIsNone(row['semantic_rank'])
+        self.assertEqual(row['lexical_rank'], 1)
+        self.assertAlmostEqual(row['hybrid_score'], 1 / 61)
+        self.assertEqual(self.search('no-word-match', budget=2000, min_cosine=0.99), [])
+        self.assertEqual(self.search('no-word-match', budget=2000, min_cosine=0.9)[0]['semantic_rank'], 1)
+
     def test_word_match_exclusions_are_disjoint_from_eligible_results(self):
         params = search_params(self.vector, 'bergamot', budget=2000)
         rows = self.connection.execute(EXCLUDED_SQL, params).fetchall()
@@ -156,3 +165,21 @@ class PostgresSearchTests(unittest.TestCase):
         response = next(event for event in context.events if event['type'] == 'response')
         self.assertEqual(response['products'], [])
         self.assertEqual(response['citations'], [])
+
+    def test_order_card_matches_the_single_bean_queued_for_approval(self):
+        picks = self.search(candidates=30)
+        self.assertGreater(len(picks), 1)
+        context = agents.AgentContext('test-session', 'test-customer', 'order that')
+        coordinator = agents.CoordinatorAgent()
+        with patch.object(agents, 'conn', self.temporary_connection), patch.object(
+            coordinator, '_synthesize', return_value='Pending approval.'
+        ) as synthesize, patch.object(agents, 'request_approval', return_value=42) as approve:
+            coordinator._respond(context, {
+                'wants_order': True, 'order_referent_bean_id': 'affordable',
+            }, [], picks)
+        response = next(event for event in context.events if event['type'] == 'response')
+        self.assertEqual([product['id'] for product in response['products']], ['affordable'])
+        self.assertEqual([cite['key'] for cite in response['citations']], ['beans.affordable'])
+        self.assertEqual(approve.call_args.kwargs['args']['bean_id'], 'affordable')
+        self.assertEqual(approve.call_args.kwargs['args']['qty'], 1)
+        self.assertEqual([product['id'] for product in synthesize.call_args.args[3]], ['affordable'])

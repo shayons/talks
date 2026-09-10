@@ -3,12 +3,14 @@
 Start the app, then run: python tests/browser_coffee.py [http://127.0.0.1:8018]
 """
 import json
+import os
 from pathlib import Path
 import sys
+import tempfile
 from playwright.sync_api import sync_playwright, expect
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else 'http://127.0.0.1:8018'
-OUTPUT = Path('.impeccable/review/coffee-integration')
+OUTPUT = Path(os.environ.get('COFFEE_BROWSER_OUTPUT', tempfile.gettempdir())) / 'coffee-integration'
 OUTPUT.mkdir(parents=True, exist_ok=True)
 SID = '11111111-1111-4111-8111-111111111111'
 CUSTOMERS = [
@@ -69,7 +71,7 @@ def configure(page, startup_failure=False):
                       content_type='application/json', body=json.dumps(CUSTOMERS))
     page.route('**/api/customers', customers)
     page.route('**/api/chat/config', lambda route: route.fulfill(json=CONFIG))
-    page.goto(BASE)
+    page.goto(BASE + '/concierge')
     return errors
 
 
@@ -83,11 +85,45 @@ def finish(page, products=PRODUCTS):
 
 with sync_playwright() as p:
     browser = p.chromium.launch()
-    for width, height in [(1440, 1000), (390, 844)]:
+    for width, height in [(1440, 1000), (390, 844), (320, 740)]:
         page = browser.new_page(viewport={'width': width, 'height': height}, reduced_motion='reduce')
         errors = configure(page)
         expect(page.locator('#send')).to_be_enabled()
         expect(page.locator('.regular .name').first).to_have_text('Leo')
+        expect(page.locator('#guideView')).to_contain_text('A short demo with Leo')
+        expect(page.get_by_role('button', name='Lighter and more floral', exact=True)).to_be_disabled()
+        # A profile is a preview: dismissing it preserves the draft and customer.
+        page.locator('#q').fill('Keep this draft')
+        page.locator('[data-customer="u_yuki"]').click()
+        expect(page.get_by_role('dialog')).to_be_visible()
+        expect(page.locator('#persona-name')).to_have_text('Yuki')
+        expect(page.locator('#persona-personality')).to_contain_text('provenance')
+        expect(page.locator('#persona-name')).to_be_focused()
+        assert page.locator('#persona-brief').evaluate('(dialog) => dialog.scrollTop') == 0
+        assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+        page.screenshot(path=str(OUTPUT / f'persona-{width}.png'))
+        page.keyboard.press('Tab')
+        expect(page.get_by_role('button', name='Close', exact=True)).to_be_focused()
+        page.keyboard.press('Tab')
+        expect(page.get_by_role('button', name='Use this request', exact=True)).to_be_focused()
+        page.keyboard.press('Tab')
+        expect(page.get_by_role('button', name='Close', exact=True)).to_be_focused()
+        page.keyboard.press('1')
+        expect(page.locator('#persona-name')).to_have_text('Yuki')
+        expect(page.locator('#customer')).to_have_value('u_marco')
+        page.keyboard.press('Escape')
+        expect(page.get_by_role('dialog')).not_to_be_visible()
+        expect(page.locator('[data-customer="u_yuki"]')).to_be_focused()
+        expect(page.locator('#q')).to_have_value('Keep this draft')
+        # The explicit CTA prepares a request, without calling a model.
+        page.locator('[data-customer="u_ana"]').click()
+        page.get_by_role('button', name='Use this request', exact=True).click()
+        expect(page.locator('#customer')).to_have_value('u_ana')
+        expect(page.locator('#q')).to_have_value('Cold brew options')
+        expect(page.get_by_role('button', name='Order that', exact=True)).to_be_disabled()
+        assert page.evaluate('window.requests.length') == 0
+        page.locator('[data-customer="u_marco"]').click()
+        page.get_by_role('button', name='Use this request', exact=True).click()
         page.select_option('#modelRoute', 'bedrock-claude')
         page.fill('#q', 'Show me floral coffee')
         page.click('#send')
@@ -97,11 +133,12 @@ with sync_playwright() as p:
             for control in page.locator(selector).all():
                 expect(control).to_be_disabled()
         assert page.evaluate('window.requests[0].model_route') == 'bedrock-claude'
-        page.locator('h1').click()
+        page.locator('.chat-head .lbl').click()
         page.keyboard.press('2')
         assert page.locator('#customer').input_value() == 'u_marco'
         assert page.evaluate('window.injected') is None
         finish(page)
+        expect(page.get_by_role('button', name='Lighter and more floral', exact=True)).to_be_enabled()
         expect(page.locator('.product')).to_have_count(3)
         expect(page.locator('.product').first).to_contain_text('$19.00')
         expect(page.locator('.product').first).to_contain_text('42 in stock')
@@ -112,6 +149,13 @@ with sync_playwright() as p:
             page.wait_for_function('(img) => img.complete && img.naturalWidth > 0', arg=img.element_handle())
         assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
         assert page.evaluate('window.injected') is None
+        # Reopening the selected person must preserve a completed conversation.
+        page.locator('#q').fill('Keep my follow-up')
+        page.locator('[data-customer="u_marco"]').click()
+        page.get_by_role('button', name='Close', exact=True).click()
+        expect(page.locator('.product')).to_have_count(3)
+        expect(page.locator('#sid')).to_have_text(SID[:8])
+        expect(page.locator('#q')).to_have_value('Keep my follow-up')
         page.locator('#chat').evaluate('(node) => { node.scrollTop = node.querySelector(".msg.agent:last-child").offsetTop - node.offsetTop; }')
         page.mouse.move(0, 0)
         page.evaluate('window.scrollTo(0, 0)')
@@ -137,6 +181,26 @@ with sync_playwright() as p:
         assert not errors, errors
         page.close()
         print(f'{width}px: streaming, customer lock, route, catalog images, XSS, continuity, failure, reset and no-match passed')
+    # Only a completed reply with products enables the referential order prompt.
+    page = browser.new_page()
+    errors = configure(page)
+    expect(page.locator('#send')).to_be_enabled()
+    page.select_option('#customer', 'u_ana')
+    page.get_by_role('button', name='Cold brew options', exact=True).click()
+    expect(page.locator('.msg .body')).to_contain_text('floral coffee')
+    finish(page, products=[])
+    expect(page.get_by_role('button', name='Order that', exact=True)).to_be_disabled()
+    page.get_by_role('button', name='Cold brew options', exact=True).click()
+    expect(page.locator('.msg .body').last).to_contain_text('floral coffee')
+    finish(page)
+    expect(page.get_by_role('button', name='Order that', exact=True)).to_be_enabled()
+    page.get_by_role('button', name='Order that', exact=True).click()
+    expect(page.locator('.msg .body').last).to_contain_text('floral coffee')
+    assert page.evaluate('window.requests.at(-1).session_id') == SID
+    finish(page, products=[])
+    assert not errors, errors
+    page.close()
+    print('Persona preview, draft/session preservation, explicit request handoff and recommendation-gated order passed')
     page = browser.new_page()
     errors = configure(page, startup_failure=True)
     expect(page.locator('#retry')).to_be_visible()

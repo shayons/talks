@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Build the slide deck PDF from deck.md.
-# Requires: Node.js 18+ (for npx). Uses @marp-team/marp-cli on demand.
+# Build paper and black-background PDFs from the same deck.md.
+# Requires: Node.js 18+ and Chrome/Chromium. Uses a pinned Marp CLI.
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -17,12 +17,29 @@ if ! command -v npx >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "→ rendering deck.md → deck.pdf"
-npx --yes @marp-team/marp-cli@latest \
+node build-assets.mjs
+
+echo "→ rendering paper deck → deck.pdf"
+npx --yes @marp-team/marp-cli@4.5.1 \
   --theme theme.css \
+  --html \
   --pdf \
+  --pdf-outlines \
   --allow-local-files \
   deck.md
 
 echo "✓ deck.pdf written"
-ls -lh deck.pdf
+
+echo "→ rendering black deck → deck-dark.pdf"
+npx --yes @marp-team/marp-cli@4.5.1 \
+  --theme-set theme.css \
+  --theme theme-dark.css \
+  --html \
+  --pdf \
+  --pdf-outlines \
+  --allow-local-files \
+  --output deck-dark.pdf \
+  deck.md
+
+echo "✓ deck-dark.pdf written"
+ls -lh deck.pdf deck-dark.pdf

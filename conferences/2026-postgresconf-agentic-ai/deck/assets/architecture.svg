@@ -1,120 +1,47 @@
-<svg viewBox="0 0 1040 540" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Architecture: User request enters via FastAPI, Claude Haiku parses intent, PostgreSQL holds memory and operational state including audit and workflow, the dashed Coordinator column dispatches to Flavor Profiler, Roast Master, and Guardrails, Claude Opus synthesizes a grounded reply returned to the customer.">
-  <defs>
-    <linearGradient id="llmFill" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%"   stop-color="#fffbf4"/>
-      <stop offset="100%" stop-color="#efe6d8"/>
-    </linearGradient>
-    <linearGradient id="pgFill" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%"   stop-color="#fffbf4"/>
-      <stop offset="100%" stop-color="#f3ebe0"/>
-    </linearGradient>
-    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-      <path d="M2 1 L8 5 L2 9" fill="none" stroke="#6b5d52" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </marker>
-    <marker id="arrow-start" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-      <path d="M8 1 L2 5 L8 9" fill="none" stroke="#6b5d52" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </marker>
-  </defs>
-
-  <rect width="1040" height="540" fill="#f6f1e8"/>
-
-  <g>
-    <rect x="230" y="8" width="160" height="36" rx="18" fill="#fffbf4" stroke="#cbb9a4" stroke-width="1"/>
-    <text x="310" y="30" fill="#1c1410" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-weight="600" font-size="14" text-anchor="middle">User request</text>
-  </g>
-  <text x="402" y="30" fill="#6b5d52" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-size="12">via FastAPI</text>
-
-  <line x1="310" y1="44" x2="310" y2="66" stroke="#6b5d52" stroke-width="1.5" marker-end="url(#arrow)"/>
-
-  <g>
-    <rect x="130" y="68" width="360" height="66" rx="12" fill="url(#llmFill)" stroke="#6b3f2a" stroke-width="1.5"/>
-    <text x="150" y="96" fill="#6b3f2a" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-weight="700" font-size="15" letter-spacing="1.6">CLAUDE HAIKU 4.5</text>
-    <text x="150" y="118" fill="#1c1410" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-size="12">intent parse · tool-use · referent resolution</text>
-  </g>
-  <text x="510" y="96" fill="#6b5d52" font-family="IBM Plex Mono, Menlo, Consolas, monospace" font-size="12">reads agent_messages</text>
-  <text x="510" y="116" fill="#6b5d52" font-family="IBM Plex Mono, Menlo, Consolas, monospace" font-size="12">returns structured JSON</text>
-
-  <line x1="310" y1="134" x2="310" y2="158" stroke="#6b5d52" stroke-width="1.5" marker-end="url(#arrow)"/>
-
-  <g>
-    <rect x="130" y="160" width="560" height="242" rx="14" fill="url(#pgFill)" stroke="#3f5c4b" stroke-width="1.6"/>
-    <text x="410" y="194" fill="#3f5c4b" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-weight="700" font-size="18" text-anchor="middle" letter-spacing="6">POSTGRESQL</text>
-
-    <circle cx="158" cy="238" r="3" fill="#6b3f2a"/>
-    <text x="170" y="242" fill="#1c1410" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">memory</text>
-    <text x="170" y="260" fill="#6b5d52" font-family="IBM Plex Mono, Menlo, Consolas, monospace" font-size="10.5">agent_messages</text>
-    <text x="170" y="274" fill="#6b5d52" font-family="IBM Plex Mono, Menlo, Consolas, monospace" font-size="10.5">orders</text>
-
-    <circle cx="318" cy="238" r="3" fill="#6b3f2a"/>
-    <text x="330" y="242" fill="#1c1410" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">tools</text>
-    <text x="330" y="260" fill="#6b5d52" font-family="IBM Plex Mono, Menlo, Consolas, monospace" font-size="10.5">description_emb</text>
-    <text x="330" y="274" fill="#6b5d52" font-family="IBM Plex Mono, Menlo, Consolas, monospace" font-size="10.5">input_schema</text>
-
-    <circle cx="488" cy="238" r="3" fill="#6b3f2a"/>
-    <text x="500" y="242" fill="#1c1410" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">audit</text>
-    <text x="500" y="260" fill="#6b5d52" font-family="IBM Plex Mono, Menlo, Consolas, monospace" font-size="10.5">tool_audit</text>
-    <text x="500" y="274" fill="#6b5d52" font-family="IBM Plex Mono, Menlo, Consolas, monospace" font-size="10.5">every invocation</text>
-
-    <circle cx="158" cy="310" r="3" fill="#3f5c4b"/>
-    <text x="170" y="314" fill="#1c1410" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">workflow state</text>
-    <text x="170" y="332" fill="#6b5d52" font-family="IBM Plex Mono, Menlo, Consolas, monospace" font-size="10.5">agent_sessions</text>
-    <text x="170" y="346" fill="#6b5d52" font-family="IBM Plex Mono, Menlo, Consolas, monospace" font-size="10.5">.workflow_state</text>
-
-    <circle cx="318" cy="310" r="3" fill="#3f5c4b"/>
-    <text x="330" y="314" fill="#1c1410" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">approvals</text>
-    <text x="330" y="332" fill="#6b5d52" font-family="IBM Plex Mono, Menlo, Consolas, monospace" font-size="10.5">pending → approved</text>
-    <text x="330" y="346" fill="#6b5d52" font-family="IBM Plex Mono, Menlo, Consolas, monospace" font-size="10.5">→ executed</text>
-
-    <circle cx="488" cy="310" r="3" fill="#3f5c4b"/>
-    <text x="500" y="314" fill="#1c1410" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-weight="700" font-size="14">pgvector · HNSW</text>
-    <text x="500" y="332" fill="#6b5d52" font-family="IBM Plex Mono, Menlo, Consolas, monospace" font-size="10.5">cosine similarity</text>
-    <text x="500" y="346" fill="#6b5d52" font-family="IBM Plex Mono, Menlo, Consolas, monospace" font-size="10.5">384-dim</text>
-
-    <text x="500" y="366" fill="#6b5d52" font-family="Fraunces, Georgia, serif" font-style="italic" font-size="11">← fact-check + approvals</text>
-    <text x="410" y="388" fill="#6b3f2a" font-family="Fraunces, Georgia, serif" font-style="italic" font-size="14" text-anchor="middle">one schema · one optimizer · one transaction</text>
-  </g>
-
-  <g>
-    <rect x="740" y="160" width="260" height="242" rx="14" fill="#fffbf4" stroke="#6b3f2a" stroke-width="1.5" stroke-dasharray="5 4"/>
-    <text x="870" y="192" fill="#6b3f2a" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-weight="700" font-size="13" text-anchor="middle" letter-spacing="4">AGENTS</text>
-
-    <rect x="760" y="208" width="220" height="44" rx="8" fill="#ead9cf" stroke="#6b3f2a" stroke-width="1"/>
-    <text x="870" y="226" fill="#6b3f2a" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-weight="700" font-size="13" text-anchor="middle">Coordinator</text>
-    <text x="870" y="242" fill="#1c1410" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-size="10.5" text-anchor="middle">orchestrator · router</text>
-
-    <text x="870" y="266" fill="#6b5d52" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-style="italic" font-size="11" text-anchor="middle">dispatches ↓</text>
-
-    <text x="760" y="286" fill="#8a7a6b" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-weight="600" font-size="10" letter-spacing="2">SPECIALISTS</text>
-    <line x1="838" y1="283" x2="980" y2="283" stroke="#cbb9a4" stroke-width="0.5"/>
-
-    <line x1="770" y1="292" x2="770" y2="342" stroke="#6b3f2a" stroke-width="1" opacity="0.55"/>
-
-    <line x1="770" y1="306" x2="788" y2="306" stroke="#6b3f2a" stroke-width="1" opacity="0.55"/>
-    <polygon points="786,302 794,306 786,310" fill="#6b3f2a" opacity="0.8"/>
-    <text x="802" y="303" fill="#1c1410" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-weight="600" font-size="13">Flavor Profiler</text>
-    <text x="802" y="320" fill="#6b5d52" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-size="11">pgvector search</text>
-
-    <line x1="770" y1="340" x2="788" y2="340" stroke="#6b3f2a" stroke-width="1" opacity="0.55"/>
-    <polygon points="786,336 794,340 786,344" fill="#6b3f2a" opacity="0.8"/>
-    <text x="802" y="337" fill="#1c1410" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-weight="600" font-size="13">Roast Master</text>
-    <text x="802" y="354" fill="#6b5d52" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-size="11">filter + inventory</text>
-
-    <line x1="760" y1="372" x2="980" y2="372" stroke="#cbb9a4" stroke-width="0.5" stroke-dasharray="2 3"/>
-    <text x="870" y="390" fill="#6b5d52" font-family="Fraunces, Georgia, serif" font-style="italic" font-size="11.5" text-anchor="middle">guardrails wrap every step</text>
-  </g>
-
-  <line x1="692" y1="281" x2="738" y2="281" stroke="#6b5d52" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow)"/>
-  <text x="715" y="272" fill="#6b5d52" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-style="italic" font-size="11" text-anchor="middle">read + write</text>
-
-  <line x1="310" y1="404" x2="310" y2="428" stroke="#6b5d52" stroke-width="1.5" marker-end="url(#arrow)"/>
-
-  <g>
-    <rect x="130" y="430" width="360" height="66" rx="12" fill="url(#llmFill)" stroke="#6b3f2a" stroke-width="1.5"/>
-    <text x="150" y="458" fill="#6b3f2a" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-weight="700" font-size="15" letter-spacing="1.6">CLAUDE OPUS 4.7</text>
-    <text x="150" y="480" fill="#1c1410" font-family="Source Sans 3, Helvetica, Arial, sans-serif" font-size="12">response synthesis from grounded picks</text>
-  </g>
-  <text x="510" y="458" fill="#6b5d52" font-family="IBM Plex Mono, Menlo, Consolas, monospace" font-size="12">grounded picks only</text>
-  <text x="510" y="478" fill="#6b5d52" font-family="IBM Plex Mono, Menlo, Consolas, monospace" font-size="12">→ customer-facing reply</text>
-
-  <text x="520" y="524" fill="#6b3f2a" font-family="Fraunces, Georgia, serif" font-style="italic" font-size="16" text-anchor="middle">Two Claude models · Three agents · One Postgres</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 470" role="img" aria-labelledby="title desc">
+<title id="title">Coffee and queries: conversation around PostgreSQL retrieval</title>
+<desc id="desc">A request enters FastAPI. Strands provides structured intent and response generation. Python orchestrates PostgreSQL eligibility, lexical and vector candidates, RRF, and canonical fact checks. The database also records session history, audits, checkpoints and pending approvals. Product cards use canonical rows.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#6b5d52" stroke-width="1.5"/></marker></defs>
+<rect width="1120" height="470" fill="#f6f1e8"/>
+<g font-family="Helvetica, Arial, sans-serif" fill="#1c1410">
+<g fill="#fffbf4" stroke="#cbb9a4" stroke-width="1.5">
+<rect x="12" y="155" width="220" height="120" rx="12"/>
+<rect x="12" y="22" width="220" height="100" rx="12"/>
+<rect x="898" y="112" width="210" height="128" rx="12"/>
+<rect x="898" y="288" width="210" height="92" rx="12"/>
+</g>
+<text x="32" y="57" font-size="20" font-weight="700">Request + history</text>
+<text x="32" y="90" font-size="18" fill="#6b5d52">FastAPI · session ID</text>
+<text x="32" y="191" font-size="20" font-weight="700">Structured intent</text>
+<text x="32" y="222" font-size="17" fill="#6b5d52">Strands · model route</text>
+<text x="32" y="250" font-size="18" fill="#6b5d52">Constraints + referent</text>
+<rect x="268" y="22" width="574" height="358" rx="16" fill="#fffbf4" stroke="#3f5c4b" stroke-width="2"/>
+<text x="296" y="60" font-size="19" font-weight="700" letter-spacing="2" fill="#3f5c4b">POSTGRESQL · PYTHON ORCHESTRATION</text>
+<rect x="296" y="82" width="518" height="48" rx="7" fill="#e8eee5"/>
+<text x="555" y="113" text-anchor="middle" font-size="21" font-weight="700">Shared budget · stock · roast · origin filters</text>
+<rect x="296" y="151" width="240" height="77" rx="7" fill="#efe6d8"/>
+<rect x="574" y="151" width="240" height="77" rx="7" fill="#efe6d8"/>
+<text x="416" y="181" text-anchor="middle" font-size="22" font-weight="700">Lexical candidates</text>
+<text x="416" y="210" text-anchor="middle" font-size="18" fill="#6b5d52">tsvector · GIN</text>
+<text x="694" y="181" text-anchor="middle" font-size="22" font-weight="700">Vector candidates</text>
+<text x="694" y="210" text-anchor="middle" font-size="18" fill="#6b5d52">pgvector · cosine distance</text>
+<rect x="296" y="263" width="518" height="87" rx="7" fill="#e8eee5"/>
+<text x="555" y="297" text-anchor="middle" font-size="23" font-weight="700" fill="#3f5c4b">RRF → recheck canonical rows</text>
+<text x="555" y="329" text-anchor="middle" font-size="18" fill="#6b5d52">Verified IDs, names, prices, stock and product facts</text>
+<text x="918" y="147" font-size="20" font-weight="700">Stream reply</text>
+<text x="918" y="180" font-size="17" fill="#6b5d52">Strands · model route</text>
+<text x="918" y="213" font-size="17" fill="#6b5d52">Uses verified picks</text>
+<text x="918" y="324" font-size="22" font-weight="700">Product cards</text>
+<text x="918" y="356" font-size="18" fill="#6b5d52">From structured facts</text>
+<rect x="268" y="404" width="840" height="52" rx="7" fill="#ead9cf"/>
+<text x="290" y="437" font-size="18">Saved history · SQL/model audits · checkpoints · pending approvals</text>
+<text x="14" y="339" font-size="18" fill="#6b5d52">Lab calls retrieval directly.</text>
+<text x="14" y="366" font-size="18" fill="#6b5d52">Chat adds the model steps.</text>
+</g>
+<g fill="none" stroke="#6b5d52" stroke-width="1.7" marker-end="url(#arrow)">
+<path d="M122 122V151"/><path d="M232 212H262"/>
+<path d="M416 228V257"/><path d="M694 228V257"/>
+<path d="M842 178H892"/><path d="M842 333H892"/>
+<path d="M555 380V399"/>
+</g>
 </svg>
