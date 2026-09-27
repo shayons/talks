@@ -1,0 +1,11 @@
+# Downloaded dataset and local configuration
+data/
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+test-results/
+
+# The talk repo's root .gitignore excludes .vscode/; this lab ships its settings.
+!.vscode/

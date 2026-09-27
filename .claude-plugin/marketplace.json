@@ -1,0 +1,13 @@
+{
+  "name": "shayons-talks",
+  "owner": { "name": "Shayon Sanyal", "url": "https://github.com/shayons" },
+  "description": "Runnable companions to Shayon Sanyal's conference talks.",
+  "plugins": [
+    {
+      "name": "postgres-hybrid-search",
+      "source": "./conferences/2026-postgresconf-agentic-ai/hybrid-search-plugin",
+      "description": "Add PostgreSQL hybrid search (tsvector + pgvector, fused with RRF in SQL) to your own table and measure it with NDCG@10.",
+      "version": "2026.9.30"
+    }
+  ]
+}

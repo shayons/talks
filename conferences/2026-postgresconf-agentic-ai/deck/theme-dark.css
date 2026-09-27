@@ -33,8 +33,6 @@ section.thanks h1 {
   color: var(--cq-heading);
 }
 
-.regulars-grid figcaption strong { color: var(--cq-roast); }
-.regulars-grid figure { box-shadow: 0 0 0 1px var(--cq-line); }
 .hljs-keyword, .hljs-built_in, .hljs-type { color: #f7eddb; }
 .hljs-string, .hljs-number { color: #dfd7c4; }
 .hljs-comment { color: #b7ac99; }
@@ -42,8 +40,8 @@ section.thanks h1 {
 .hljs-operator, .hljs-punctuation { color: #d0c4b2; }
 
 /* Native diagrams follow the deck; captured application evidence stays true. */
-section img[src="assets/architecture.svg"] {
-  content: url("assets/architecture-dark.svg");
+section img[src="assets/ndcg.svg"] {
+  content: url("assets/ndcg-dark.svg");
 }
 section img[src="assets/hnsw-layers.svg"] {
   content: url("assets/hnsw-layers-dark.svg");

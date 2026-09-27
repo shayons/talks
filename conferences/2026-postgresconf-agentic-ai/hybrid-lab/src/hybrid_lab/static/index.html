@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hybrid search lab</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script type="module" src="/static/app.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <h1 class="wordmark">Hybrid search lab</h1>
+    <nav class="tabs" aria-label="Views">
+      <button type="button" class="tab" data-view="search" aria-current="page">Search</button>
+      <button type="button" class="tab" data-view="scoreboard">Scoreboard</button>
+    </nav>
+    <p class="versions" id="versions">Connecting to PostgreSQL…</p>
+  </header>
+
+  <main>
+    <section id="view-search" class="view">
+      <form id="ask" class="ask" autocomplete="off">
+        <label for="question-input" class="visually-hidden">Question</label>
+        <input id="question-input" name="question" type="search"
+               placeholder="Pick a FiQA question below, or type your own" list="question-matches">
+        <datalist id="question-matches"></datalist>
+        <button type="submit" class="primary">Search</button>
+      </form>
+
+      <div class="picks" id="demo-questions" aria-label="Stage questions"></div>
+
+      <fieldset class="arms">
+        <legend class="visually-hidden">Arms to compare</legend>
+        <div class="arm-group" id="arms-main"></div>
+        <details class="arm-more">
+          <summary>More arms</summary>
+          <div class="arm-group" id="arms-more"></div>
+        </details>
+      </fieldset>
+
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+
+      <article id="result" class="result" hidden>
+        <header class="question-head">
+          <p class="question-meta" id="question-meta"></p>
+          <h2 class="question" id="question-text"></h2>
+          <div class="answers" id="answers"></div>
+        </header>
+        <div class="columns" id="columns"></div>
+      </article>
+    </section>
+
+    <section id="view-scoreboard" class="view" hidden>
+      <header class="board-head">
+        <h2>How each arm did on 648 questions with known answers</h2>
+        <p>NDCG@10 is 100 when every known answer is at the top of the list and 0 when none
+          is in the top 10. Recall@50 is the share of known answers anywhere in the top 50:
+          the most a reranker could ever surface.</p>
+      </header>
+      <div id="board" class="board"></div>
+      <div class="swings">
+        <div>
+          <h3>Where RRF · BM25 beat vector most</h3>
+          <ol id="swings-gain" class="swing-list"></ol>
+        </div>
+        <div>
+          <h3>Where RRF · BM25 lost to vector most</h3>
+          <ol id="swings-loss" class="swing-list"></ol>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <aside id="drawer" class="drawer" hidden aria-labelledby="drawer-title">
+    <header class="drawer-head">
+      <h2 id="drawer-title"></h2>
+      <button type="button" id="drawer-close" class="quiet">Close</button>
+    </header>
+    <div id="drawer-body" class="drawer-body"></div>
+  </aside>
+</body>
+</html>

@@ -26,6 +26,7 @@ npx --yes @marp-team/marp-cli@4.5.1 \
   --pdf \
   --pdf-outlines \
   --allow-local-files \
+  --no-stdin \
   deck.md
 
 echo "✓ deck.pdf written"
@@ -38,6 +39,7 @@ npx --yes @marp-team/marp-cli@4.5.1 \
   --pdf \
   --pdf-outlines \
   --allow-local-files \
+  --no-stdin \
   --output deck-dark.pdf \
   deck.md
 

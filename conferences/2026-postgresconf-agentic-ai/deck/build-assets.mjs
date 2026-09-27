@@ -17,9 +17,10 @@ const colors = {
   '#9e8f7d': '#d1c0a6',
   '#c87830': '#e0be81',
   '#925422': '#e0be81',
+  '#e2d6c6': '#3a2d24',
 };
 
-for (const name of ['architecture', 'hnsw-layers']) {
+for (const name of ['hnsw-layers', 'ndcg']) {
   const source = new URL(`assets/${name}.svg`, import.meta.url);
   const destination = new URL(`assets/${name}-dark.svg`, import.meta.url);
   const original = await readFile(source, 'utf8');

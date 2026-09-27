@@ -572,3 +572,17 @@ section.demo-slide table { font-size: 22px; }
   margin-top: 22px;
 }
 section.references li { font-size: 24px; margin-bottom: 16px; }
+
+/* ------ Hybrid search lab additions ------ */
+section.demo-slide img {
+  display: block;
+  max-width: 100%;
+  max-height: 440px;
+  margin: 0 auto;
+  border: 1px solid var(--cq-line-strong);
+  border-radius: 8px;
+}
+.evidence-image.qr { background: #fffbf4; padding: 18px; justify-self: center; }
+.evidence-image.qr img { width: 300px; height: 300px; display: block; }
+section.split-evidence h1 { font-size: 40px; border: 0; padding: 0; margin-bottom: 18px; }
+section.diagram-slide img[src="assets/ui-scoreboard.png"] { height: 505px; }

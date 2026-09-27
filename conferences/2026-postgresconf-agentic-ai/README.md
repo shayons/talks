@@ -1,18 +1,35 @@
-# Coffee & queries
+# Hybrid Search in PostgreSQL
 
-[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](requirements.txt)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white)](schema.sql)
-[![pgvector](https://img.shields.io/badge/pgvector-HNSW-3F5C4B)](search.py)
-[![Strands Agents](https://img.shields.io/badge/Strands_Agents-streaming-6B3F2A)](llm.py)
-[![Amazon Bedrock](https://img.shields.io/badge/Amazon_Bedrock-model_access-232F3E)](docs/STREAMING.md)
-
-Conference demo for **[Postgres Summit US 2026](https://2026.postgressummit.us/)** in New York City.
+Conference material for **[Postgres Summit US 2026](https://2026.postgressummit.us/)**, New York City.
 
 **Session:** [Hybrid Search in PostgreSQL: Combining Vector and Full-Text for Real-World Applications](https://postgresql.us/events/postgressummitus2026/schedule/session/2349-hybrid-search-in-postgresql-combining-vector-and-full-text-for-real-world-applications/)
 
-**Speaker:** Shayon Sanyal · **When:** Wednesday, September 30, 2026, 10:30–11:20 EDT
+**Speaker:** Shayon Sanyal · **When:** Wednesday, September 30, 2026, 10:30–11:20 EDT · **Where:** Letterpress, Convene, 555 Broadway
 
-**Where:** Letterpress · Convene, 555 Broadway, New York, NY
+| Start here | What it is |
+| --- | --- |
+| [`hybrid-lab/`](hybrid-lab/) | The live demo: full-text, pgvector, BM25, RRF and rerank in PostgreSQL 18, each graded on 648 FiQA questions with known answers. Numbered SQL files, VS Code cells, and a small UI. |
+| [`hybrid-search-plugin/`](hybrid-search-plugin/) | A downloadable agent skill that adds hybrid search to **your** table and measures it. |
+| [`deck/`](deck/) | Slides ([PDF](deck/deck.pdf), [black PDF](deck/deck-dark.pdf), [Marp source](deck/deck.md)) and [talking points](deck/TALKING_POINTS.md). |
+
+## Take the skill home
+
+In Claude Code:
+
+```text
+/plugin marketplace add shayons/talks
+/plugin install postgres-hybrid-search@shayons-talks
+```
+
+Then ask: "Add hybrid search to my `articles` table and tell me if it helps." Other agents
+that read `SKILL.md` folders can use
+[`hybrid-search-plugin/skills/postgres-hybrid-search/`](hybrid-search-plugin/skills/postgres-hybrid-search/)
+directly.
+
+## Earlier demo: Coffee & queries
+
+The first version of this talk's demo, a 16-coffee catalog with an agentic concierge, remains
+here as a fallback. It is not needed for the lab or the skill.
 
 A coffee search lab that makes PostgreSQL retrieval visible. Compare keyword, vector, and hybrid rankings; inspect the catalog; run conference experiments; and ask the streaming concierge for a recommendation.
 
@@ -20,7 +37,7 @@ The **Coffee & queries** interface pairs warm paper surfaces and regulars' portr
 
 [Product overview](PRODUCT.md) · [Seven-minute demo](docs/DEMO.md) · [Streaming and API contract](docs/STREAMING.md) · [Coffee artwork](static/products/README.md) · [Conference deck](deck/)
 
-## Run locally
+### Run locally
 
 Use Python 3.11+ and PostgreSQL 18 with `vector` and `pg_trgm`. The Lab, Catalog,
 and Experiments use local embeddings and SQL; the Concierge also needs access
@@ -67,7 +84,7 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f migrations/20260907_flavor_search.sql
 
 Do not run `schema.sql` against data you want to keep: it drops and recreates the demo tables. `GET /api/search/status` reports catalog and index readiness.
 
-## Models and streaming
+### Models and streaming
 
 Select a model route in the conversation:
 
@@ -81,7 +98,7 @@ These are the application's configured defaults, not a guarantee of account or r
 
 Strands handles the model calls. Python controls the database steps. The browser receives actual server events and response text as they arrive. A failed stream keeps the partial reply visibly incomplete and restores the question for review.
 
-## Try the demo
+### Try the demo
 
 | Page | What to explore |
 | --- | --- |
@@ -133,7 +150,7 @@ The price experiment changes Ethiopia Yirgacheffe from $19 to $24 in PostgreSQL 
 
 **Prepare fixture** creates a separate `search_lab_experiment` schema with synthetic vectors and a real HNSW index. **Compare indexes** measures exact and approximate neighbors, recall @20, query timings, and execution plans. Recall measures neighbor recovery, not recommendation quality. The experiment reports its scan settings and cache/order limitations.
 
-## How it works
+### How it works
 
 ```mermaid
 flowchart LR
@@ -163,7 +180,7 @@ Hybrid retrieval combines pgvector cosine ranking with PostgreSQL full-text rank
 
 `mcp_server.py` exposes allowlisted, read-only SQL tools over stdio. The browser's Lab, Catalog, and Experiments call the same APIs available to programmatic clients; see [the API contract](docs/STREAMING.md).
 
-## What the demo establishes
+### What the demo establishes
 
 Product-card facts come from canonical rows, independently of generated prose. The backend checks session ownership, validates intent, and rechecks eligibility. The browser restricts generated markup to a small formatting allowlist.
 
@@ -171,7 +188,7 @@ Generated prose can still be wrong or influenced by prompt injection. The data-c
 
 This is a local conference application with no authentication. Keep the default loopback binding. Optional stage experiment controls default to off. `./reset.sh` deliberately deletes sessions, messages, audits, and approvals; use it only to clear a rehearsal.
 
-## Validate
+### Validate
 
 ```bash
 python -m pip install -r requirements-dev.txt
@@ -186,7 +203,7 @@ python tests/browser_hnsw.py http://127.0.0.1:8017
 
 Set `TEST_DATABASE_URL` to run SQL regressions in temporary tables and read-only catalog checks. Tests that modify experiment fixtures require the separate `EXPERIMENT_TEST_DATABASE_URL` opt-in. Chat browser checks use controlled streams. Lab browser checks use the real seeded 16-coffee catalog, search, and EXPLAIN, while intercepting stage mutations. Neither browser suite calls a chat model or changes database rows.
 
-## Source map
+### Source map
 
 | File | Responsibility |
 | --- | --- |

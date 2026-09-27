@@ -1,107 +1,116 @@
-# SQL patterns behind the slides
+# SQL patterns from the talk
 
-These are read-only retrieval examples. The current application's complete RRF
-query is [`SEARCH_SQL` in search.py](../search.py); the Lab exposes that same
-statement and can run `EXPLAIN (ANALYZE, BUFFERS)` against it. Slide excerpts
-omit optional filters to keep the SQL readable.
+Copyable versions of the patterns on the slides. Every one runs, as written, in
+[`hybrid-lab/sql/`](../hybrid-lab/sql/) against the FiQA table
+`docs (id text, body text, tsv tsvector, embedding vector(1536))`. Here `$1` is the question
+text and `$2` its embedding (input type `search_query`).
 
-## RRF and candidate selection · slides 8–13
-
-The application:
-
-1. Applies budget, roast, origin and stock eligibility in **both** branches.
-2. Limits candidates independently; semantic ordering uses ascending cosine
-   distance, lexical ordering uses text rank and optional trigram name matches.
-3. Assigns branch ranks with `row_number()` and an ID tie-break.
-4. Full-outer-joins candidate IDs and sums `1 / (k + rank)`, with zero for an
-   absent branch. Default candidate depth is 12 and default RRF k is 60.
-5. Joins canonical `beans` rows for display facts and orders by RRF score,
-   semantic score and ID.
-
-An optional minimum cosine trims the semantic branch after candidate selection.
-It does not require lexical-only candidates to pass the same threshold. The
-comparison and its diagnostic reads use a repeatable-read snapshot; EXPLAIN
-ANALYZE executes the statement a second time in that transaction.
-
-## Required words plus semantic ranking · slide 21
-
-Use this when the words are mandatory, rather than one signal in an RRF union.
-`websearch_to_tsquery` uses normalized lexemes; quoted phrases have their own
-text-search semantics. This example does not impose a minimum similarity.
-
-Parameters: request embedding, required words, maximum price in cents, result
-limit. The following uses psycopg's named placeholders, equivalent to the
-numbered parameters on the slide.
+## Match any word, not every word
 
 ```sql
-SELECT id, name, embedding <=> %(embedding)s::vector AS distance
-FROM beans
-WHERE search_document @@ websearch_to_tsquery('english', %(required)s)
-  AND embedding IS NOT NULL
-  AND in_stock > 0 AND price_cents <= %(budget)s
-ORDER BY embedding <=> %(embedding)s::vector
-LIMIT %(limit)s;
+-- websearch_to_tsquery / plainto_tsquery require ALL words: bad for questions.
+SELECT id, ts_rank_cd(tsv, q) AS score
+  FROM docs, CAST(replace(plainto_tsquery('english', $1)::text, ' & ', ' | ') AS tsquery) AS q
+ WHERE tsv @@ q
+ ORDER BY score DESC
+ LIMIT 50;
 ```
 
-Inspect the actual plan. A selective text/relational subset followed by exact
-distance sorting can be useful; the SQL does not guarantee that execution
-strategy. An HNSW path can visit rows later rejected by filtering.
+`ts_rank_cd` scores every match before the LIMIT, and has no IDF. On common words that is
+thousands of rows per question.
 
-## Relationship expansion before retrieval · slide 29
-
-This is a small, explicitly illustrative taxonomy supplied as a CTE. It does
-not create or alter application tables. `UNION` deduplicates name-only states.
-A production taxonomy should use canonical IDs and explicit membership and
-access rules. Add budget/roast constraints when the request requires them.
+## BM25 with pg_textsearch
 
 ```sql
-WITH RECURSIVE regions(name, parent) AS (
-  VALUES ('Asia-Pacific', NULL::text),
-         ('Indonesia', 'Asia-Pacific'), ('Sumatra', 'Indonesia')
-), allowed(name) AS (
-  SELECT name FROM regions WHERE name = %(root)s
-  UNION
-  SELECT r.name FROM regions r JOIN allowed a ON r.parent = a.name
+CREATE INDEX docs_body_bm25 ON docs USING bm25 (body) WITH (text_config = 'english');
+
+SELECT id, -neg_score AS bm25
+  FROM (SELECT id, body <@> to_bm25query($1, 'docs_body_bm25') AS neg_score
+          FROM docs
+         ORDER BY neg_score
+         LIMIT 50) hits
+ WHERE neg_score < 0;                     -- 0 means none of the query terms
+```
+
+Needs `shared_preload_libraries = 'pg_textsearch'`.
+
+## Vector candidates that really return 50
+
+```sql
+SET hnsw.ef_search = 100;                 -- default 40 caps an HNSW scan at 40 rows
+SELECT id, embedding <=> $2 AS distance
+  FROM docs
+ WHERE embedding IS NOT NULL
+ ORDER BY embedding <=> $2                -- operator in ORDER BY, ascending
+ LIMIT 50;
+```
+
+## Reciprocal Rank Fusion, weighted
+
+```sql
+WITH keyword AS (
+  SELECT id, row_number() OVER (ORDER BY ts_rank_cd(tsv, q) DESC, id) AS rank
+    FROM docs, CAST(replace(plainto_tsquery('english', $1)::text, ' & ', ' | ') AS tsquery) AS q
+   WHERE tsv @@ q ORDER BY rank LIMIT 50
+),
+semantic AS (
+  SELECT id, row_number() OVER (ORDER BY distance, id) AS rank
+    FROM (SELECT id, embedding <=> $2 AS distance FROM docs
+           WHERE embedding IS NOT NULL ORDER BY distance LIMIT 50) nearest
 )
-SELECT b.id, b.name
-FROM beans b
-WHERE b.in_stock > 0 AND b.embedding IS NOT NULL
-  AND EXISTS (SELECT 1 FROM allowed a
-              WHERE strpos(lower(b.origin), lower(a.name)) > 0)
-ORDER BY b.embedding <=> %(embedding)s::vector
-LIMIT %(limit)s;
+SELECT coalesce(k.id, v.id) AS id,
+       coalesce($3::float8 / (60 + k.rank), 0)  -- $3 keyword weight, e.g. 1.0
+     + coalesce($4::float8 / (60 + v.rank), 0) AS rrf  -- $4 vector weight, e.g. 1.0
+  FROM keyword k FULL OUTER JOIN semantic v USING (id)
+ ORDER BY rrf DESC, id
+ LIMIT 10;
 ```
 
-## Run the extension examples locally
+## Similar AND contains a required word
 
-From the project root with the README's Python environment and database
-configuration in place. This embeds a real request, executes both SELECTs in a
-read-only transaction, and prints their results. The SQL blocks above are the
-authoritative extension examples; this runner extracts them without keeping a
-second copy of the query text.
-
-```python
-import re
-from pathlib import Path
-from pgvector.psycopg import Vector
-from db import conn, embed, close_pool
-
-queries = re.findall(r"```sql\n(.*?)\n```", Path("deck/SQL_PATTERNS.md").read_text(), re.S)
-params = {
-    "embedding": Vector(embed("floral and citrus coffee")),
-    "required": "bergamot", "budget": 2000, "limit": 5,
-    "root": "Asia-Pacific",
-}
-try:
-    with conn() as connection, connection.cursor() as cursor:
-        cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
-        cursor.execute("SET LOCAL statement_timeout = '10s'")
-        for query in queries:
-            cursor.execute(query, params)
-            print(cursor.fetchall())
-finally:
-    close_pool()
+```sql
+SET hnsw.iterative_scan = relaxed_order;  -- pgvector 0.8+: keep walking until LIMIT fills
+WITH nearest AS MATERIALIZED (
+  SELECT id, embedding <=> $2 AS distance
+    FROM docs
+   WHERE tsv @@ websearch_to_tsquery('english', $3)
+   ORDER BY distance
+   LIMIT 10
+)
+SELECT * FROM nearest ORDER BY distance + 0;   -- relaxed order: re-sort the few rows
 ```
 
-Results depend on the current catalog. An empty list can be correct. The
-extension patterns are not separate modes in the Lab UI.
+Check the plan: a rare term may get GIN plus an exact sort instead, which is also correct.
+
+## A function that carries its settings
+
+```sql
+CREATE FUNCTION hybrid_search(query_text text, query_embedding vector(1536),
+                              match_count int DEFAULT 10, required_terms text DEFAULT NULL)
+RETURNS TABLE (doc_id text, score float8, keyword_rank bigint, vector_rank bigint)
+LANGUAGE sql STABLE
+SET hnsw.ef_search = 100
+SET hnsw.iterative_scan = relaxed_order
+SET plan_cache_mode = force_custom_plan   -- lets "required_terms IS NULL OR ..." fold away
+BEGIN ATOMIC
+  ...  -- see hybrid-lab/sql/11_hybrid_function.sql
+END;
+```
+
+Reference parameters directly in `WHERE`. Joining them in through a CTE, or a generic plan,
+keeps the `OR` and disables both indexes (measured: 335 ms instead of 86 ms).
+
+## See the plan inside a function
+
+```sql
+LOAD 'auto_explain';
+SET auto_explain.log_min_duration = 0;
+SET auto_explain.log_nested_statements = on;
+SET auto_explain.log_analyze = on;
+SET auto_explain.log_level = notice;      -- plans arrive in your client as NOTICEs
+SELECT count(*) FROM hybrid_search($1, $2);
+```
+
+## Score it
+
+NDCG@10 and Recall@50 per arm, in SQL: [`10_scoreboard.sql`](../hybrid-lab/sql/10_scoreboard.sql).

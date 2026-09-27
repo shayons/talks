@@ -1,0 +1,8 @@
+{
+  "name": "postgres-hybrid-search",
+  "description": "Add PostgreSQL hybrid search (tsvector + pgvector, fused with RRF in SQL) to your own table and measure it with NDCG@10.",
+  "version": "2026.9.30",
+  "author": { "name": "Shayon Sanyal", "url": "https://github.com/shayons" },
+  "homepage": "https://github.com/shayons/talks/tree/main/conferences/2026-postgresconf-agentic-ai",
+  "license": "MIT"
+}
