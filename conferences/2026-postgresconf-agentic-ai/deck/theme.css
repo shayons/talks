@@ -75,8 +75,10 @@ pre {
 }
 pre code { background: transparent; padding: 0; color: var(--text); font-size: inherit; }
 
-/* SQL: lavender keywords, green strings, cyan numbers; names stay white. */
-.hljs-keyword, .hljs-built_in, .hljs-type { color: #c7a4ff; font-weight: 600; }
+/* SQL: glowing orange keywords, green strings, cyan numbers; names stay white. */
+.hljs-keyword, .hljs-built_in, .hljs-type {
+  color: #ffa928; font-weight: 600; text-shadow: 0 0 10px rgba(255, 159, 10, 0.55);
+}
 .hljs-string { color: #30d158; }
 .hljs-number { color: #64d2ff; }
 .hljs-comment { color: #7f8c98; font-style: normal; }
