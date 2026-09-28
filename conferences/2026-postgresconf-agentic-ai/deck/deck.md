@@ -687,19 +687,31 @@ was measured with 8 concurrent calls from a laptop. Models improve; measure the 
 
 ---
 
-## Storage: the same vectors, smaller · FiQA
+## Storage: fewer bits or fewer dimensions? · FiQA
 
 | Index on `embedding` | Bytes per vector | HNSW size | NDCG@10 | p50 ms |
 | --- | ---: | ---: | ---: | ---: |
 | `vector(1536)` | 6,148 | 450 MB | 53.9 | 3.5 |
 | `halfvec(1536)` expression index | 3,080 | 225 MB | 53.7 | 3.4 |
 | `binary_quantize()` + rescore 200 | 200 | 28 MB | 54.1 | 3.3 |
+| first 1024 dims, `subvector()` | 4,104 | **450 MB** | 53.4 | 2.9 |
+| first 512 dims | 2,056 | 150 MB | 51.8 ↓ | 2.2 |
+| first 256 dims | 1,032 | 75 MB | 49.3 ↓ | 1.7 |
 
-Half the index for the same NDCG within noise; 1/16 with binary plus a rescore. The table keeps full-precision vectors; only the index shrinks.
+**Quantize before you truncate.** Fewer bits kept NDCG within noise; 512 and 256 dims lost 1.6 to 5.5 points on every dataset. And 1024 dims saves no index space: an 8 KB page still holds one vector.
 
 <!--
-12a and 12b. Binary quantization keeps the sign of each dimension; the query takes 200 Hamming
-candidates and re-orders them by exact cosine distance on the full vectors.
+12a-12e; results/dimensions.md has all four datasets with paired intervals. Embed v4's
+output_dimension returns a prefix of the 1536 vector (Matryoshka-style; checked against the API:
+cosine 1.0000 between the 256/512/1024 outputs and the first N numbers), so one stored column
+serves every size through expression indexes on subvector(), with no re-embedding. Page math:
+an HNSW entry is the vector plus its neighbor list. 1536 floats is about 6.3 KB and 1024 about
+4.3 KB, so either way one fits per 8 KB page: same 450 MB. 512 fits three, 256 six; halfvec(1536)
+fits two. Changes vs 1536 (NDCG@10): 1024 -0.3 to -1.2; 512 -1.6 to -2.7; 256 -4.1 to -5.5,
+all significant except 1024 on FiQA and NFCorpus. halfvec -0.2 and binary +0.2 on FiQA are noise.
+Embed v4 at 256 dims still beats bge-small (384) by 11 points on FiQA; they tie on SciFact and
+NFCorpus. Binary quantization keeps the sign of each dimension; the query takes 200 Hamming
+candidates and re-orders them by exact cosine on the full vectors.
 -->
 
 ---

@@ -47,6 +47,22 @@ SELECT id, embedding <=> $2 AS distance
  LIMIT 50;
 ```
 
+## Search fewer dimensions without re-embedding
+
+```sql
+-- Embed v4's output_dimension = 512 returns the first 512 numbers of its 1536 vector.
+CREATE INDEX ON docs USING hnsw ((subvector(embedding, 1, 512)::vector(512)) vector_cosine_ops);
+
+SELECT id
+  FROM docs
+ ORDER BY subvector(embedding, 1, 512)::vector(512) <=> subvector($2, 1, 512)::vector(512)
+ LIMIT 50;
+```
+
+Check your model first: this only works when shorter outputs are prefixes (Embed v4's are).
+HNSW size moves in 8 KB page steps: 1024 floats still fit one entry per page, so they save no
+index space over 1536.
+
 ## Reciprocal Rank Fusion, weighted
 
 ```sql

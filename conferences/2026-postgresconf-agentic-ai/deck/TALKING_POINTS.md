@@ -41,7 +41,9 @@ Sources: `hybrid-lab/results/summary.md` and `results/scoreboard-*.md`.
 | Tuned blend with Embed v4 | +0.8 NFCorpus (significant); FiQA 0.0 (tuning chose pure vector); SciFact +0.2 (not); SCIDOCS −0.8 (untuned, 0.5) | High |
 | Rerank 3.5 never beat Embed v4 alone significantly | vector top 50: −4.1 FiQA, −1.9 NFCorpus (significant); best anywhere +0.4 (SciFact, not significant) | High |
 | BM25 in PostgreSQL matches the published baseline | FiQA 23.6 = BEIR's 0.236 | High |
-| Smaller index, same quality | FiQA: `halfvec` 225 MB, 53.7; binary + rescore 28 MB, 54.1; full 450 MB, 53.9 | High for FiQA |
+| Smaller index, same quality | FiQA: `halfvec` 225 MB, 53.7; binary + rescore 28 MB, 54.1; full 450 MB, 53.9 (both within noise) | High for FiQA |
+| Fewer dimensions cost quality | Embed v4 at 512 dims: −1.6 to −2.7; at 256: −4.1 to −5.5 (all four datasets, significant). 1024: −0.3 to −1.2 | High |
+| 1024 dims saves no HNSW space | 450 MB at both 1536 and 1024 (one entry per 8 KB page); 512 → 150 MB, 256 → 75 MB | High |
 | RRF's k matters little | k = 5 to 200 moves NDCG@10 by at most 4.3 (FiQA, Embed v4), 1.4 elsewhere; no k makes equal-weight RRF beat Embed v4 alone | High (sensitivity on test, not tuned) |
 | Without BM25, the keyword side adds almost nothing | `ts_rank_cd` + bge-small, tuned blend: −0.1 / +0.4 / +0.7 (none significant); SCIDOCS −3.6 untuned; 137 ms p50 on FiQA | High |
 | Query shape didn't decide it | FiQA's 177 questions with a number or acronym: vector 57.7, RRF · BM25 46.5 | High for FiQA |
@@ -171,8 +173,11 @@ rebuild from `py/1_load.py`, `py/2_embed.py`, `py/2b_embed_local.py` and
 23. **Rerank.** Not a bug: rerank scores separate answers from non-answers (0.55 vs 0.26),
     and it lifts 403b from #26 to #2. But it puts a known answer first on 47.5% of FiQA
     questions against 53.9% for Embed v4 alone. Models improve; measure the pair you use.
-24. **Storage.** `halfvec`: half the index, same NDCG within noise. Binary plus rescore:
-    1/16 of the index, 54.1.
+24. **Storage.** "Quantize before you truncate." `halfvec`: half the index, same NDCG within
+    noise. Binary plus rescore: 1/16 of the index, 54.1. Embed v4's shorter outputs are
+    prefixes of the full vector, so one column serves every size through `subvector()`
+    expression indexes. 1024 dims: same 450 MB index, because an 8 KB page still holds one
+    vector. 512 and 256 shrink it 3× and 6× but lose 2 and 5 points.
 25. **Limits.** One laptop; public benchmarks with incomplete judgments; two embedding models
     and one reranker; possible training overlap; SCIDOCS blends untuned; English only, no
     phrase search; boost and link patterns unmeasured.
@@ -266,6 +271,10 @@ so no NDCG appears.
 - **"Does PostgreSQL run the two searches in parallel?"** Not inside one statement: the plan
   has no Gather node, and `08b`'s 8.2 ms is about BM25's 5.2 plus vector's 3.5. Run two
   queries on two connections if the latency matters.
+- **"How many dimensions should I use?"** Measure on your data, but in this lab 1024 was
+  close to free in quality (−0.3 to −1.2) and saved no index space; 512 and 256 lost 2 and 5
+  points. If the index is the problem, `halfvec` or binary + rescore kept quality. With
+  Embed v4 you don't need to re-embed to test it: the shorter outputs are prefixes.
 - **"What k should I use?"** 60 is fine to start. From 5 to 200, k moved NDCG@10 by at most
   4.3, and no k made equal-weight RRF beat vector with Embed v4. Weights matter more.
 - **"Why not ParadeDB pg_search?"** Also BM25 in PostgreSQL (AGPL). This lab uses
