@@ -28,8 +28,8 @@ claims, health topics, paper titles), with 95% confidence ranges:
 - **RRF's k matters little:** from 5 to 200 it moved NDCG@10 by at most 4.3 points.
 - **Quantize before you truncate:** `halfvec` and binary quantization kept quality; cutting
   Embed v4 to 512 or 256 dimensions cost 1.6 to 5.5 points, and 1024 dimensions saved no
-  index space in PostgreSQL. If you do truncate, add BM25: at 256 dimensions it won back half
-  the loss or more on three datasets.
+  index space in PostgreSQL. If you do truncate, add BM25: at 256 dimensions it won back
+  46% to 64% of the loss on three datasets.
 - **Cohere Rerank 3.5:** never better than Embed v4 alone by more than noise.
 - **Four pitfalls** that fail silently: every-word `tsquery`, `ts_rank_cd` without IDF,
   adding scores from different scales, and filtering after an HNSW scan.

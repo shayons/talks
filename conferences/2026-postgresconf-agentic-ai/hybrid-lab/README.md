@@ -54,7 +54,7 @@ interval above / below zero. Full table: [`results/summary.md`](results/summary.
   to 401k?": BM25 #1, Embed v4 #26) and for "similar AND contains this word" (`sql/09`,
   `sql/11`).
 
-The four ways hybrid search goes wrong, measured on FiQA's 648 questions (every arm:
+The four ways hybrid search goes wrong, measured on FiQA's 648 questions (every method:
 [`results/scoreboard-fiqa.md`](results/scoreboard-fiqa.md)):
 
 | Pitfall | NDCG@10 | Fix | NDCG@10 |
@@ -89,7 +89,7 @@ uv run python py/1_load.py      # FiQA: 57,638 posts, 648 test + 500 dev questio
 uv run python py/2_embed.py     # Embed v4 on Bedrock, then VACUUM FULL and all indexes
 uv run --extra local python py/2b_embed_local.py   # bge-small on this laptop (optional)
 uv run --extra local python py/5_tune_fusion.py     # blend weights, chosen on dev questions
-uv run python py/4_evaluate.py  # every arm on every test question -> results/
+uv run python py/4_evaluate.py  # every method on every test question -> results/
 uv run hybrid-lab               # UI at http://127.0.0.1:8018
 ./scripts/preflight.sh          # later: start the database and UI, check everything
 ./scripts/postgres18.sh stop    # when you're done (start | stop | status)
@@ -136,7 +136,7 @@ view. Run a file with SQLTools (Cmd+E Cmd+E), or select one statement and run ju
 | `06b`, `08d`, `08e` | Vector, RRF, and blend with the small local model's column |
 | `08f_hybrid_blend_native_local.sql` | The blend with core PostgreSQL's `ts_rank_cd` instead of BM25 |
 | `09_filtered_hybrid.sql` | "Similar AND contains a keyword": filters, HNSW, iterative scans |
-| `10_scoreboard.sql` | NDCG@10 and Recall@50 for every arm, computed in SQL |
+| `10_scoreboard.sql` | NDCG@10 and Recall@50 for every method, computed in SQL |
 | `11_hybrid_function.sql` | `hybrid_search()`: the take-home function |
 | `12a_halfvec.sql`, `12b_binary.sql` | Half-precision and 1-bit indexes, measured |
 | `12c`, `12d`, `12e` | Embed v4's first 1024, 512, and 256 dimensions, through `subvector()` indexes |
@@ -150,11 +150,11 @@ query below it is what the evaluator and the UI execute, byte for byte.
 
 `uv run hybrid-lab` serves a single page at http://127.0.0.1:8018. Pick a question, choose
 a dataset in the header, pick a question, choose arms, and compare their top 10 side by side,
-one card per arm. Known answers get a green row and a letter (A, B, C) that follows the
+one card per method. Known answers get a green row and a letter (A, B, C) that follows the
 document across cards; hover a row to highlight the same document everywhere. The card with
 the single highest NDCG@10 is outlined in green and marked Highest. Hybrid rows show each
 document's keyword and vector rank, and clicking an RRF row shows the arithmetic. Each
-column's SQL button shows the file it ran. The Scoreboard tab shows every arm over the
+column's SQL button shows the file it ran. The Scoreboard tab shows every method over the
 dataset's test questions, the cross-dataset summary, and the questions where BM25 helped or
 hurt the small model most. Links keep the dataset and question (`#d=nfcorpus&q=PLAIN-307`).
 

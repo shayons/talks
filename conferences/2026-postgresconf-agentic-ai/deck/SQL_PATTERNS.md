@@ -218,4 +218,4 @@ with synthetic metadata.
 
 ## Score it
 
-NDCG@10 and Recall@50 per arm, in SQL: [`10_scoreboard.sql`](../hybrid-lab/sql/10_scoreboard.sql).
+NDCG@10 and Recall@50 per method, in SQL: [`10_scoreboard.sql`](../hybrid-lab/sql/10_scoreboard.sql).

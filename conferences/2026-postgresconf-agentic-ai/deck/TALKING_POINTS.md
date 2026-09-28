@@ -126,7 +126,9 @@ rebuild from `py/1_load.py`, `py/2_embed.py`, `py/2b_embed_local.py` and
 4. **How we'll measure.** 2,271 test questions. FiQA is the running example. The other three
    were picked by a rule written down before measuring: under 30,000 documents, and BM25
    beat every dense retriever in BEIR's 2021 paper. Say plainly that this rule favors keyword
-   search, so it favors hybrid. NDCG@10 in one picture. Credit Dave Ebbelaar's tutorial.
+   search, so it favors hybrid. If asked: ColBERT, a multi-vector model, did beat BM25 on
+   SciFact in that paper (0.671 vs 0.665); the rule is about one vector per document.
+   NDCG@10 in one picture. Credit Dave Ebbelaar's tutorial.
    Then say the abstract's promise out loud: "combining beats either alone". Today measures
    when that's true.
 5. **The four datasets.** Four kinds of question: forum questions (FiQA), science claims to
@@ -193,7 +195,7 @@ rebuild from `py/1_load.py`, `py/2_embed.py`, `py/2b_embed_local.py` and
     prefixes of the full vector, so one column serves every size through `subvector()`
     expression indexes. 1024 dims: same 450 MB index, because an 8 KB page still holds one
     vector. 512 and 256 shrink it 3× and 6× but lose 2 and 5 points. If you do cut to 256, add
-    BM25: it won back half the loss or more on three datasets, with 91 MB of indexes on FiQA
+    BM25: it won back 46% to 64% of the loss on three datasets, with 91 MB of indexes on FiQA
     against 450 MB.
 26. **Limits.** One laptop; public benchmarks with incomplete judgments; two embedding models
     and one reranker; possible training overlap; SCIDOCS blends not tuned; English only, no
@@ -233,7 +235,7 @@ UI, slide 17 (about five minutes):
    60) if time allows.
 6. Switch the header to **FiQA**, click **Keyword wins** (403b). BM25 100, Embed v4 0,
    RRF (BM25) 33, Embed v4 + Rerank 63. "Exact identifiers are what keyword search is for."
-7. Optional: **Scoreboard** tab on NFCorpus to show every arm at once.
+7. Optional: **Scoreboard** tab on NFCorpus to show every method at once.
 
 VS Code, slides 19–20: `sql/09_filtered_hybrid.sql` top to bottom, then the last statement
 in `sql/11_hybrid_function.sql`.
@@ -291,7 +293,7 @@ so no NDCG appears.
 - **"How many dimensions should I use?"** Measure on your data, but in this lab 1024 was
   close to free in quality (−0.3 to −1.2) and saved no index space; 512 and 256 lost 2 and 5
   points. If the index is the problem, `halfvec` or binary + rescore kept quality. If you do
-  cut dimensions, add BM25: at 256 it won back half the loss or more on three datasets. With
+  cut dimensions, add BM25: at 256 it won back 46% to 64% of the loss on three datasets. With
   Embed v4 you don't need to re-embed to test it: the shorter outputs are prefixes.
 - **"What k should I use?"** 60 is fine to start. From 5 to 200, k moved NDCG@10 by at most
   4.3, and no k made equal-weight RRF beat vector with Embed v4. Weights matter more.

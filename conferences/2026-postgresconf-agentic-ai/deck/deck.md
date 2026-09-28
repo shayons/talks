@@ -93,7 +93,7 @@ Today: readable SQL, measured results, and a skill you can point at your own tab
 **FiQA-2018:** 57,638 finance forum posts, 648 test questions. The main example.
 
 **SciFact, NFCorpus, SCIDOCS:** chosen by one rule before measuring: public BEIR benchmark
-sets under 30,000 documents where keyword search (BM25) beat every vector method in 2021.
+sets under 30,000 documents where keyword search (BM25) beat every dense vector model in the 2021 BEIR paper.
 
 **NDCG@10** scores a ranking higher when the known answers sit near the top.
 
@@ -463,7 +463,7 @@ never sees the test set. On FiQA it chooses pure vector: the data can say "don't
 | --- | --- | --- |
 | **Results per list** (50) | How many posts each list contributes | A post outside both lists can't be combined or reranked: **Recall@50** |
 | **k** (60) | How fast credit falls with rank | Measured k = 5 to 200: at most 4.3 NDCG@10 (FiQA), 1.4 elsewhere. No k made equal-weight RRF beat Embed v4 alone |
-| **Weights** | Trust in each list | Equal-weight RRF lost to vector on all four datasets; tune a blend's weight on separate questions instead |
+| **Weights** | Trust in each list | Equal-weight RRF lost to Embed v4 alone on all four datasets; tune a blend's weight on separate questions instead |
 | **`hnsw.ef_search`** (100) | How hard each HNSW scan searches | Must be ≥ results per list |
 
 Change one at a time, and re-run the test questions.
@@ -729,7 +729,7 @@ was measured with 8 concurrent calls from a laptop. Models improve; measure the 
 | first 512 dims | 2,056 | 150 MB | 51.8 ↓ | 2.2 |
 | first 256 dims | 1,032 | 75 MB | 49.3 ↓ | 1.7 |
 
-**Quantize before you truncate.** Fewer bits kept NDCG within noise; 512 and 256 dims lost 1.6 to 5.5 points on every dataset. And 1024 dims saves no index space: an 8 KB page still holds one vector. If you do truncate, add BM25: at 256 dims it won back half the loss or more on three datasets.
+**Quantize before you truncate.** Fewer bits kept NDCG within noise; 512 and 256 dims lost 1.6 to 5.5 points on every dataset. And 1024 dims saves no index space: an 8 KB page still holds one vector. If you do truncate, add BM25: at 256 dims it won back 46% to 64% of the loss on three datasets.
 
 <!--
 12a-12e; results/dimensions.md has all four datasets with paired intervals. Embed v4's
