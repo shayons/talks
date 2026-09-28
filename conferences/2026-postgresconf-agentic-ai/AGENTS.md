@@ -27,6 +27,7 @@ uv run --extra local python py/2b_embed_local.py   # bge-small into embedding_lo
 uv run --extra local python py/5_tune_fusion.py   # blend weights, dev questions only
 ./scripts/evaluate_all.sh             # clean rebuild, tune, evaluate all datasets, summary, k sweep
 uv run python py/7_k_sweep.py         # RRF k sensitivity from stored runs -> results/k_sweep.md
+uv run python py/8_dimensions.py      # Embed v4 at 1536/1024/512/256 dims -> results/dimensions.md
 uv run python py/4_evaluate.py        # every arm on the test questions -> results/scoreboard-<dataset>.md,
                                       # then sql/demo_questions.sql (FiQA: SQL arms ~25 min;
                                       # each rerank arm calls Bedrock once per question)

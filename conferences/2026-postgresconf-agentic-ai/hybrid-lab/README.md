@@ -40,6 +40,11 @@ interval above / below zero. Full table: [`results/summary.md`](results/summary.
   1.4 elsewhere, and no k made equal-weight RRF beat Embed v4 alone
   ([`results/k_sweep.md`](results/k_sweep.md)).
 - **The reranker never beat vector search** by more than noise on any dataset.
+- **Quantize before you truncate.** Embed v4's shorter outputs are prefixes of its 1536
+  vector, so `sql/12c`-`12e` search 1024, 512, and 256 dimensions of the stored column. 1024
+  costs little but saves no HNSW space (one vector per 8 KB page either way); 512 and 256
+  shrink the index 3× and 6× and lose 1.6 to 5.5 NDCG@10 on every dataset. `halfvec` and
+  binary + rescore kept quality within noise ([`results/dimensions.md`](results/dimensions.md)).
 - **Keyword search still earns its place** for exact identifiers ("Employer rollover from 403b
   to 401k?": BM25 #1, Embed v4 #26) and for "similar AND contains this word" (`sql/09`,
   `sql/11`).
@@ -128,6 +133,7 @@ view. Run a file with SQLTools (Cmd+E Cmd+E), or select one statement and run ju
 | `10_scoreboard.sql` | NDCG@10 and Recall@50 for every arm, computed in SQL |
 | `11_hybrid_function.sql` | `hybrid_search()`: the take-home function |
 | `12a_halfvec.sql`, `12b_binary.sql` | Half-precision and 1-bit indexes, measured |
+| `12c`, `12d`, `12e` | Embed v4's first 1024, 512, and 256 dimensions, through `subvector()` indexes |
 | `demo_questions.sql` | The stage questions the UI lists, per dataset |
 
 Each arm file has a line `-- == ARM QUERY ==`. Statements above it are for exploring. The

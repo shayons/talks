@@ -57,6 +57,9 @@ ARMS: tuple[Arm, ...] = (
         needs_bm25=True),
     Arm("vector_halfvec", "Embed v4 · halfvec", "12a_halfvec.sql"),
     Arm("vector_binary", "Embed v4 · binary + rescore", "12b_binary.sql"),
+    Arm("vector_1024", "Embed v4 · 1024 dims", "12c_dims_1024.sql"),
+    Arm("vector_512", "Embed v4 · 512 dims", "12d_dims_512.sql"),
+    Arm("vector_256", "Embed v4 · 256 dims", "12e_dims_256.sql"),
 )
 BY_STAGE = {arm.stage: arm for arm in ARMS}
 

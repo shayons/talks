@@ -28,4 +28,5 @@ with connect(autocommit=True) as setup:
 done
 uv run python py/6_summary.py
 uv run python py/7_k_sweep.py
+uv run python py/8_dimensions.py
 echo "=== done $(date +%H:%M:%S)"

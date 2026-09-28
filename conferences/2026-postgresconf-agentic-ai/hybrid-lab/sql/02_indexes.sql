@@ -29,6 +29,15 @@ CREATE INDEX IF NOT EXISTS docs_embedding_halfvec_hnsw ON docs
 CREATE INDEX IF NOT EXISTS docs_embedding_bit_hnsw ON docs
   USING hnsw ((binary_quantize(embedding)::bit(1536)) bit_hamming_ops);
 
+-- Optional dimension experiments (sql/12c-12e): Embed v4's first 1024, 512, and 256
+-- dimensions, which are what its output_dimension option returns, indexed as expressions.
+CREATE INDEX IF NOT EXISTS docs_embedding_1024_hnsw ON docs
+  USING hnsw ((subvector(embedding, 1, 1024)::vector(1024)) vector_cosine_ops);
+CREATE INDEX IF NOT EXISTS docs_embedding_512_hnsw ON docs
+  USING hnsw ((subvector(embedding, 1, 512)::vector(512)) vector_cosine_ops);
+CREATE INDEX IF NOT EXISTS docs_embedding_256_hnsw ON docs
+  USING hnsw ((subvector(embedding, 1, 256)::vector(256)) vector_cosine_ops);
+
 ANALYZE docs;
 
 SELECT indexrelid::regclass AS index_name,

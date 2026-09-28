@@ -7,7 +7,9 @@ Pick one model per column and record its id. `templates/backfill_embeddings.py` 
 
 - Model: `us.cohere.embed-v4:0` (cross-region profile; `cohere.embed-v4:0` in-region).
 - Dimensions: 256, 512, 1024, or 1536 (`output_dimension`). Vectors are unit length, so
-  cosine distance and inner product rank identically.
+  cosine distance and inner product rank identically. The shorter outputs are prefixes of the
+  1536 vector (checked in the talk's lab), so embed once at 1536 and test smaller sizes with
+  `subvector(embedding, 1, N)` expression indexes instead of re-embedding.
 - Input types: `search_document` for rows, `search_query` for questions.
 - Up to 96 texts per call. Blank strings are rejected: skip them.
 - Accounts have tokens-per-minute quotas; expect `ThrottlingException: Too many tokens` on
@@ -43,3 +45,9 @@ Rerank (optional): `cohere.rerank-v3-5:0` through `InvokeModel` with
 Index a cheaper type with an expression index while keeping the full vector in the table:
 `CREATE INDEX ON t USING hnsw ((embedding::halfvec(1536)) halfvec_cosine_ops);` and query
 with the same expression.
+
+HNSW index size moves in 8 KB page steps, because each graph entry (vector plus neighbor list)
+must fit on a page. 1024 floats still take one entry per page, the same index as 1536; 512
+fits three and 256 six. In the lab (four BEIR datasets, Embed v4), `halfvec` and binary +
+rescore kept NDCG@10 within noise, while 512 and 256 dimensions lost 1.6 to 5.5 points:
+quantize before you truncate, and measure on your own questions.

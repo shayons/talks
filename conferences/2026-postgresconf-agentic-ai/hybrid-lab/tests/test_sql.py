@@ -183,3 +183,11 @@ def test_local_model_arms_use_their_own_column(conn):
     assert ids(local) == ids(ranked(conn, "vector", RAINY_DAY))
     fused = ranked(conn, "rrf_local", RAINY_DAY)
     assert all(row["vector_rank"] is None or row["vector_rank"] >= 1 for row in fused)
+
+
+@pytest.mark.parametrize("stage", ["vector_1024", "vector_512", "vector_256"])
+def test_embedding_prefix_arms_rank_like_the_full_vector_on_the_fixture(conn, stage):
+    # Fixture vectors are nonzero only in their first 26 dimensions, so every prefix keeps
+    # all of their information and must rank exactly like the full 1536 dimensions.
+    for question in (RAINY_DAY, "102"):
+        assert ids(ranked(conn, stage, question)) == ids(ranked(conn, "vector", question))
