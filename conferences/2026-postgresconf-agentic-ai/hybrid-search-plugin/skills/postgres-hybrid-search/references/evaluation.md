@@ -49,6 +49,18 @@ Use synthetic results to compare arms against each other, not as an absolute qua
 - With fewer than about 100 questions, differences of a few NDCG points are noise. Report the
   per-question wins and losses, and say when the arms are indistinguishable.
 
+## Tune on one set of questions, report on another
+
+Any weight (RRF weights, blend weight, k) chosen by looking at the evaluation questions will
+flatter itself. `evaluate.py` tunes the blend on half the questions and reports it on the other
+half. With labeled data that has a dev split, tune on dev and report on test.
+
+In the talk's lab (BEIR, four datasets), tuning decided very differently per dataset and
+per model. With Cohere Embed v4, FiQA chose w = 1.0 (pure vector, no blend) and SciFact and
+NFCorpus chose 0.70. With bge-small, a weaker local model, FiQA chose 0.65, SciFact 0.55 and
+NFCorpus 0.65: the weaker the vectors, the more weight keyword search earns. Let the held-out
+questions decide; "hybrid" is not automatically better.
+
 ## Reading the scoreboard
 
 - If RRF does not beat the best single arm, check Recall@50 for the weak arm. A keyword arm

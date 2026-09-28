@@ -24,8 +24,14 @@ in a narrow band. `keyword_score + vector_score` lets whichever scale is larger 
 Concatenating one result list after the other and removing duplicates is not fusion either;
 the list appended first wins.
 
-Fix: Reciprocal Rank Fusion. `score = Σ 1 / (k + rank)` with k = 60, over each list's top N.
-Missing from a list contributes 0 (FULL OUTER JOIN).
+Fix: Reciprocal Rank Fusion, `score = Σ 1 / (k + rank)` with k = 60 over each list's top N
+(missing from a list contributes 0), or better, a normalized blend: min-max each list's scores
+per question, then `w · vector + (1 − w) · keyword` with w tuned on held-out questions
+(`templates/hybrid_blend.sql`). In the talk's lab, with Cohere Embed v4, equal-weight RRF lost
+to vector search on all four BEIR datasets tested (significantly on three). A blend tuned on
+dev questions never lost; on the one dataset without dev questions, an untuned 0.5 blend lost
+0.8 NDCG@10. With a small local model (bge-small), the tuned blend beat vector search on three
+of four datasets.
 
 Check: grep the search SQL for `+` between a text rank and a distance, or for UNION of the
 two lists without a rank-based score.
@@ -102,7 +108,7 @@ Check: report Recall@50 next to NDCG@10.
 planner sees the argument's value. With a generic plan, or with the argument joined in through
 a CTE, the OR survives and the planner falls back to sequential scans: in the lab, a
 `hybrid_search()` with an optional keyword filter sorted all 57,600 distances instead of
-walking HNSW, and took 335 ms instead of 86 ms.
+walking HNSW, and took 197 ms instead of 73 ms (67 ms instead of 15 ms with the filter set).
 
 Fix: reference parameters directly in WHERE and add `SET plan_cache_mode = force_custom_plan`
 to the function, so every call is planned with its real arguments and `NULL IS NULL` folds

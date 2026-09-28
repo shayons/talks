@@ -21,6 +21,7 @@ import argparse
 import csv
 import hashlib
 import json
+import math
 import os
 import time
 from pathlib import Path
@@ -207,6 +208,66 @@ def rerank(conn: psycopg.Connection, args: argparse.Namespace) -> None:
     print("  hybrid_rerank: done")
 
 
+def tuning_half(question_id: str) -> bool:
+    """Deterministically put about half the questions in the tuning set."""
+    return int(hashlib.sha1(question_id.encode()).hexdigest(), 16) % 2 == 0
+
+
+def blend_arm(conn: psycopg.Connection) -> float | None:
+    """Tune a min-max score blend on half the questions; score it on the other half.
+
+    Returns:
+        The chosen vector weight, or None when there are too few questions to split.
+    """
+    lists: dict[str, dict[str, list[tuple[str, float]]]] = {"keyword": {}, "vector": {}}
+    for arm, question_id, doc_id, score in conn.execute(
+        "SELECT arm, question_id, doc_id, score FROM hybrid_eval.runs"
+        " WHERE arm IN ('keyword', 'vector') ORDER BY arm, question_id, rank"
+    ):
+        lists[arm].setdefault(question_id, []).append((doc_id, float(score or 0)))
+    relevance: dict[str, dict[str, int]] = {}
+    for question_id, doc_id, grade in conn.execute("SELECT * FROM hybrid_eval.qrels"):
+        relevance.setdefault(question_id, {})[doc_id] = grade
+    tune = [q for q in relevance if tuning_half(q)]
+    held_out = [q for q in relevance if not tuning_half(q)]
+    if len(tune) < 20 or len(held_out) < 20:
+        print("  blend: skipped, needs at least 40 questions to tune on half and score the rest")
+        return None
+
+    def ranked(q: str, w: float) -> list[str]:
+        vector = _min_max(lists["vector"].get(q, []))
+        keyword = _min_max(lists["keyword"].get(q, []))
+        fused = {d: w * vector.get(d, 0.0) + (1 - w) * keyword.get(d, 0.0)
+                 for d in vector.keys() | keyword.keys()}
+        return [d for d, _ in sorted(fused.items(), key=lambda item: (-item[1], item[0]))]
+
+    def ndcg(ids: list[str], relevant: dict[str, int]) -> float:
+        dcg = sum(relevant.get(d, 0) / math.log2(r + 1) for r, d in enumerate(ids[:10], 1))
+        ideal = sorted(relevant.values(), reverse=True)[:10]
+        return dcg / sum(g / math.log2(r + 1) for r, g in enumerate(ideal, 1))
+
+    grid = {w / 20: sum(ndcg(ranked(q, w / 20), relevance[q]) for q in tune) for w in range(21)}
+    weight = max(grid, key=lambda w: (grid[w], w))
+
+    def held_out_score(ranking) -> float:
+        return 100 * sum(ndcg(ranking(q), relevance[q]) for q in held_out) / len(held_out)
+
+    vector = held_out_score(lambda q: [d for d, _ in lists["vector"].get(q, [])])
+    keyword = held_out_score(lambda q: [d for d, _ in lists["keyword"].get(q, [])])
+    blended = held_out_score(lambda q: ranked(q, weight))
+    print(f"\nBlend, tuned on {len(tune)} questions and scored on the other {len(held_out)}:")
+    print(f"  w = {weight:.2f} on vector | NDCG@10 on the held-out half: blend {blended:.1f}, "
+          f"vector {vector:.1f}, keyword {keyword:.1f}")
+    return weight
+
+
+def _min_max(scored: list[tuple[str, float]]) -> dict[str, float]:
+    if not scored:
+        return {}
+    low, high = min(s for _, s in scored), max(s for _, s in scored)
+    return {d: (s - low) / (high - low) if high > low else 1.0 for d, s in scored}
+
+
 def main() -> None:
     """Build the question set, run every arm, and print the scoreboard."""
     args = parse_args()
@@ -219,6 +280,7 @@ def main() -> None:
             synthesize(conn, args)
         embed_questions(conn, args)
         run_arms(conn, args)
+        weight = blend_arm(conn)
         if args.rerank:
             rerank(conn, args)
         cur = conn.execute((HERE / "scoreboard.sql").read_text())
@@ -226,6 +288,9 @@ def main() -> None:
         print("| --- | ---: | ---: | ---: | ---: | ---: |")
         for row in cur.fetchall():
             print("| " + " | ".join(str(value) for value in row) + " |")
+        if weight is not None:
+            print(f"\nIf the blend beats vector on the held-out half, use w = {weight:.2f} in"
+                  " templates/hybrid_blend.sql. If it does not, keep vector alone.")
 
 
 if __name__ == "__main__":

@@ -72,13 +72,16 @@ user's filters in both candidate lists. Then run `templates/try_search.py` with 
 of the user's real questions: it embeds them with the query input type, calls the function,
 and prints each row's RRF score with its keyword and vector rank.
 
-### 6. Evaluate
+### 6. Evaluate, then choose RRF, a tuned blend, or vector alone
 
 Fill and run `templates/evaluate.py`. With labeled queries (CSV of query, relevant id), use
 them. Without labels, it asks an LLM to write one realistic question per sampled row (that
 row is the known answer), embeds the questions with the query input type, runs keyword,
 vector, RRF and optional rerank arms, and scores them with `templates/scoreboard.sql`
-(NDCG@10, Recall@50, p50 latency). Explain the synthetic-question bias from
+(NDCG@10, Recall@50, p50 latency). It also tunes a normalized score blend on half the
+questions and scores it on the other half. If the blend beats vector there, install
+`templates/hybrid_blend.sql` with that weight; if nothing beats vector, say so and recommend
+vector search plus keyword filters. Explain the synthetic-question bias from
 `references/evaluation.md` when reporting.
 
 ### 7. Report
