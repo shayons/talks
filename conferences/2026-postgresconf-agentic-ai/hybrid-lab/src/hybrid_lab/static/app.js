@@ -130,7 +130,7 @@ function renderDemoQuestions(demo) {
 async function search(request) {
   const arms = state.arms.map((arm) => arm.stage).filter((stage) => state.selected.has(stage));
   if (!arms.length) {
-    setStatus("Choose at least one arm to compare.", true);
+    setStatus("Choose at least one search method.", true);
     return;
   }
   const button = document.querySelector("#ask .primary");
@@ -210,7 +210,7 @@ function columnFacts(card) {
   const timing = `${card.elapsed_ms.toLocaleString()} ms, ${card.source}`;
   facts.push(el("div", { text: timing }));
   if (card.returned < 50) {
-    facts.push(el("div", { class: "short", text: `Returned ${card.returned} of 50 candidates` }));
+    facts.push(el("div", { class: "short", text: `Returned ${card.returned} of 50 results` }));
   }
   return el("div", { class: "column-facts" }, facts);
 }
@@ -393,10 +393,10 @@ function datasetLabel() {
 
 function summaryTable(data) {
   const header = el("tr", {}, [
-    el("th", { text: "Arm" }),
+    el("th", { text: "Method" }),
     ...data.datasets.map((d) => el("th", {}, [
       d.label.split(" · ")[0],
-      el("small", { text: d.blend_weight === null ? "blend: untuned" : `blend w = ${d.blend_weight}` }),
+      el("small", { text: d.blend_weight === null ? "blend weight: not tuned" : `blend weight ${d.blend_weight}` }),
     ])),
   ]);
   const best = Object.fromEntries(data.datasets.map((d) => [d.name, Math.max(
@@ -426,18 +426,18 @@ async function loadSummary() {
 
 async function loadScoreboard() {
   const board = $("board");
-  $("board-title").textContent = `How each arm did on ${datasetLabel()}`;
+  $("board-title").textContent = `How each method did on ${datasetLabel()}`;
   loadSummary();
   try {
     const data = await api("/api/scoreboard");
     const armsByStage = new Map(state.arms.map((arm) => [arm.stage, arm]));
     const best = data.rows.find((row) => !armsByStage.get(row.stage)?.pitfall)?.stage;
     const header = el("div", { class: "board-row header" }, [
-      el("span", { text: "Arm" }),
+      el("span", { text: "Method" }),
       el("span", { text: "NDCG@10 (bar) and Recall@50 (line)" }),
       el("span", { class: "num", text: "Recall@50" }),
-      el("span", { class: "num extra", text: "p50 ms" }),
-      el("span", { class: "num extra", text: "vs Embed v4 vector" }),
+      el("span", { class: "num extra", text: "Median ms" }),
+      el("span", { class: "num extra", text: "Better / worse than Embed v4" }),
     ]);
     board.replaceChildren(header, ...data.rows.map((row) => boardRow(row, best, armsByStage)));
     renderSwings("swings-gain", data.swings.filter((s) => s.direction === "gain"));

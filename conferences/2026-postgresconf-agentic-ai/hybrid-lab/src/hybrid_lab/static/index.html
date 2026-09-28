@@ -34,10 +34,10 @@
       <div class="picks" id="demo-questions" aria-label="Stage questions"></div>
 
       <fieldset class="arms">
-        <legend class="visually-hidden">Arms to compare</legend>
+        <legend class="visually-hidden">Search methods to compare</legend>
         <div class="arm-group" id="arms-main"></div>
         <details class="arm-more">
-          <summary>More arms</summary>
+          <summary>More methods</summary>
           <div class="arm-group" id="arms-more"></div>
         </details>
       </fieldset>
@@ -58,11 +58,11 @@
       <section class="summary" id="summary-section" hidden>
         <h2>Across datasets</h2>
         <p>NDCG@10 on each dataset's test questions. The tuned blend's weight was chosen on
-          that dataset's held-out dev questions, never on these.</p>
+          that dataset's separate tuning questions, never on these test questions.</p>
         <div id="summary"></div>
       </section>
       <header class="board-head">
-        <h2 id="board-title">How each arm did on this dataset</h2>
+        <h2 id="board-title">How each method did on this dataset</h2>
         <p>NDCG@10 is 100 when every known answer is at the top of the list and 0 when none
           is in the top 10. Recall@50 is the share of known answers anywhere in the top 50:
           the most a reranker could ever surface.</p>

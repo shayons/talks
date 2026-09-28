@@ -274,3 +274,7 @@ section.rrf .formula { font-size: 26px; padding: 0 0 14px; }
 section.patterns .pattern-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 section.patterns .pattern-grid p { margin: 0 0 4px; font-size: 20px; }
 section.patterns pre { font-size: 15.5px; padding: 14px 18px; margin: 0; line-height: 1.38; }
+
+/* ------ Slide: the four datasets ------ */
+section.datasets table { font-size: 0.8em; }
+section.datasets td:nth-child(2) { color: var(--text-2) !important; }

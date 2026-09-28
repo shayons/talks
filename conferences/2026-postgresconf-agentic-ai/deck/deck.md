@@ -93,8 +93,8 @@ Today: readable SQL, measured results, and a skill you can point at your own tab
 
 **FiQA-2018:** 57,638 finance forum posts, 648 test questions. The main example.
 
-**SciFact, NFCorpus, SCIDOCS:** chosen by one rule before measuring: BEIR sets under
-30,000 documents where BM25 beat every dense retriever in 2021.
+**SciFact, NFCorpus, SCIDOCS:** chosen by one rule before measuring: public BEIR benchmark
+sets under 30,000 documents where keyword search (BM25) beat every vector method in 2021.
 
 **NDCG@10** scores a ranking higher when the known answers sit near the top.
 
@@ -110,8 +110,33 @@ The abstract promised that combining beats either alone. **We'll measure when it
 
 <!--
 BEIR benchmark (Thakur et al., 2021). Test questions: FiQA 648, SciFact 300, NFCorpus 323,
-SCIDOCS 1,000. Fusion weights are tuned only on each dataset's dev questions (SciFact: its
+SCIDOCS 1,000. Blend weights are tuned only on each dataset's separate tuning questions (SciFact: its
 train split; SCIDOCS has none). Credit Dave Ebbelaar's tutorial for the FiQA-and-NDCG idea.
+-->
+
+---
+
+<!-- _class: dense datasets -->
+
+## Four datasets, four kinds of question
+
+| Dataset · what it searches | A typical test question | Test questions | Known answers per question | BM25 vs vector (Embed v4), NDCG@10 |
+| --- | --- | ---: | ---: | ---: |
+| **FiQA** · 57,638 finance forum posts | “Where should I park my rainy-day / emergency fund?” | 648 | 2.6 | 23.6 vs 53.9 |
+| **SciFact** · 5,183 science abstracts | “Anthrax spores can be disposed of easily after they are dispersed.” A claim to check | 300 | 1.1 | 68.8 vs 77.5 |
+| **NFCorpus** · 3,633 medical abstracts | “low-carb diets.” Half are two words or fewer | 323 | 38.2, graded | 32.3 vs 40.1 |
+| **SCIDOCS** · 25,657 paper abstracts | “A Fast Learning Algorithm for Deep Belief Nets.” A title; its answers are papers it cites | 1,000 | 4.9 | 15.4 vs 20.6 |
+
+Same methods, very different gaps: BM25 reaches **89%** of vector search on SciFact but **44%** on FiQA. One dataset would have told a different story.
+
+<!--
+All from the BEIR benchmark (Thakur et al., 2021), with human-judged answers. Questions are real
+test questions picked for readability, near each set's median length. Medians: question words
+10 / 12 / 2 / 9; document words 90 / 204 / 237 / 161. NFCorpus answers are graded 1 or 2; the
+others are yes or no. Tuning questions (used only to choose blend weights): FiQA 500, SciFact 809
+(its train split), NFCorpus 324, SCIDOCS none. Checked and dropped: the share of a question's
+words that appear in its answers (59 to 70%) doesn't explain where BM25 does well, so don't
+claim it does.
 -->
 
 ---
@@ -120,7 +145,7 @@ train split; SCIDOCS has none). Credit Dave Ebbelaar's tutorial for the FiQA-and
 
 | Piece | Version | Job |
 | --- | --- | --- |
-| PostgreSQL | **18.6** | `tsvector`, GIN, `ts_rank_cd`, the fusion SQL, the scoring SQL |
+| PostgreSQL | **18.6** | `tsvector`, GIN, `ts_rank_cd`, the SQL that combines and scores results |
 | pgvector | **0.8.6** | `vector(1536)`, HNSW, iterative index scans, `halfvec`, `bit` |
 | pg_textsearch | **1.4.0** | BM25 index and `<@>` operator (PostgreSQL license) |
 | Cohere Embed v4 · Amazon Bedrock | 1536 dims | Posts as `search_document`, questions as `search_query` |
@@ -179,7 +204,7 @@ rarely has all its words in one answer.
 <p class="formula">405 of 648 questions match no post at all · NDCG@10 4.3</p>
 
 <!--
-Measured: keyword_and arm. Many tutorials, including the pgvectorscale hybrid-search example,
+Measured: keyword_and method. Many tutorials, including the pgvectorscale hybrid-search example,
 use exactly this call. Fine for a search box of product codes; wrong for questions.
 -->
 
@@ -201,8 +226,8 @@ SELECT d.id, ts_rank_cd(d.tsv, q.tsq) AS score
  LIMIT 50;
 ```
 
-Recall@50 doubles (6.7 → 14.6), but NDCG@10 **falls to 2.8**: with no IDF, “fund” and
-“day” outweigh “rainy-day”. The rainy-day question matches **10,460 posts**, and
+Recall@50 (known answers anywhere in the top 50) doubles, 6.7 → 14.6, but NDCG@10 **falls to
+2.8**: nothing makes rare words count more, so “fund” and “day” outweigh “rainy-day”. The rainy-day question matches **10,460 posts**, and
 `ts_rank_cd` scores every one of them: **81 ms**.
 
 <!--
@@ -225,11 +250,12 @@ SELECT id, -(body <@> to_bm25query(:'question', 'docs_body_bm25')) AS bm25
  LIMIT 50;
 ```
 
-BM25 weighs rare terms up (IDF), saturates repeats, and normalizes for length. The index
-keeps the corpus statistics and returns the top 50 **without scoring every match**.
+BM25 counts rare words more (IDF), stops rewarding a repeated word after a few times, and
+adjusts for document length. Its index keeps those statistics and returns the top 50 **without
+scoring every match**.
 23.6 is exactly BEIR's published BM25 score for FiQA (0.236).
 
-| Keyword arm | NDCG@10 | Top 50, rainy-day question |
+| Keyword method | NDCG@10 | Top 50, rainy-day question |
 | --- | ---: | ---: |
 | `ts_rank_cd`, any word | 2.8 | 81 ms |
 | BM25, pg_textsearch | **23.6** | **0.27 ms** |
@@ -244,7 +270,7 @@ platform before depending on it.
 
 <!-- _class: code-first -->
 
-## Semantic candidates · `06`
+## Vector search: the top 50 by meaning · `06`
 
 ```sql
 SET hnsw.ef_search = 100;          -- default 40: LIMIT 50 would silently return 40
@@ -258,7 +284,7 @@ SELECT id, 1 - (embedding <=> (SELECT embedding FROM active_query)) AS cosine
 Keep the distance operator in `ORDER BY`, ascending, with a `LIMIT`. Embed questions as
 `search_query` and posts as `search_document`.
 
-NDCG@10 **53.9** · p50 **3.5 ms**
+NDCG@10 **53.9** · median **3.5 ms** per question
 
 <!--
 Pitfall 4 in the lab: an HNSW scan returns at most hnsw.ef_search rows. The test suite proves
@@ -276,7 +302,7 @@ and index plans agree.
 | cosine similarity | 0.478 | 0.598 |
 
 <table>
-<thead><tr><th>Fusion</th><th style="text-align:right">NDCG@10</th></tr></thead>
+<thead><tr><th>How the two lists are combined</th><th style="text-align:right">NDCG@10</th></tr></thead>
 <tbody data-marpit-fragment>
 <tr><td><code>keyword_score + cosine</code></td><td style="text-align:right">5.6</td></tr>
 <tr><td>keyword list, then vector list, duplicates removed</td><td style="text-align:right">2.9</td></tr>
@@ -286,7 +312,7 @@ and index plans agree.
 </tbody>
 </table>
 
-<p data-marpit-fragment>Same inputs, 6× the score. Normalizing flags make <code>ts_rank_cd</code> bounded, not comparable.</p>
+<p data-marpit-fragment>Same inputs, 6× the score. <code>ts_rank_cd</code>'s normalization options keep its scores in a range, but still not comparable to cosine.</p>
 
 <!--
 Three clicks: the two ways of mixing scores (5.6, 2.9), then RRF on the same lists (33.8), then
@@ -298,7 +324,7 @@ it relies on a reranker afterwards. Without one, whichever list goes first wins.
 
 <!-- _class: rrf -->
 
-## Fuse ranks, not scores
+## Combine ranks, not scores
 
 <p class="formula">RRF(d) = Σ 1 / (60 + rank<sub>list</sub>(d))</p>
 
@@ -327,7 +353,7 @@ it relies on a reranker afterwards. Without one, whichever list goes first wins.
 <li><span class="n">9</span><span class="pill answer">32811<span>known answer</span></span></li>
 <li><span class="n">10</span><span class="pill">62897</span></li>
 </ol></div>
-<div class="rrf-lane fused"><h4>RRF · fused</h4><ol>
+<div class="rrf-lane fused"><h4>RRF · combined</h4><ol>
 <li><span class="n">1</span><span class="pill slot"></span></li>
 <li><span class="n">2</span><span class="pill slot"></span></li>
 <li><span class="n">3</span><span class="pill slot"></span></li>
@@ -342,7 +368,7 @@ it relies on a reranker afterwards. Without one, whichever list goes first wins.
 <div class="rrf-step" data-marpit-fragment>
 <span class="pill answer fly from-bm25-4" style="top:37px">32811<span>known answer</span></span>
 <span class="pill answer fly from-vector-9" style="top:37px">32811<span>known answer</span></span>
-<p class="caption later" style="top:350px">Known answer: BM25 #4, vector #9 → 1/64 + 1/69 = <strong>0.03012</strong>, fused <strong>#1</strong>.</p>
+<p class="caption later" style="top:350px">Known answer: BM25 #4, vector #9 → 1/64 + 1/69 = <strong>0.03012</strong>, combined <strong>#1</strong>.</p>
 </div>
 <div class="rrf-step" data-marpit-fragment>
 <span class="pill top fly from-vector-1" style="top:277px">293687<span class="score">0.01639</span></span>
@@ -354,7 +380,7 @@ it relies on a reranker afterwards. Without one, whichever list goes first wins.
 <span class="pill placed later" style="top:187px">72960<span>0.02452</span></span>
 <span class="pill placed later" style="top:217px">488737<span>0.02379</span></span>
 <span class="pill placed later" style="top:247px">152096<span>0.02114</span></span>
-<p class="caption later" style="top:382px">Each list's own #1 is missing from the other list: 1/61 = 0.01639, fused #9 and #10.</p>
+<p class="caption later" style="top:382px">Each list's own #1 is missing from the other list: 1/61 = 0.01639, combined #9 and #10.</p>
 </div>
 </div>
 
@@ -392,7 +418,7 @@ SELECT coalesce(k.id, v.id) AS id,
  LIMIT 10;
 ```
 
-One statement, two indexes (GIN and HNSW). p50 **150 ms** with `ts_rank_cd`; **8.2 ms** with BM25 (`08b`). The lists run **one after the other** in one backend, not in parallel: no Gather node, and 8.2 ms is about BM25's 5.2 plus vector's 3.5.
+One statement, two indexes (GIN and HNSW). Median **150 ms** with `ts_rank_cd`; **8.2 ms** with BM25 (`08b`). The two lists run **one after the other** in one backend process, not in parallel: the plan has no Gather node, and 8.2 ms is about BM25's 5.2 plus vector's 3.5.
 
 <!--
 The lab file reads the question from the active_query view and exposes weights in a settings
@@ -417,17 +443,17 @@ SELECT id, w * coalesce(v.s, 0) + (1 - w) * coalesce(k.s, 0) AS blend
   FROM keyword_norm k FULL OUTER JOIN semantic_norm v USING (id);
 ```
 
-RRF ignores how **confident** each list is. A normalized blend keeps it, and is what
-“adding scores” should have been in pitfall 2.
+RRF ignores how **strong** each match is. A blend keeps it: scale each list's scores to 0–1,
+then weight them. It is what “adding scores” should have been in pitfall 2.
 
-| Weight `w` on vector, tuned on **dev** questions only | FiQA | SciFact | NFCorpus | SCIDOCS |
+| Weight `w` on vector, chosen on **separate tuning questions** | FiQA | SciFact | NFCorpus | SCIDOCS |
 | --- | ---: | ---: | ---: | ---: |
-| Cohere Embed v4 (frontier) | **1.0** | 0.70 | 0.70 | 0.5, untuned |
-| bge-small (local) | 0.65 | 0.55 | 0.65 | 0.5, untuned |
+| Cohere Embed v4 (large API model) | **1.0** | 0.70 | 0.70 | 0.5, not tuned |
+| bge-small (small local model) | 0.65 | 0.55 | 0.65 | 0.5, not tuned |
 
 <!--
 Bruch, Gai & Ingber, "An Analysis of Fusion Functions for Hybrid Retrieval", ACM TOIS 2023.
-The weight lives in fusion_settings; py/5_tune_fusion.py chooses it on held-out questions and
+The weight lives in fusion_settings; py/5_tune_fusion.py chooses it on separate tuning questions and
 never sees the test set. On FiQA it chooses pure vector: the data can say "don't blend".
 -->
 
@@ -437,10 +463,10 @@ never sees the test set. On FiQA it chooses pure vector: the data can say "don't
 
 | Knob | Controls | Watch |
 | --- | --- | --- |
-| **Candidate depth** (50) | How many posts each list contributes | A post outside both lists can't be fused or reranked: **Recall@50** |
+| **Results per list** (50) | How many posts each list contributes | A post outside both lists can't be combined or reranked: **Recall@50** |
 | **k** (60) | How fast credit falls with rank | Measured k = 5 to 200: at most 4.3 NDCG@10 (FiQA), 1.4 elsewhere. No k made equal-weight RRF beat Embed v4 alone |
-| **Weights** | Trust in each list | Equal-weight RRF lost to vector on all four datasets; tune a blend on dev questions instead |
-| **`hnsw.ef_search`** (100) | Work per HNSW scan | Must be ≥ the candidate depth |
+| **Weights** | Trust in each list | Equal-weight RRF lost to vector on all four datasets; tune a blend's weight on separate questions instead |
+| **`hnsw.ef_search`** (100) | How hard each HNSW scan searches | Must be ≥ results per list |
 
 Change one at a time, and re-run the test questions.
 
@@ -457,11 +483,11 @@ a little (FiQA with Embed v4: 41.3 at k = 60, 45.4 at k = 5), still far below ve
 
 ## Live · NFCorpus · all local except the last column
 
-# Small model + BM25 beat the frontier model here
+# Small model + BM25 beat the large API model here
 
 ![Hybrid search lab UI on NFCorpus: BM25 65, bge-small 77, tuned blend 97, Embed v4 71 NDCG@10](assets/ui-search.png)
 
-<p class="stage-url">localhost:8018 · pick NFCorpus · “Local hybrid beats the frontier model”</p>
+<p class="stage-url">localhost:8018 · pick NFCorpus · “Local hybrid beats the large API model”</p>
 
 <!--
 Question: "Vitamin D: Shedding some light on the new recommendations" (3 known answers).
@@ -483,11 +509,11 @@ open "Keyword wins" (403b to 401k) to show BM25 #1 against vector #26.
   even at the same dimension. Store the model id.
 - **A small local model too:** bge-small-en-v1.5, 384 dims, open source, in its own
   column. FiQA's 57,638 posts took about an hour on the laptop CPU; Embed v4 took 35 minutes
-  behind a tokens-per-minute quota. Resume on NULLs either way.
+  behind a tokens-per-minute quota. Either way, a rerun fills only the rows still NULL.
 
 <!--
 Blank posts (38 in FiQA) cannot be embedded and stay NULL. One judged answer is a blank post,
-so no arm can ever find it.
+so no method can ever find it.
 -->
 
 ---
@@ -536,7 +562,7 @@ CREATE FUNCTION hybrid_search(...) ... LANGUAGE sql STABLE
   SET plan_cache_mode = force_custom_plan   -- keeps "required_terms IS NULL OR ..." indexable
 ```
 
-The requirement goes into **both** candidate lists, before their LIMIT.
+The required word goes into **both** lists, before their LIMIT.
 
 <!--
 The last setting was found by measurement. Planned generically, the optional filter hides the
@@ -597,7 +623,7 @@ SELECT doc_id, max(score) AS score
 </div>
 </div>
 
-Boost a larger pool than you show (50, then keep 10), or a boost can't lift anything. **Not measured here:** BEIR has no dates, popularity, or links.
+Boost a larger pool than you show (50, then keep 10), or a boost can't lift anything. **Not measured here:** these datasets have no dates, popularity, or links.
 
 <!--
 The abstract's advanced techniques. Both run as written against the lab's hybrid_search() (tested
@@ -622,22 +648,22 @@ the CYCLE clause for graphs with loops.
 <tr><td>Equal-weight RRF + BM25</td><td class="down">−3.1 ↓<small>−4.7…−1.5</small></td><td>+1.7<small>−0.9…+4.3</small></td><td class="up">+2.3 ↑<small>+1.0…+3.7</small></td><td>−0.3<small>−1.0…+0.5</small></td></tr>
 </tbody>
 <tbody data-marpit-fragment>
-<tr class="section"><td colspan="5">Frontier model · Cohere Embed v4, 1536 dims</td></tr>
-<tr><td>Tuned blend + BM25</td><td>0.0<small>chose w = 1</small></td><td>+0.2<small>−1.2…+1.4</small></td><td class="up">+0.8 ↑<small>+0.1…+1.5</small></td><td class="down">−0.8 ↓ *<small>−1.4…−0.2</small></td></tr>
+<tr class="section"><td colspan="5">Large API model · Cohere Embed v4, 1536 dims</td></tr>
+<tr><td>Tuned blend + BM25</td><td>0.0<small>chose vector only</small></td><td>+0.2<small>−1.2…+1.4</small></td><td class="up">+0.8 ↑<small>+0.1…+1.5</small></td><td class="down">−0.8 ↓ *<small>−1.4…−0.2</small></td></tr>
 <tr><td>Equal-weight RRF + BM25</td><td class="down">−12.5 ↓<small>−14.5…−10.6</small></td><td class="down">−2.9 ↓<small>−5.1…−0.6</small></td><td>−1.1<small>−2.2…+0.1</small></td><td class="down">−1.2 ↓<small>−2.0…−0.5</small></td></tr>
 <tr><td>Cohere Rerank 3.5, top 50</td><td class="down">−4.1 ↓<small>−6.0…−2.3</small></td><td>−0.4<small>−2.8…+1.9</small></td><td class="down">−1.9 ↓<small>−3.3…−0.4</small></td><td>−0.4<small>−1.1…+0.3</small></td></tr>
 </tbody>
 </table>
 
-<p class="caption">↑ / ↓: 95% paired bootstrap interval above / below zero · * SCIDOCS has no dev questions, so its blend weight is an untuned 0.5 · results/summary.md</p>
+<p class="caption">↑ / ↓: the 95% confidence range is entirely above / below zero, so it isn't noise · * SCIDOCS has no tuning questions, so its blend weight stayed at 0.5 · results/summary.md</p>
 
 <!--
-Two clicks: the small local model first, then the frontier model. Small local model: a tuned blend beats vector on three of four datasets,
-significantly, and never loses. Frontier model: equal-weight RRF, the tutorial default, never
+Two clicks: the small local model first, then the large API model. Small local model: a tuned blend beats vector on three of four datasets,
+beyond noise, and never loses. Large API model: equal-weight RRF, the tutorial default, never
 beats vector and loses significantly on three datasets; a tuned blend wins only on NFCorpus
-(+0.8). SCIDOCS shows why tuning matters: with no dev questions the blend used 0.5 and lost.
-No rerank arm beat vector significantly on any dataset (SciFact's best was +0.4, inside the noise). Baselines (vector alone): small 38.0 / 72.0 / 33.8 / 19.6;
-frontier 53.9 / 77.5 / 40.1 / 20.6. Weights were tuned on each dataset's dev questions only.
+(+0.8). SCIDOCS shows why tuning matters: with no tuning questions the blend stayed at 0.5 and lost.
+No reranked method beat vector search beyond noise on any dataset (SciFact's best was +0.4, inside the noise). Baselines (vector alone): small 38.0 / 72.0 / 33.8 / 19.6;
+large API model 53.9 / 77.5 / 40.1 / 20.6. Weights were tuned on each dataset's separate tuning questions only.
 -->
 
 ---
@@ -649,39 +675,39 @@ frontier 53.9 / 77.5 / 40.1 / 20.6. Weights were tuned on each dataset's dev que
 | bge-small alone · local, open source | 38.0 | 72.0 | 33.8 | 19.6 |
 | **bge-small + BM25, tuned blend · all local** | **39.2** | **74.2** | **35.9** | 19.8 |
 | bge-small + `ts_rank_cd`, tuned blend · core PostgreSQL only | 37.9 | 72.4 | 34.4 | 16.0 ↓ |
-| Cohere Embed v4 alone · frontier API | 53.9 | 77.5 | 40.1 | 20.6 |
-| **Share of the gap closed by BM25** | 8% | **39%** | **33%** | not significant |
+| Cohere Embed v4 alone · large API model | 53.9 | 77.5 | 40.1 | 20.6 |
+| **Share of the gap closed by BM25** | 8% | **39%** | **33%** | within noise |
 
-PostgreSQL, BM25, and a 384-dimension model on one laptop, no API calls: adding keyword search closes **a third or more of the gap** to a frontier model on SciFact and NFCorpus. Without BM25's IDF, `ts_rank_cd` gained nothing significant.
+PostgreSQL, BM25, and a 384-dimension model on one laptop, no API calls: adding keyword search closes **a third or more of the gap** to the large API model on SciFact and NFCorpus. Without BM25's rare-word weighting, `ts_rank_cd` gained nothing beyond noise.
 
 <!--
 The honest framing: a better embedding model beats hybrid on a small one. But if you run local
 or open-source models for cost, privacy, or latency, BM25 in PostgreSQL is cheap and measurably
 helps. Live example (NFCorpus): "Vitamin D: Shedding some light on the new recommendations",
 small vector 77, BM25 65, tuned blend 97, Embed v4 alone 71. The ts_rank_cd row (08f) is core
-PostgreSQL only, weight tuned on dev: -0.1, +0.4, +0.7, none significant; SCIDOCS, untuned at 0.5,
-lost 3.6 (significant). It also costs 137 ms p50 on FiQA, against 7.3 ms for the BM25 blend.
+PostgreSQL only, weight tuned on tuning questions: -0.1, +0.4, +0.7, none beyond noise; SCIDOCS, not tuned, at 0.5,
+lost 3.6 (beyond noise). It also costs 137 ms (median) on FiQA, against 7.3 ms for the BM25 blend.
 -->
 
 ---
 
 ## Rerank: measure it too · FiQA
 
-| Candidates sent to Cohere Rerank 3.5 | NDCG@10 | Recall@50 | p50 |
+| What Cohere Rerank 3.5 reorders | NDCG@10 | Recall@50 | Median |
 | --- | ---: | ---: | ---: |
 | none: vector alone | **53.9** | 78.5 | **3.5 ms** |
 | vector top 50 | 49.7 | 78.5 | 417 ms |
 | RRF · BM25 top 50 | 50.4 | 75.2 | 1,093 ms |
 | vector ∪ BM25, up to 100 | 49.0 | 76.5 | 1,208 ms |
 
-It lifts 403b from #26 to #2, but puts a known answer first on 47.5% of questions against 53.9% for Embed v4 alone. On no dataset did a reranked arm beat vector by more than noise.
+It lifts 403b from #26 to #2, but puts a known answer first on 47.5% of questions against 53.9% for Embed v4 alone. On no dataset did a reranked method beat vector search by more than noise.
 
-- A reranker reads the question and each candidate **together**, but can only reorder what the lists found: Recall@50 is its ceiling.
-- It runs **outside PostgreSQL**: a network call per question, and the candidates' text leaves the database.
+- A reranker reads the question and each result **together**, but can only reorder what the lists found: Recall@50 is its ceiling.
+- It runs **outside PostgreSQL**: a network call per question, and the results' text leaves the database.
 
 <!--
 Not a bug: rerank scores separate answers from non-answers (0.55 vs 0.26 on average). On this
-benchmark, this embedding model is simply better at the top ranks than this reranker. p50 here
+benchmark, this embedding model is simply better at the top ranks than this reranker. Latency here
 was measured with 8 concurrent calls from a laptop. Models improve; measure the pair you use.
 -->
 
@@ -689,11 +715,11 @@ was measured with 8 concurrent calls from a laptop. Models improve; measure the 
 
 ## Storage: fewer bits or fewer dimensions? · FiQA
 
-| Index on `embedding` | Bytes per vector | HNSW size | NDCG@10 | p50 ms |
+| Index on `embedding` | Bytes per vector | HNSW size | NDCG@10 | Median ms |
 | --- | ---: | ---: | ---: | ---: |
 | `vector(1536)` | 6,148 | 450 MB | 53.9 | 3.5 |
 | `halfvec(1536)` expression index | 3,080 | 225 MB | 53.7 | 3.4 |
-| `binary_quantize()` + rescore 200 | 200 | 28 MB | 54.1 | 3.3 |
+| `binary_quantize()`, then re-sort 200 by full vector | 200 | 28 MB | 54.1 | 3.3 |
 | first 1024 dims, `subvector()` | 4,104 | **450 MB** | 53.4 | 2.9 |
 | first 512 dims | 2,056 | 150 MB | 51.8 ↓ | 2.2 |
 | first 256 dims | 1,032 | 75 MB | 49.3 ↓ | 1.7 |
@@ -722,19 +748,19 @@ candidates and re-orders them by exact cosine on the full vectors.
 
 | They show | They don't show |
 | --- | --- |
-| Which arm ranks judged answers higher on four public datasets | That the same holds for your data |
+| Which method ranks known answers higher on four public datasets | That the same holds for your data |
 | The pitfalls, reproduced with real plans | Production latency: this is one laptop, one client |
-| Relative cost of each arm on up to 57,638 documents | Behavior at 50 million rows or under concurrency |
+| Relative cost of each method on up to 57,638 documents | Behavior at 50 million rows or under concurrency |
 | This embedding and rerank model pair | Future models: they improve, and results depend on the model versions used |
 | A public benchmark | That the models never saw similar text in training |
-| Two embedding models, one reranker | How other models behave; SCIDOCS blends are untuned (no dev split) |
+| Two embedding models, one reranker | How other models behave; SCIDOCS blends aren't tuned (no tuning questions) |
 | English questions, word matching | Multilingual queries or phrase search (`<->`) |
-| Boost and link-expansion patterns | Their effect: BEIR has no dates, popularity, or links |
+| Boost and link-expansion patterns | Their effect: these datasets have no dates, popularity, or links |
 
-BEIR judgments are incomplete: an unjudged document can be a good answer and still count as a miss.
+The judgments are incomplete: an unjudged document can be a good answer and still count as a miss.
 
 <!--
-Every arm is penalized equally by unjudged answers. Compare arms against each other, not
+Every method is penalized equally by unjudged answers. Compare methods against each other, not
 against another benchmark's numbers.
 -->
 
@@ -744,9 +770,9 @@ against another benchmark's numbers.
 
 ## Three things to take home
 
-# Rank words with BM25.<br>Blend, tuned on held-out questions.<br>Hybrid pays most on smaller models.
+# Rank words with BM25.<br>Blend, tuned on separate questions.<br>Hybrid pays most on smaller models.
 
-Local model + BM25: **+1.2 to +2.1 NDCG@10 on three of four datasets**. Frontier model: equal-weight RRF never won, not even on FiQA's 177 questions with a number or acronym (vector 57.7, RRF 46.5). **Measure on your own questions before you choose.**
+Local model + BM25: **+1.2 to +2.1 NDCG@10 on three of four datasets**. Large API model: equal-weight RRF never won, not even on FiQA's 177 questions with a number or acronym (vector 57.7, RRF 46.5). **Measure on your own questions before you choose.**
 
 <!--
 Keyword search earns its place for exact identifiers (403b/401k), as a required-term filter
@@ -802,38 +828,7 @@ Shayon Sanyal · linkedin.com/in/shayonsanyal
 [github.com/shayons/talks](https://github.com/shayons/talks)
 
 <!--
-Six minutes for questions. Appendix: operating the workload and references.
--->
-
---- | --- |
-| **HNSW build** | `maintenance_work_mem` (graph must fit), parallel workers, `m`, `ef_construction`, index size |
-| **HNSW search** | `ef_search` ≥ LIMIT, filtered recall, `iterative_scan`, `max_scan_tuples` |
-| **Full text** | OR vs AND queries, match counts, `ts_rank_cd` cost on common terms, BM25 availability |
-| **Embeddings** | Model id per column, input types, re-embedding on text change, quota and throttling |
-| **Functions** | Inner plans with `auto_explain`; `plan_cache_mode` for optional filters |
-| **Evaluation** | Re-run the question set after every change; keep per-question wins and losses |
-
-<!--
-No universal ef_search-to-recall table or row-count cutoff is established by this lab.
--->
-
----
-
-<!-- _class: diagram-slide -->
-
-## Appendix · FiQA scoreboard, every arm
-
-![FiQA scoreboard: binary 54.1, tuned blend 53.9 (it chose pure vector), vector 53.9 and halfvec 53.7 lead; every reranked and RRF arm scores lower; the pitfall arms score under 6](assets/ui-scoreboard.png)
-
-<p class="caption">Bar: NDCG@10 · line: Recall@50 · laptop latency, rerank rows include Bedrock calls · results/scoreboard-fiqa.md</p>
-
-<!--
-Read it top down. On FiQA, one Embed v4 vector query (53.9, 3.5 ms) matches or beats every
-hybrid and every reranked variant; binary + rescore (54.1) is the same within noise, and the
-tuned blend chose w = 1.0, pure vector. RRF with BM25 beats vector on 98 questions and loses on
-325. Even on the 177 questions that contain a number or an acronym, vector wins (57.7 vs 46.5).
-The pitfalls sit at the bottom: adding scores 5.6, all-words 4.3, concatenation 2.9,
-ts_rank_cd any-word 2.8.
+Six minutes for questions. The live UI's Scoreboard tab shows every method on every dataset.
 -->
 
 ---
