@@ -49,7 +49,7 @@ Sources: `hybrid-lab/results/summary.md` and `results/scoreboard-*.md`.
 | RRF's k matters little | k = 5 to 200 moves NDCG@10 by at most 4.3 (FiQA, Embed v4), 1.4 elsewhere; no k makes equal-weight RRF beat Embed v4 alone | High (sensitivity on test, not tuned) |
 | Without BM25, the keyword side adds almost nothing | `ts_rank_cd` + bge-small, tuned blend: −0.1 / +0.4 / +0.7 (none significant); SCIDOCS −3.6 not tuned; 137 ms p50 on FiQA | High |
 | Query shape didn't decide it | FiQA's 177 questions with a number or acronym: vector 57.7, RRF (BM25) 46.5 | High for FiQA |
-| One statement runs the two lists in sequence | No Gather node; `08b` p50 8.2 ms ≈ BM25 5.2 + vector 3.5 | High |
+| One statement runs the two lists in sequence | No Gather node; `08b_hybrid_rrf_bm25.sql` p50 8.2 ms ≈ BM25 5.2 + vector 3.5 | High |
 
 Do not say:
 
@@ -68,10 +68,10 @@ Do not say:
 | Elapsed | Slides | What happens | Land this |
 | --- | --- | --- | --- |
 | 0:00–5:00 | 1–6 | Hook, bio, how we measure, the four datasets, stack | Keyword misses paraphrases, vectors blur exact terms; 2,271 questions with known answers; four kinds of question |
-| 5:00–13:30 | 7–11 | VS Code: `01`, `03`, `04`, `05`, `06` | AND matches nothing; `ts_rank_cd` has no IDF; BM25 in Postgres; vector 53.9 |
-| 13:30–21:00 | 12–16 | `07a`, `08a`, `08c`, knobs | Adding scores 5.6 vs RRF 33.8 on the same lists; the blend and its weight |
+| 5:00–13:30 | 7–11 | VS Code: `01_schema.sql`, `03_keyword_and.sql`, `04_keyword_or.sql`, `05_bm25.sql`, `06_vector.sql` | AND matches nothing; `ts_rank_cd` has no IDF; BM25 in Postgres; vector 53.9 |
+| 13:30–21:00 | 12–16 | `07a_naive_sum.sql`, `08a_hybrid_rrf.sql`, `08c_hybrid_blend.sql`, knobs | Adding scores 5.6 vs RRF 33.8 on the same lists; the blend and its weight |
 | 21:00–26:00 | 17 | UI on NFCorpus, then FiQA 403b | Vitamin D: blend 97 vs Embed v4 71; 403b: BM25 #1, vector #26 |
-| 26:00–32:00 | 18–21 | Embeddings, `09`, `11`, boost and expand | 1 of 10 rows; iterative scan; the function's own settings; two more patterns |
+| 26:00–32:00 | 18–21 | Embeddings, `09_filtered_hybrid.sql`, `11_hybrid_function.sql`, boost and expand | 1 of 10 rows; iterative scan; the function's own settings; two more patterns |
 | 32:00–38:30 | 22–25 | Results table, smaller model, rerank, storage | Hybrid pays on a small model; equal-weight RRF never paid; rerank didn't |
 | 38:30–41:30 | 26–28 | Limits, takeaways, take it home | Measure on your data; the skill |
 | 41:30–44:00 | | Buffer | |
@@ -145,26 +145,26 @@ rebuild from `py/1_load.py`, `py/2_embed.py`, `py/2b_embed_local.py` and
 6. **Stack.** Two embedding models on purpose: a frontier API model and a 384-dimension
    open-source model on the laptop. The database side is all open source, and the fully open
    path (bge-small + BM25) is where hybrid pays most.
-7. **Schema (`01`).** Generated `tsvector` can't drift; embeddings can. One column per model.
-8. **Pitfall 1 (`03`).** Run it: `&` between every word. 405 of 648 questions match nothing.
-9. **Any word (`04`).** Recall doubles, NDCG falls to 2.8. 10,460 posts match; `ts_rank_cd`
+7. **Schema (`01_schema.sql`).** Generated `tsvector` can't drift; embeddings can. One column per model.
+8. **Pitfall 1 (`03_keyword_and.sql`).** Run it: `&` between every word. 405 of 648 questions match nothing.
+9. **Any word (`04_keyword_or.sql`).** Recall doubles, NDCG falls to 2.8. 10,460 posts match; `ts_rank_cd`
    scores every one: 81 ms. "No IDF: 'fund' counts as much as 'rainy-day'." If someone
    reads the EXPLAIN: the planner chose a Seq Scan; the GIN scan alone is about 3 ms.
-10. **BM25 (`05`).** 23.6, exactly BEIR's published BM25. Top 50 in 0.27 ms, because the
+10. **BM25 (`05_bm25.sql`).** 23.6, exactly BEIR's published BM25. Top 50 in 0.27 ms, because the
    index doesn't score every match.
-11. **Vector (`06`).** 53.9 at 3.5 ms p50. Point at `SET hnsw.ef_search = 100`: with the
+11. **Vector (`06_vector.sql`).** 53.9 at 3.5 ms p50. Point at `SET hnsw.ef_search = 100`: with the
     default 40, LIMIT 50 returns 40 rows.
-12. **Pitfall 2 (`07a`, `07b`).** Keyword scores 1.70–5.40, cosine 0.478–0.598. Adding them
+12. **Pitfall 2 (`07a_naive_sum.sql`, `07b_concat_dedupe.sql`).** Keyword scores 1.70–5.40, cosine 0.478–0.598. Adding them
     lets keyword decide: 5.6. Stacking lists: 2.9. RRF on the same lists: 33.8. Three
     clicks: the two score-mixing rows, then RRF, then the punchline.
 13. **Fuse ranks.** Question 8512, three real top 10s. Click 1: the known answer leaves BM25
     #4 and vector #9 and lands at fused #1 (1/64 + 1/69). Click 2: each list's own #1 drops
     to #9 and #10, and the rest fills in. "Agreement wins."
-14. **RRF is a full outer join (`08a`).** One statement, two indexes. 150 ms with
+14. **RRF is a full outer join (`08a_hybrid_rrf.sql`).** One statement, two indexes. 150 ms with
     `ts_rank_cd`, 8.2 ms with BM25. The abstract says "parallel execution": inside one
     statement the two lists run in sequence (no Gather node). For concurrency, two queries on
     two connections, fused in the application.
-15. **Blend (`08c`).** RRF throws away how confident each list is. Min-max normalize each
+15. **Blend (`08c_hybrid_blend.sql`).** RRF throws away how confident each list is. Min-max normalize each
     list per question, then weight. The weight is chosen on tuning questions only. On FiQA the
     tuning chose 1.0, pure vector: "the data is allowed to say don't blend."
 16. **Knobs.** Depth, k, weights, `ef_search`. k measured from 5 to 200: it moves NDCG@10
@@ -172,10 +172,10 @@ rebuild from `py/1_load.py`, `py/2_embed.py`, `py/2b_embed_local.py` and
 17. **Live UI.** See the demo script below.
 18. **Text to vector.** Input types; one model per column; bge-small took about an hour on
     the laptop CPU for FiQA, Embed v4 35 minutes behind a quota.
-19. **Pitfall 3 (`09`).** Run it: 1 of 10 rows, "Rows Removed by Filter: 39" (1 + 39 = 40,
+19. **Pitfall 3 (`09_filtered_hybrid.sql`).** Run it: 1 of 10 rows, "Rows Removed by Filter: 39" (1 + 39 = 40,
     the `ef_search`). Relaxed iterative scan: 10 of 10. `heloc`: GIN plus a sort. The split
     varies between index builds; an earlier build returned 2 of 10.
-20. **Similar AND contains (`11`).** The function carries its settings. `plan_cache_mode`
+20. **Similar AND contains (`11_hybrid_function.sql`).** The function carries its settings. `plan_cache_mode`
     came from measurement: planned generically, the vector list became a sequential scan,
     197 ms instead of 73 ms.
 21. **Boost and expand.** The abstract's advanced techniques, as SQL on top of
@@ -233,7 +233,7 @@ UI, slide 17 (about five minutes):
    known answers; that is all the audience needs to track.
 2. Hover answer letter A, then B and C, across the columns: the blend puts all three known
    answers in its top ranks because both lists agree on them.
-3. Open **SQL** on the blend column: `08e`, the same query as `08c` with the local column.
+3. Open **SQL** on the blend column: `08e_hybrid_blend_local.sql`, the same query as `08c_hybrid_blend.sql` with the local column.
    The dimmed part above the marker is exploration; the part below is what ran.
 4. Optional: under **More methods**, tick "Tuned blend (ts_rank_cd + bge-small)" and search
    again. It scores 77, the same as bge-small alone; the BM25 blend scored 97. "Same fusion,
@@ -295,7 +295,7 @@ so no NDCG appears.
   a tuned blend with BM25 did, beyond noise, on three of four datasets. With the frontier
   model, equal-weight RRF never did. That is the point of measuring.
 - **"Does PostgreSQL run the two searches in parallel?"** Not inside one statement: the plan
-  has no Gather node, and `08b`'s 8.2 ms is about BM25's 5.2 plus vector's 3.5. Run two
+  has no Gather node, and `08b_hybrid_rrf_bm25.sql`'s 8.2 ms is about BM25's 5.2 plus vector's 3.5. Run two
   queries on two connections if the latency matters.
 - **"How many dimensions should I use?"** Measure on your data, but in this lab 1024 was
   close to free in quality (−0.3 to −1.2) and saved no index space; 512 and 256 lost 2 and 5

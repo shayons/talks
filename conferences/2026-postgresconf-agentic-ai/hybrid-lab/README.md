@@ -43,12 +43,12 @@ interval above / below zero. Full table: [`results/summary.md`](results/summary.
   ([`results/k_sweep.md`](results/k_sweep.md)).
 - **The reranker never beat vector search** by more than noise on any dataset.
 - **Quantize before you truncate.** Embed v4's shorter outputs are prefixes of its 1536
-  vector, so `sql/12c`-`12e` search 1024, 512, and 256 dimensions of the stored column. 1024
+  vector, so `12c_dims_1024.sql` to `12e_dims_256.sql` search 1024, 512, and 256 dimensions of the stored column. 1024
   costs little but saves no HNSW space (one vector per 8 KB page either way); 512 and 256
   shrink the index 3× and 6× and lose 1.6 to 5.5 NDCG@10 on every dataset. `halfvec` and
   binary + rescore kept quality within noise ([`results/dimensions.md`](results/dimensions.md)).
 - **BM25 pays more on weaker vectors, including fewer dimensions.** Embed v4 cut to 256
-  dimensions plus BM25 (`sql/08g`) gained 1.9 to 3.5 NDCG@10 on three datasets and won back
+  dimensions plus BM25 (`08g_hybrid_blend_256.sql`) gained 1.9 to 3.5 NDCG@10 on three datasets and won back
   46–64% of what truncation cost.
 - **Keyword search still earns its place** for exact identifiers ("Employer rollover from 403b
   to 401k?": BM25 #1, Embed v4 #26) and for "similar AND contains this word" (`sql/09`,
@@ -133,13 +133,13 @@ view. Run a file with SQLTools (Cmd+E Cmd+E), or select one statement and run ju
 | `08a_hybrid_rrf.sql` | Reciprocal Rank Fusion in one statement |
 | `08b_hybrid_rrf_bm25.sql` | The same fusion with BM25 as the keyword list |
 | `08c_hybrid_blend.sql` | A normalized score blend, its weight tuned on dev questions |
-| `06b`, `08d`, `08e` | Vector, RRF, and blend with the small local model's column |
+| `06b_vector_local.sql`, `08d_hybrid_rrf_local.sql`, `08e_hybrid_blend_local.sql` | Vector, RRF, and blend with the small local model's column |
 | `08f_hybrid_blend_native_local.sql` | The blend with core PostgreSQL's `ts_rank_cd` instead of BM25 |
 | `09_filtered_hybrid.sql` | "Similar AND contains a keyword": filters, HNSW, iterative scans |
 | `10_scoreboard.sql` | NDCG@10 and Recall@50 for every method, computed in SQL |
 | `11_hybrid_function.sql` | `hybrid_search()`: the take-home function |
 | `12a_halfvec.sql`, `12b_binary.sql` | Half-precision and 1-bit indexes, measured |
-| `12c`, `12d`, `12e` | Embed v4's first 1024, 512, and 256 dimensions, through `subvector()` indexes |
+| `12c_dims_1024.sql`, `12d_dims_512.sql`, `12e_dims_256.sql` | Embed v4's first 1024, 512, and 256 dimensions, through `subvector()` indexes |
 | `08g_hybrid_blend_256.sql` | The tuned blend with Embed v4's first 256 dimensions |
 | `demo_questions.sql` | The stage questions the UI lists, per dataset |
 
@@ -149,7 +149,7 @@ query below it is what the evaluator and the UI execute, byte for byte.
 ## The UI
 
 `uv run hybrid-lab` serves a single page at http://127.0.0.1:8018. Pick a question, choose
-a dataset in the header, pick a question, choose arms, and compare their top 10 side by side,
+a dataset in the header, pick a question, choose methods, and compare their top 10 side by side,
 one card per method. Known answers get a green row and a letter (A, B, C) that follows the
 document across cards; hover a row to highlight the same document everywhere. The card with
 the single highest NDCG@10 is outlined in green and marked Highest. Hybrid rows show each
@@ -189,4 +189,4 @@ iterative scans, the local-model arms, the API with Bedrock mocked, and the UI i
 - Cormack, Clarke and Büttcher, *Reciprocal Rank Fusion outperforms Condorcet and individual
   rank learning methods*, SIGIR 2009.
 - Bruch, Gai and Ingber, *An Analysis of Fusion Functions for Hybrid Retrieval*, ACM TOIS 2023:
-  the normalized convex combination in `08c`.
+  the normalized convex combination in `08c_hybrid_blend.sql`.

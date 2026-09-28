@@ -169,6 +169,23 @@ section.takeaway p { color: var(--text-2); font-size: 26px; max-width: 86%; line
 section.thanks { justify-content: center; text-align: center; }
 section.thanks h1 { font-size: 96px; }
 section.thanks p { color: var(--text-2); font-size: 24px; }
+section.thanks .thanks-contact {
+  display: flex; align-items: center; justify-content: center; gap: 28px; margin-top: 36px;
+  text-align: left;
+}
+section.thanks .thanks-contact img {
+  width: 168px; height: 168px; padding: 10px; background: #fff; border-radius: 14px;
+}
+section.thanks .thanks-contact p { margin: 4px 0; font-size: 22px; }
+section.thanks .thanks-contact .name { color: var(--text); font-weight: 600; }
+
+/* A slide's SQL file, set after its title. */
+.file {
+  display: inline-block; margin-left: 10px; padding: 4px 12px; border-radius: 8px;
+  background: var(--card-2); color: var(--text); font: 500 0.5em var(--mono);
+  letter-spacing: 0; vertical-align: middle; white-space: nowrap;
+}
+br + .file { margin: 8px 0 0; }
 
 /* ------ Code-first slides ------ */
 section.code-first h2 { font-size: 34px; margin-bottom: 16px; }

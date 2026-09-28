@@ -18,7 +18,7 @@ transition: fade 250ms
 ## Combining Vector and Full-Text for Real-World Applications
 
 <div class="byline">
-Shayon Sanyal, Principal WW PostgreSQL Specialist SA
+Shayon Sanyal, Principal Worldwide PostgreSQL Specialist SA
 </div>
 
 <div class="meta">
@@ -69,7 +69,7 @@ Code, and 403b, where vector search ranks the only answer #26."
 
 # Shayon Sanyal
 
-**Principal WW PostgreSQL Specialist SA**
+**Principal Worldwide PostgreSQL Specialist SA**
 
 I help teams build on PostgreSQL, from relational applications to retrieval and agent workflows.
 
@@ -168,7 +168,7 @@ PostgreSQL 18's extension_control_path, not installed into Homebrew.
 
 <!-- _class: code-first -->
 
-## One row, three representations `01_schema.sql`
+## One row, three representations <span class="file">01_schema.sql</span>
 
 ```sql
 CREATE TABLE docs (
@@ -195,7 +195,7 @@ workers. m = 16 and ef_construction = 64 are pgvector's defaults.
 
 <!-- _class: code-first -->
 
-## Pitfall 1: every word must match `03`
+## Pitfall 1: every word must match <span class="file">03_keyword_and.sql</span>
 
 ```sql
 SELECT websearch_to_tsquery('english', 'Where should I park my rainy-day / emergency fund?');
@@ -216,7 +216,7 @@ use exactly this call. Fine for a search box of product codes; wrong for questio
 
 <!-- _class: code-first -->
 
-## Match any word, rank the matches `04`
+## Match any word, rank the matches <span class="file">04_keyword_or.sql</span>
 
 ```sql
 WITH question AS (
@@ -235,7 +235,7 @@ Recall@50 (known answers anywhere in the top 50) doubles, 6.7 → 14.6, but NDCG
 `ts_rank_cd` scores every one of them: **81 ms**.
 
 <!--
-EXPLAIN in 04: the planner picks a Seq Scan here. Forcing the GIN bitmap scan finds the 10,460
+EXPLAIN in 04_keyword_or.sql: the planner picks a Seq Scan here. Forcing the GIN bitmap scan finds the 10,460
 matches in about 3 ms and the query takes about 40 ms; ranking every match is the cost either
 way. Medians of 9 runs.
 ts_rank_cd scores each post alone: no corpus statistics, so "fund" weighs as much as "1099".
@@ -245,7 +245,7 @@ ts_rank_cd scores each post alone: no corpus statistics, so "fund" weighs as muc
 
 <!-- _class: code-first -->
 
-## `ts_rank_cd` is not BM25 `05`
+## `ts_rank_cd` is not BM25 <span class="file">05_bm25.sql</span>
 
 ```sql
 SELECT id, -(body <@> to_bm25query(:'question', 'docs_body_bm25')) AS bm25
@@ -273,7 +273,7 @@ platform before depending on it.
 
 <!-- _class: code-first -->
 
-## Vector search: the top 50 by meaning `06`
+## Vector search: the top 50 by meaning <span class="file">06_vector.sql</span>
 
 ```sql
 SET hnsw.ef_search = 100;          -- default 40: LIMIT 50 would silently return 40
@@ -297,7 +297,7 @@ and index plans agree.
 
 ---
 
-## Pitfall 2: adding scores from different scales `07a` `07b`
+## Pitfall 2: adding scores from different scales<br><span class="file">07a_naive_sum.sql</span> <span class="file">07b_concat_dedupe.sql</span>
 
 | Rainy-day question, each list's top 50 | min | max |
 | --- | ---: | ---: |
@@ -399,7 +399,7 @@ comes from Cormack, Clarke and Büttcher (SIGIR 2009).
 
 <!-- _class: code-first dense -->
 
-## RRF is a full outer join `08a`
+## RRF is a full outer join <span class="file">08a_hybrid_rrf.sql</span>
 
 ```sql
 WITH keyword AS (
@@ -421,7 +421,7 @@ SELECT coalesce(k.id, v.id) AS id,
  LIMIT 10;
 ```
 
-One statement, two indexes (GIN and HNSW). Median **150 ms** with `ts_rank_cd`; **8.2 ms** with BM25 (`08b`). The two lists run **one after the other** in one backend process, not in parallel: the plan has no Gather node, and 8.2 ms is about BM25's 5.2 plus vector's 3.5.
+One statement, two indexes (GIN and HNSW). Median **150 ms** with `ts_rank_cd`; **8.2 ms** with BM25 (`08b_hybrid_rrf_bm25.sql`). The two lists run **one after the other** in one backend process, not in parallel: the plan has no Gather node, and 8.2 ms is about BM25's 5.2 plus vector's 3.5.
 
 <!--
 The lab file reads the question from the active_query view and exposes weights in a settings
@@ -435,7 +435,7 @@ run them concurrently, send two queries on two connections and fuse in the appli
 
 <!-- _class: code-first dense -->
 
-## Blend scores the right way `08c`
+## Blend scores the right way <span class="file">08c_hybrid_blend.sql</span>
 
 ```sql
 keyword_norm AS (        -- per question: min-max to [0, 1]; semantic_norm is the same
@@ -496,7 +496,8 @@ a little (FiQA with Embed v4: 41.3 at k = 60, 45.4 at k = 5), still far below ve
 Question: "Vitamin D: Shedding some light on the new recommendations" (3 known answers).
 BM25 65, bge-small alone 77, tuned blend of the two 97, Cohere Embed v4 alone 71. Hover the
 answer letters to follow each paper across columns; the blend's rows show each paper's rank in
-both lists. Open SQL on the blend column: 08e, the same query as 08c with the local column.
+both lists. Open SQL on the blend column: 08e_hybrid_blend_local.sql, the same query as
+08c_hybrid_blend.sql with the local column.
 This is one question; the averages are on the next slides. Then switch the header to FiQA and
 open "Keyword wins" (403b to 401k) to show BM25 #1 against vector #26.
 -->
@@ -523,7 +524,7 @@ so no method can ever find it.
 
 <!-- _class: code-first -->
 
-## Pitfall 3: a filter is not a pre-filter `09`
+## Pitfall 3: a filter is not a pre-filter <span class="file">09_filtered_hybrid.sql</span>
 
 ```sql
 SELECT id FROM docs
@@ -549,7 +550,7 @@ HNSW for mortgage and GIN for heloc on its own; check EXPLAIN rather than assume
 
 <!-- _class: code-first -->
 
-## Similar to the question AND contains a word `11`
+## Similar to the question AND contains a word <span class="file">11_hybrid_function.sql</span>
 
 ```sql
 SELECT h.*, left(d.body, 60)
@@ -694,7 +695,7 @@ PostgreSQL, BM25, and a 384-dimension model on one laptop, no API calls: adding 
 The honest framing: a better embedding model beats hybrid on a small one. But if you run local
 or open-source models for cost, privacy, or latency, BM25 in PostgreSQL is cheap and measurably
 helps. Live example (NFCorpus): "Vitamin D: Shedding some light on the new recommendations",
-small vector 77, BM25 65, tuned blend 97, Embed v4 alone 71. The ts_rank_cd row (08f) is core
+small vector 77, BM25 65, tuned blend 97, Embed v4 alone 71. The ts_rank_cd row (08f_hybrid_blend_native_local.sql) is core
 PostgreSQL only, weight tuned on tuning questions: -0.1, +0.4, +0.7, none beyond noise; SCIDOCS, not tuned, at 0.5,
 lost 3.6 (beyond noise). It also costs 137 ms (median) on FiQA, against 7.3 ms for the BM25 blend.
 -->
@@ -737,7 +738,7 @@ was measured with 8 concurrent calls from a laptop. Models improve; measure the 
 **Quantize before you truncate.** Fewer bits kept NDCG within noise; 512 and 256 dims lost 1.6 to 5.5 points on every dataset. And 1024 dims saves no index space: an 8 KB page still holds one vector. If you do truncate, add BM25: at 256 dims it won back 46% to 64% of the loss on three datasets.
 
 <!--
-12a-12e; results/dimensions.md has all four datasets with paired intervals. Embed v4's
+12a_halfvec.sql to 12e_dims_256.sql; results/dimensions.md has all four datasets with paired intervals. Embed v4's
 output_dimension returns a prefix of the 1536 vector (Matryoshka-style; checked against the API:
 cosine 1.0000 between the 256/512/1024 outputs and the first N numbers), so one stored column
 serves every size through expression indexes on subvector(), with no re-embedding. Page math:
@@ -746,7 +747,7 @@ an HNSW entry is the vector plus its neighbor list. 1536 floats is about 6.3 KB 
 fits two. Changes vs 1536 (NDCG@10): 1024 -0.3 to -1.2; 512 -1.6 to -2.7; 256 -4.1 to -5.5,
 all significant except 1024 on FiQA and NFCorpus. halfvec -0.2 and binary +0.2 on FiQA are noise.
 Embed v4 at 256 dims still beats bge-small (384) by 11 points on FiQA; they tie on SciFact and
-NFCorpus. 256 dims + BM25, tuned blend (08g): wins back 64% / 51% / 46% of the 256-dim loss on
+NFCorpus. 256 dims + BM25, tuned blend (08g_hybrid_blend_256.sql): wins back 64% / 51% / 46% of the 256-dim loss on
 SciFact / NFCorpus / SCIDOCS (12% on FiQA, noise), with indexes of 75 + 16 MB on FiQA against
 450 MB for the full vector. Binary quantization keeps the sign of each dimension; the query takes 200 Hamming
 candidates and re-orders them by exact cosine on the full vectors.
@@ -835,9 +836,14 @@ embeddings, installs the function, and evaluates it with labeled or synthetic qu
 
 Which of your queries needs both words and meaning?
 
-Shayon Sanyal, linkedin.com/in/shayonsanyal
-
-[github.com/shayons/talks](https://github.com/shayons/talks)
+<div class="thanks-contact">
+<img src="assets/qr-linkedin.svg" alt="QR code: linkedin.com/in/shayonsanyal">
+<div>
+<p class="name">Shayon Sanyal</p>
+<p><a href="https://www.linkedin.com/in/shayonsanyal/">linkedin.com/in/shayonsanyal</a></p>
+<p><a href="https://github.com/shayons/talks">github.com/shayons/talks</a></p>
+</div>
+</div>
 
 <!--
 Six minutes for questions. The live UI's Scoreboard tab shows every method on every dataset.
