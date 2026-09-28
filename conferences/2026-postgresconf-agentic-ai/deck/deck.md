@@ -36,17 +36,20 @@ answers. Run of show and fallbacks: TALKING_POINTS.md. Demo: hybrid-lab/README.m
 ## Two questions. Two different misses.
 
 <div class="journey-grid">
-<div><span class="eyebrow">Keyword search misses</span><h3>“Where should I park my rainy-day / emergency fund?”</h3><p>The best answer is <strong>#2</strong> for vector search. Keyword search ranks it #29, BM25 #40, and requiring every word finds nothing.</p></div>
-<div><span class="eyebrow">Vector search misses</span><h3>“Employer rollover from 403b to 401k?”</h3><p>The only answer is <strong>#1</strong> for BM25 and <strong>#26</strong> for vector search. Exact identifiers are what keyword search is for.</p></div>
+<div><span class="eyebrow">Keyword search misses</span><h3>“How do I cancel my subscription?”</h3><p>The help page is titled <strong>“How to end your membership.”</strong> Not one word in common, so keyword search never sees it. Vector search matches it on meaning.</p></div>
+<div><span class="eyebrow">Vector search misses</span><h3>“AA batteries”</h3><p>To an embedding, <strong>AAA batteries</strong> look almost the same: close in meaning, wrong product. Keyword search matches the exact term.</p></div>
 </div>
 
 **Words find exact terms. Vectors find paraphrases.** Which one wins, and whether combining
 them helps, is a measurement, not a belief.
 
 <!--
-Both are real FiQA test questions, and both outcomes are measured in the lab. Read the first
-question aloud, then say what keyword search returned. Same for the second. Then: today every
-claim comes with a number.
+Everyday searches, not from the datasets. Checked in the lab: the subscription question and
+the help page share no word stems in PostgreSQL, and both bge-small and Embed v4 ranked the
+page first against "Cancel or change an order" and "Subscription plans and pricing". "AA
+batteries" scored AAA almost as high as AA: 0.832 vs 0.870 (bge-small), 0.518 vs 0.541
+(Embed v4). Close with: "You'll see real ones from the data: a rainy-day question in VS
+Code, and 403b, where vector search ranks the only answer #26."
 -->
 
 ---

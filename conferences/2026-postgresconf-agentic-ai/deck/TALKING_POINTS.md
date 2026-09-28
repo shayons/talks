@@ -67,7 +67,7 @@ Do not say:
 
 | Elapsed | Slides | What happens | Land this |
 | --- | --- | --- | --- |
-| 0:00–5:00 | 1–6 | Hook, bio, how we measure, the four datasets, stack | Two questions, two different misses; 2,271 questions with known answers; four kinds of question |
+| 0:00–5:00 | 1–6 | Hook, bio, how we measure, the four datasets, stack | Keyword misses paraphrases, vectors blur exact terms; 2,271 questions with known answers; four kinds of question |
 | 5:00–13:30 | 7–11 | VS Code: `01`, `03`, `04`, `05`, `06` | AND matches nothing; `ts_rank_cd` has no IDF; BM25 in Postgres; vector 53.9 |
 | 13:30–21:00 | 12–16 | `07a`, `08a`, `08c`, knobs | Adding scores 5.6 vs RRF 33.8 on the same lists; the blend and its weight |
 | 21:00–26:00 | 17 | UI on NFCorpus, then FiQA 403b | Vitamin D: blend 97 vs Embed v4 71; 403b: BM25 #1, vector #26 |
@@ -120,8 +120,13 @@ rebuild from `py/1_load.py`, `py/2_embed.py`, `py/2b_embed_local.py` and
 
 1. **Title.** "Everything today runs in one PostgreSQL 18.6 database on this laptop and is
    graded against known answers."
-2. **Two questions, two misses.** Rainy-day: vector ranks the best answer #2, keyword #29,
-   BM25 #40. 403b: BM25 #1, vector #26. "Which do you need? That's a measurement."
+2. **Two questions, two misses.** Everyday searches, not from the datasets. "Cancel my
+   subscription" shares no word with "How to end your membership": keyword search can't see
+   it, vector search matches the meaning. "AA batteries": to an embedding, AAA looks almost
+   the same. Ask the room who has hit either one. Then: "You'll see real ones from the data:
+   rainy-day in VS Code, and 403b, where vector search ranks the only answer #26. Which do
+   you need? That's a measurement." If asked whether the examples were checked: yes, in
+   PostgreSQL and with both models; the numbers are in the slide's presenter note.
 3. **About me.** Twenty seconds.
 4. **How we'll measure.** 2,271 test questions. FiQA is the running example. The other three
    were picked by a rule written down before measuring: under 30,000 documents, and BM25
