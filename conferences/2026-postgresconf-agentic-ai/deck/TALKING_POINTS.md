@@ -182,7 +182,8 @@ rebuild from `py/1_load.py`, `py/2_embed.py`, `py/2b_embed_local.py` and
     Small model: tuned blend up on
     three datasets, never down. Frontier model:
     equal-weight RRF down on three, never up; the tuned blend up only on NFCorpus, down on
-    SCIDOCS where it couldn't be tuned. Rerank never up.
+    SCIDOCS where it couldn't be tuned. Rerank never up. If asked about SciFact's "+0.0…":
+    the low end is +0.03, so it clears zero, but it is the weakest of the up arrows.
 23. **When hybrid pays.** "If you can use a better embedding model, do: it beats hybrid on a
     small one. If you run a small or local model, for cost, privacy or latency, BM25 in the
     same database closes a third or more of the gap on two of four datasets." Core
