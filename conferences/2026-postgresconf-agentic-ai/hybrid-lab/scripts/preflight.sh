@@ -10,6 +10,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 unset PGUSER PGHOST PGDATABASE PGPASSWORD PGPORT PGSERVICE
+unset VIRTUAL_ENV  # an activated venv from another project makes uv warn; uv uses .venv
 UI_URL="http://127.0.0.1:8018"
 
 step() { printf '\n==> %s\n' "$*"; }

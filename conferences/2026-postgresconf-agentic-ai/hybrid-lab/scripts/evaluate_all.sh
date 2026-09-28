@@ -5,6 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 unset PGUSER PGHOST PGDATABASE PGPASSWORD PGPORT PGSERVICE
+unset VIRTUAL_ENV  # an activated venv from another project makes uv warn; uv uses .venv
 
 for dataset in ${LAB_DATASETS:-fiqa scifact nfcorpus scidocs}; do
   echo "=== $dataset $(date +%H:%M:%S)"
