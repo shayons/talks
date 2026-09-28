@@ -18,6 +18,7 @@
   --blue: #2997ff;
   --green: #30d158;
   --red: #ff453a;
+  --orange: #ff6200;  /* re:Invent 2026 template accent1 */
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
   --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial,
     sans-serif;
@@ -133,7 +134,7 @@ footer {
 section.title { justify-content: center; text-align: center; }
 section.title h1 { font-size: 72px; line-height: 1.05; margin: 0 auto 16px; }
 section.title h2 {
-  color: var(--text-2); font-size: 32px; font-weight: 600; letter-spacing: -0.01em;
+  color: var(--orange); font-size: 32px; font-weight: 600; letter-spacing: -0.01em;
   max-width: 82%; margin: 0 auto;
 }
 section.title .byline { color: var(--text); font-size: 22px; font-weight: 500; margin-top: 48px; }
