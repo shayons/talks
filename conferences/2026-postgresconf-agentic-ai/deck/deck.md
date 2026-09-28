@@ -227,7 +227,7 @@ SELECT d.id, ts_rank_cd(d.tsv, q.tsq) AS score
 ```
 
 Recall@50 (known answers anywhere in the top 50) doubles, 6.7 → 14.6, but NDCG@10 **falls to
-2.8**: nothing makes rare words count more, so “fund” and “day” outweigh “rainy-day”. The rainy-day question matches **10,460 posts**, and
+2.8**: with no IDF, “fund” and “day” outweigh “rainy-day”. The rainy-day question matches **10,460 posts**, and
 `ts_rank_cd` scores every one of them: **81 ms**.
 
 <!--
@@ -250,9 +250,8 @@ SELECT id, -(body <@> to_bm25query(:'question', 'docs_body_bm25')) AS bm25
  LIMIT 50;
 ```
 
-BM25 counts rare words more (IDF), stops rewarding a repeated word after a few times, and
-adjusts for document length. Its index keeps those statistics and returns the top 50 **without
-scoring every match**.
+BM25 weighs rare terms up (IDF), saturates repeats, and normalizes for length. The index
+keeps the corpus statistics and returns the top 50 **without scoring every match**.
 23.6 is exactly BEIR's published BM25 score for FiQA (0.236).
 
 | Keyword method | NDCG@10 | Top 50, rainy-day question |
@@ -448,8 +447,8 @@ then weight them. It is what “adding scores” should have been in pitfall 2.
 
 | Weight `w` on vector, chosen on **separate tuning questions** | FiQA | SciFact | NFCorpus | SCIDOCS |
 | --- | ---: | ---: | ---: | ---: |
-| Cohere Embed v4 (large API model) | **1.0** | 0.70 | 0.70 | 0.5, not tuned |
-| bge-small (small local model) | 0.65 | 0.55 | 0.65 | 0.5, not tuned |
+| Cohere Embed v4 (frontier) | **1.0** | 0.70 | 0.70 | 0.5, not tuned |
+| bge-small (local) | 0.65 | 0.55 | 0.65 | 0.5, not tuned |
 
 <!--
 Bruch, Gai & Ingber, "An Analysis of Fusion Functions for Hybrid Retrieval", ACM TOIS 2023.
@@ -483,11 +482,11 @@ a little (FiQA with Embed v4: 41.3 at k = 60, 45.4 at k = 5), still far below ve
 
 ## Live · NFCorpus · all local except the last column
 
-# Small model + BM25 beat the large API model here
+# Small model + BM25 beat the frontier model here
 
 ![Hybrid search lab UI on NFCorpus: BM25 65, bge-small 77, tuned blend 97, Embed v4 71 NDCG@10](assets/ui-search.png)
 
-<p class="stage-url">localhost:8018 · pick NFCorpus · “Local hybrid beats the large API model”</p>
+<p class="stage-url">localhost:8018 · pick NFCorpus · “Local hybrid beats the frontier model”</p>
 
 <!--
 Question: "Vitamin D: Shedding some light on the new recommendations" (3 known answers).
@@ -648,7 +647,7 @@ the CYCLE clause for graphs with loops.
 <tr><td>Equal-weight RRF + BM25</td><td class="down">−3.1 ↓<small>−4.7…−1.5</small></td><td>+1.7<small>−0.9…+4.3</small></td><td class="up">+2.3 ↑<small>+1.0…+3.7</small></td><td>−0.3<small>−1.0…+0.5</small></td></tr>
 </tbody>
 <tbody data-marpit-fragment>
-<tr class="section"><td colspan="5">Large API model · Cohere Embed v4, 1536 dims</td></tr>
+<tr class="section"><td colspan="5">Frontier model · Cohere Embed v4, 1536 dims</td></tr>
 <tr><td>Tuned blend + BM25</td><td>0.0<small>chose vector only</small></td><td>+0.2<small>−1.2…+1.4</small></td><td class="up">+0.8 ↑<small>+0.1…+1.5</small></td><td class="down">−0.8 ↓ *<small>−1.4…−0.2</small></td></tr>
 <tr><td>Equal-weight RRF + BM25</td><td class="down">−12.5 ↓<small>−14.5…−10.6</small></td><td class="down">−2.9 ↓<small>−5.1…−0.6</small></td><td>−1.1<small>−2.2…+0.1</small></td><td class="down">−1.2 ↓<small>−2.0…−0.5</small></td></tr>
 <tr><td>Cohere Rerank 3.5, top 50</td><td class="down">−4.1 ↓<small>−6.0…−2.3</small></td><td>−0.4<small>−2.8…+1.9</small></td><td class="down">−1.9 ↓<small>−3.3…−0.4</small></td><td>−0.4<small>−1.1…+0.3</small></td></tr>
@@ -658,12 +657,12 @@ the CYCLE clause for graphs with loops.
 <p class="caption">↑ / ↓: the 95% confidence range is entirely above / below zero, so it isn't noise · * SCIDOCS has no tuning questions, so its blend weight stayed at 0.5 · results/summary.md</p>
 
 <!--
-Two clicks: the small local model first, then the large API model. Small local model: a tuned blend beats vector on three of four datasets,
-beyond noise, and never loses. Large API model: equal-weight RRF, the tutorial default, never
+Two clicks: the small local model first, then the frontier model. Small local model: a tuned blend beats vector on three of four datasets,
+beyond noise, and never loses. Frontier model: equal-weight RRF, the tutorial default, never
 beats vector and loses significantly on three datasets; a tuned blend wins only on NFCorpus
 (+0.8). SCIDOCS shows why tuning matters: with no tuning questions the blend stayed at 0.5 and lost.
 No reranked method beat vector search beyond noise on any dataset (SciFact's best was +0.4, inside the noise). Baselines (vector alone): small 38.0 / 72.0 / 33.8 / 19.6;
-large API model 53.9 / 77.5 / 40.1 / 20.6. Weights were tuned on each dataset's separate tuning questions only.
+frontier 53.9 / 77.5 / 40.1 / 20.6. Weights were tuned on each dataset's separate tuning questions only.
 -->
 
 ---
@@ -675,10 +674,10 @@ large API model 53.9 / 77.5 / 40.1 / 20.6. Weights were tuned on each dataset's 
 | bge-small alone · local, open source | 38.0 | 72.0 | 33.8 | 19.6 |
 | **bge-small + BM25, tuned blend · all local** | **39.2** | **74.2** | **35.9** | 19.8 |
 | bge-small + `ts_rank_cd`, tuned blend · core PostgreSQL only | 37.9 | 72.4 | 34.4 | 16.0 ↓ |
-| Cohere Embed v4 alone · large API model | 53.9 | 77.5 | 40.1 | 20.6 |
+| Cohere Embed v4 alone · frontier API | 53.9 | 77.5 | 40.1 | 20.6 |
 | **Share of the gap closed by BM25** | 8% | **39%** | **33%** | within noise |
 
-PostgreSQL, BM25, and a 384-dimension model on one laptop, no API calls: adding keyword search closes **a third or more of the gap** to the large API model on SciFact and NFCorpus. Without BM25's rare-word weighting, `ts_rank_cd` gained nothing beyond noise.
+PostgreSQL, BM25, and a 384-dimension model on one laptop, no API calls: adding keyword search closes **a third or more of the gap** to a frontier model on SciFact and NFCorpus. Without BM25's IDF, `ts_rank_cd` gained nothing beyond noise.
 
 <!--
 The honest framing: a better embedding model beats hybrid on a small one. But if you run local
@@ -772,7 +771,7 @@ against another benchmark's numbers.
 
 # Rank words with BM25.<br>Blend, tuned on separate questions.<br>Hybrid pays most on smaller models.
 
-Local model + BM25: **+1.2 to +2.1 NDCG@10 on three of four datasets**. Large API model: equal-weight RRF never won, not even on FiQA's 177 questions with a number or acronym (vector 57.7, RRF 46.5). **Measure on your own questions before you choose.**
+Local model + BM25: **+1.2 to +2.1 NDCG@10 on three of four datasets**. Frontier model: equal-weight RRF never won, not even on FiQA's 177 questions with a number or acronym (vector 57.7, RRF 46.5). **Measure on your own questions before you choose.**
 
 <!--
 Keyword search earns its place for exact identifiers (403b/401k), as a required-term filter

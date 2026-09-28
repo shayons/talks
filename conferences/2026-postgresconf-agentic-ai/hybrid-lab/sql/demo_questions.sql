@@ -20,7 +20,7 @@ SELECT query_id, label, reason, position
     ('fiqa', '988', 'Similar AND contains',
      'Pair with sql/09: must mention "mortgage" returns 1 of 10 rows without iterative scans.',
      4),
-    ('nfcorpus', 'PLAIN-307', 'Local hybrid beats the large API model',
+    ('nfcorpus', 'PLAIN-307', 'Local hybrid beats the frontier model',
      'NDCG@10: small vector 77, BM25 65, tuned blend 97; Embed v4 alone 71.',
      1),
     ('nfcorpus', 'PLAIN-3462', 'Olive oil',

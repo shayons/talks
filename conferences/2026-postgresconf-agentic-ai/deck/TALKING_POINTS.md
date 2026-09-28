@@ -9,7 +9,7 @@ Shayon Sanyal · Wednesday, September 30, 2026 · 10:30–11:20 EDT · Letterpre
 
 **Thesis, in one sentence:** hybrid search in PostgreSQL pays when you fuse correctly (BM25
 plus a blend tuned on separate tuning questions), and it pays most when your embedding model is
-small; with a large API model, the tutorial default of equal-weight RRF makes results worse.
+small; with a frontier model, the tutorial default of equal-weight RRF makes results worse.
 
 Three acts, all in one PostgreSQL 18.6 database on the laptop:
 
@@ -22,7 +22,7 @@ Three acts, all in one PostgreSQL 18.6 database on the laptop:
    `hybrid_search()` function that carries its own settings.
 3. **When hybrid pays (the gold table).** 2,271 test questions on four BEIR datasets, two
    embedding models, 95% paired bootstrap intervals. Small local model plus BM25: better on
-   three of four datasets. Large API model: equal-weight RRF never won; a tuned blend won once.
+   three of four datasets. Frontier model: equal-weight RRF never won; a tuned blend won once.
 
 The live demo is the NFCorpus Vitamin D question, where BM25 plus bge-small (all local)
 scores 97 and Cohere Embed v4 alone scores 71. It is one question; the gold table is the
@@ -37,7 +37,7 @@ Sources: `hybrid-lab/results/summary.md` and `results/scoreboard-*.md`.
 | Claim | Numbers | Confidence |
 | --- | --- | --- |
 | Small model + BM25, tuned blend, beats small model alone | FiQA +1.2, SciFact +2.1, NFCorpus +2.1 (all significant); SCIDOCS +0.2 (not significant) | High |
-| It closes part of the gap to the large API model | 8% FiQA, 39% SciFact, 33% NFCorpus | High |
+| It closes part of the gap to the frontier model | 8% FiQA, 39% SciFact, 33% NFCorpus | High |
 | Equal-weight RRF with Embed v4 loses to Embed v4 alone | −12.5 FiQA, −2.9 SciFact, −1.2 SCIDOCS (significant); −1.1 NFCorpus (not) | High |
 | Tuned blend with Embed v4 | +0.8 NFCorpus (significant); FiQA 0.0 (tuning chose pure vector); SciFact +0.2 (not); SCIDOCS −0.8 (not tuned, 0.5) | High |
 | Rerank 3.5 never beat Embed v4 alone significantly | vector top 50: −4.1 FiQA, −1.9 NFCorpus (significant); best anywhere +0.4 (SciFact, not significant) | High |
@@ -54,7 +54,7 @@ Do not say:
 
 - "Hybrid beats vector search." It depends on the model and the fusion; the table shows both
   directions.
-- "BM25 plus a small model beats a large API model." True on the demo question, false on
+- "BM25 plus a small model beats a frontier model." True on the demo question, false on
   average: bge-small + BM25 stays below Embed v4 alone on all four datasets.
 - "A tuned blend never loses." With no tuning questions (SCIDOCS) it ran not tuned and lost 0.8.
 - "Rerankers don't work." This reranker, with this embedding model, on these benchmarks.
@@ -67,7 +67,7 @@ Do not say:
 | Elapsed | Slides | What happens | Land this |
 | --- | --- | --- | --- |
 | 0:00–5:00 | 1–6 | Hook, bio, how we measure, the four datasets, stack | Two questions, two different misses; 2,271 questions with known answers; four kinds of question |
-| 5:00–13:30 | 7–11 | VS Code: `01`, `03`, `04`, `05`, `06` | AND matches nothing; `ts_rank_cd` doesn't weight rare words; BM25 in Postgres; vector 53.9 |
+| 5:00–13:30 | 7–11 | VS Code: `01`, `03`, `04`, `05`, `06` | AND matches nothing; `ts_rank_cd` has no IDF; BM25 in Postgres; vector 53.9 |
 | 13:30–21:00 | 12–16 | `07a`, `08a`, `08c`, knobs | Adding scores 5.6 vs RRF 33.8 on the same lists; the blend and its weight |
 | 21:00–26:00 | 17 | UI on NFCorpus, then FiQA 403b | Vitamin D: blend 97 vs Embed v4 71; 403b: BM25 #1, vector #26 |
 | 26:00–32:00 | 18–21 | Embeddings, `09`, `11`, boost and expand | 1 of 10 rows; iterative scan; the function's own settings; two more patterns |
@@ -127,7 +127,7 @@ rebuild from `py/1_load.py`, `py/2_embed.py`, `py/2b_embed_local.py` and
    papers they cite (SCIDOCS). BM25 reaches 89% of vector search on SciFact but 44% on FiQA:
    "one dataset would have told a different story." Don't claim why; the word-overlap numbers
    don't explain it.
-6. **Stack.** Two embedding models on purpose: a large API model and a 384-dimension
+6. **Stack.** Two embedding models on purpose: a frontier API model and a 384-dimension
    open-source model on the laptop. The database side is all open source, and the fully open
    path (bge-small + BM25) is where hybrid pays most.
 7. **Schema (`01`).** Generated `tsvector` can't drift; embeddings can. One column per model.
@@ -168,8 +168,8 @@ rebuild from `py/1_load.py`, `py/2_embed.py`, `py/2b_embed_local.py` and
     links two hops. Both run as written; neither is measured, because BEIR has no dates or
     links. Boost a larger pool than you show.
 22. **The gold table.** Read it row by row, and say what the arrows mean before reading any
-    number. Two clicks: small model, then large API model. Small model: tuned blend up on
-    three datasets, never down. Large API model:
+    number. Two clicks: small model, then frontier model. Small model: tuned blend up on
+    three datasets, never down. Frontier model:
     equal-weight RRF down on three, never up; the tuned blend up only on NFCorpus, down on
     SCIDOCS where it couldn't be tuned. Rerank never up.
 23. **When hybrid pays.** "If you can use a better embedding model, do: it beats hybrid on a
@@ -209,7 +209,7 @@ UI, slide 17 (about five minutes):
 
 1. Paste the Vitamin D link (`#d=nfcorpus&q=PLAIN-307`). Cards: BM25 65, bge-small 77,
    tuned blend · bge-small 97 (outlined in green, marked Highest), Embed v4 71. "Three cards
-   ran on this laptop with no API. The last one is the large API model." Green rows are the
+   ran on this laptop with no API. The last one is the frontier model." Green rows are the
    known answers; that is all the audience needs to track.
 2. Hover answer letter A, then B and C, across the columns: the blend puts all three known
    answers in its top ranks because both lists agree on them.
@@ -250,7 +250,7 @@ so no NDCG appears.
   whatever the model.
 - **"So should I not use RRF?"** Not with equal weights and a strong model without measuring
   it. RRF discards how confident each list is. With the small model, the tuned blend beat
-  RRF by 4.3 on FiQA and was within 0.5 on the other three. With the large API model, the
+  RRF by 4.3 on FiQA and was within 0.5 on the other three. With the frontier model, the
   tuned blend never did worse than vector where it could be tuned. Bruch, Gai and Ingber
   (ACM TOIS 2023) found a tuned convex combination beat RRF and needed only a small set of
   examples to tune.
@@ -272,7 +272,7 @@ so no NDCG appears.
   this lab a blend with `ts_rank_cd` gained nothing significant: use BM25 where you can
   install it.
 - **"The abstract said combining beats either alone."** Sometimes. With the small local model,
-  a tuned blend with BM25 did, beyond noise, on three of four datasets. With the large API
+  a tuned blend with BM25 did, beyond noise, on three of four datasets. With the frontier
   model, equal-weight RRF never did. That is the point of measuring.
 - **"Does PostgreSQL run the two searches in parallel?"** Not inside one statement: the plan
   has no Gather node, and `08b`'s 8.2 ms is about BM25's 5.2 plus vector's 3.5. Run two
