@@ -66,6 +66,39 @@ SELECT coalesce(k.id, v.id) AS id,
  LIMIT 10;
 ```
 
+## A normalized blend, weight tuned on held-out questions
+
+```sql
+WITH keyword AS (
+  SELECT id, -neg_score AS score
+    FROM (SELECT id, body <@> to_bm25query($1, 'docs_body_bm25') AS neg_score
+            FROM docs ORDER BY neg_score LIMIT 50) hits
+   WHERE neg_score < 0
+),
+semantic AS (
+  SELECT id, 1 - (embedding <=> $2) AS score
+    FROM docs WHERE embedding IS NOT NULL
+   ORDER BY embedding <=> $2 LIMIT 50
+),
+normalized AS (                            -- min-max to [0, 1], per list, per question
+  SELECT 'k' AS list, id, CASE WHEN hi > lo THEN (score - lo) / (hi - lo) ELSE 1 END AS s
+    FROM (SELECT *, min(score) OVER () AS lo, max(score) OVER () AS hi FROM keyword) k
+  UNION ALL
+  SELECT 'v', id, CASE WHEN hi > lo THEN (score - lo) / (hi - lo) ELSE 1 END
+    FROM (SELECT *, min(score) OVER () AS lo, max(score) OVER () AS hi FROM semantic) v
+)
+SELECT id,
+       sum(CASE list WHEN 'v' THEN $3::float8 ELSE 1 - $3::float8 END * s) AS blend
+  FROM normalized                          -- $3 vector weight w, chosen on dev questions
+ GROUP BY id
+ ORDER BY blend DESC, id
+ LIMIT 10;
+```
+
+A post missing from one list scores 0 there. Choose `w` by trying 0.0 to 1.0 on questions
+that are not in your test set (`hybrid-lab/py/5_tune_fusion.py`); in the lab it ranged from
+0.55 to 1.0. Bruch, Gai & Ingber, ACM TOIS 2023.
+
 ## Similar AND contains a required word
 
 ```sql
@@ -98,7 +131,8 @@ END;
 ```
 
 Reference parameters directly in `WHERE`. Joining them in through a CTE, or a generic plan,
-keeps the `OR` and disables both indexes (measured: 335 ms instead of 86 ms).
+keeps the `OR`, and the vector list falls back to a parallel sequential scan instead of HNSW
+(measured without a filter: 197 ms instead of 73 ms).
 
 ## See the plan inside a function
 

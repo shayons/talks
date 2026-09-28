@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Build paper and black-background PDFs from the same deck.md.
+# Build deck.pdf from deck.md with the black hybrid-search theme.
 # Requires: Node.js 18+ and Chrome/Chromium. Uses a pinned Marp CLI.
+# Render on macOS: the theme uses the system font (SF Pro), which the PDF then embeds.
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -17,9 +18,7 @@ if ! command -v npx >/dev/null 2>&1; then
   exit 1
 fi
 
-node build-assets.mjs
-
-echo "→ rendering paper deck → deck.pdf"
+echo "→ rendering deck.pdf"
 npx --yes @marp-team/marp-cli@4.5.1 \
   --theme theme.css \
   --html \
@@ -30,18 +29,4 @@ npx --yes @marp-team/marp-cli@4.5.1 \
   deck.md
 
 echo "✓ deck.pdf written"
-
-echo "→ rendering black deck → deck-dark.pdf"
-npx --yes @marp-team/marp-cli@4.5.1 \
-  --theme-set theme.css \
-  --theme theme-dark.css \
-  --html \
-  --pdf \
-  --pdf-outlines \
-  --allow-local-files \
-  --no-stdin \
-  --output deck-dark.pdf \
-  deck.md
-
-echo "✓ deck-dark.pdf written"
-ls -lh deck.pdf deck-dark.pdf
+ls -lh deck.pdf

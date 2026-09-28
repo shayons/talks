@@ -8,9 +8,25 @@ Conference material for **[Postgres Summit US 2026](https://2026.postgressummit.
 
 | Start here | What it is |
 | --- | --- |
-| [`hybrid-lab/`](hybrid-lab/) | The live demo: full-text, pgvector, BM25, RRF and rerank in PostgreSQL 18, each graded on 648 FiQA questions with known answers. Numbered SQL files, VS Code cells, and a small UI. |
+| [`hybrid-lab/`](hybrid-lab/) | The live demo: full-text, BM25, pgvector, RRF, a tuned blend and rerank in PostgreSQL 18, each graded on 2,271 questions with known answers from four BEIR datasets. Numbered SQL files, VS Code cells, and a small UI. |
 | [`hybrid-search-plugin/`](hybrid-search-plugin/) | A downloadable agent skill that adds hybrid search to **your** table and measures it. |
-| [`deck/`](deck/) | Slides ([PDF](deck/deck.pdf), [black PDF](deck/deck-dark.pdf), [Marp source](deck/deck.md)) and [talking points](deck/TALKING_POINTS.md). |
+| [`deck/`](deck/) | Slides ([PDF](deck/deck.pdf), [Marp source](deck/deck.md)) and [talking points](deck/TALKING_POINTS.md). |
+
+## What the talk shows
+
+Hybrid search in PostgreSQL pays when you fuse correctly, and pays most when your embedding
+model is small. Measured on four BEIR datasets with 95% bootstrap intervals:
+
+- **Small local model (bge-small) + BM25, tuned blend:** +1.2 to +2.1 NDCG@10 over the small
+  model alone on three of four datasets, closing up to 39% of the gap to a frontier model.
+- **Frontier model (Cohere Embed v4) + BM25, equal-weight RRF:** never better than vector
+  search alone, and significantly worse on three datasets. A blend tuned on dev questions
+  won once.
+- **Cohere Rerank 3.5:** never better than Embed v4 alone by more than noise.
+- **Four pitfalls** that fail silently: every-word `tsquery`, `ts_rank_cd` without IDF,
+  adding scores from different scales, and filtering after an HNSW scan.
+
+Details and every number: [`hybrid-lab/README.md`](hybrid-lab/README.md#what-it-found).
 
 ## Take the skill home
 
@@ -41,8 +57,8 @@ The **Coffee & queries** interface pairs warm paper surfaces and regulars' portr
 
 Use Python 3.11+ and PostgreSQL 18 with `vector` and `pg_trgm`. The Lab, Catalog,
 and Experiments use local embeddings and SQL; the Concierge also needs access
-to a configured model provider. The local runtime is PostgreSQL 18.4 with
-pgvector 0.8.2.
+to a configured model provider. The local runtime is PostgreSQL 18.6 with
+pgvector 0.8.6.
 
 Create and start a dedicated demo database from this directory:
 
@@ -227,11 +243,8 @@ Set `TEST_DATABASE_URL` to run SQL regressions in temporary tables and read-only
 | [schema.sql](schema.sql) | Database schema |
 | [seed.py](seed.py) | Demo catalog, customers, orders and tools |
 
-The [paper PDF](deck/deck.pdf), [black-and-cream PDF](deck/deck-dark.pdf), and
-[Marp source](deck/deck.md) follow the
-current Lab, persona briefs, Catalog HNSW illustration, and Concierge flow.
-[Speaker notes](deck/TALKING_POINTS.md) provide the 50-minute run of show,
-including the seven-minute core demo and two-minute HNSW extension.
+The conference deck ([PDF](deck/deck.pdf), [Marp source](deck/deck.md)) and its
+[speaker notes](deck/TALKING_POINTS.md) now present the hybrid search lab, not this app.
 [SQL patterns](deck/SQL_PATTERNS.md) cover mandatory text matches and recursive
 category expansion. The model-only versus grounded comparison is a proposed
 extension, clearly separated from the shipped retrieval comparison.

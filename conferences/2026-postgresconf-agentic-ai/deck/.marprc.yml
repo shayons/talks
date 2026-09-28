@@ -1,0 +1,5 @@
+# Source lines are wrapped for editing; slides reflow text instead of breaking at each newline.
+# Use <br> where a slide needs a hard break.
+options:
+  markdown:
+    breaks: false
