@@ -122,12 +122,12 @@ train split; SCIDOCS has none). Credit Dave Ebbelaar's tutorial for the FiQA-and
 
 | Dataset: what it searches | A typical test question | Test questions | Known answers per question | BM25 vs vector (Embed v4), NDCG@10 |
 | --- | --- | ---: | ---: | ---: |
-| **FiQA**: 57,638 finance forum posts | “Where should I park my rainy-day / emergency fund?” | 648 | 2.6 | 23.6 vs 53.9 |
-| **SciFact**: 5,183 science abstracts | “Anthrax spores can be disposed of easily after they are dispersed.” A claim to check | 300 | 1.1 | 68.8 vs 77.5 |
-| **NFCorpus**: 3,633 medical abstracts | “low-carb diets.” Half are two words or fewer | 323 | 38.2, graded | 32.3 vs 40.1 |
-| **SCIDOCS**: 25,657 paper abstracts | “A Fast Learning Algorithm for Deep Belief Nets.” A title; its answers are papers it cites | 1,000 | 4.9 | 15.4 vs 20.6 |
+| **FiQA**: 57,638 finance forum posts | “Where should I park my rainy-day / emergency fund?” | 648 | 2.6 | 23.6 vs 53.9 (**44%**) |
+| **SciFact**: 5,183 science abstracts | “Anthrax spores can be disposed of easily after they are dispersed.” A claim to check | 300 | 1.1 | 68.8 vs 77.5 (**89%**) |
+| **NFCorpus**: 3,633 medical abstracts | “low-carb diets.” Half are two words or fewer | 323 | 38.2, graded | 32.3 vs 40.1 (81%) |
+| **SCIDOCS**: 25,657 paper abstracts | “A Fast Learning Algorithm for Deep Belief Nets.” A title; its answers are papers it cites | 1,000 | 4.9 | 15.4 vs 20.6 (75%) |
 
-Same methods, very different gaps: BM25 reaches **89%** of vector search on SciFact but **44%** on FiQA. One dataset would have told a different story.
+Same methods, very different gaps: BM25 reaches **89%** of vector search's score on SciFact but only **44%** on FiQA. One dataset would have told a different story.
 
 <!--
 All from the BEIR benchmark (Thakur et al., 2021), with human-judged answers. Questions are real
