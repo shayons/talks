@@ -85,7 +85,10 @@ Do not say:
    Rerank: stage questions use stored embeddings and stored rerank runs. Only typed questions
    call Bedrock.
 6. Wi-Fi back on, `aws sts get-caller-identity` so a typed question works live.
-7. Keep `deck.pdf` open as the fallback.
+7. Present from `deck/deck.html` in Chrome: `f` for fullscreen, `p` for presenter view (notes
+   and the next slide in a second window), `o` for the overview. It has 250 ms fades and click
+   steps on slides 11, 12 and 20; rehearse those clicks once. Keep `deck.pdf` open as the
+   fallback: it shows every step in its final state.
 
 Stage links (paste into the open tab; the UI follows the link):
 

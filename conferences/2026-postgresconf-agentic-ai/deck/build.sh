@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Build deck.pdf from deck.md with the black hybrid-search theme.
+# Build deck.html (present from this: fade transitions and click steps) and deck.pdf
+# (every step shown in its final state) from deck.md with the black hybrid-search theme.
 # Requires: Node.js 18+ and Chrome/Chromium. Uses a pinned Marp CLI.
 # Render on macOS: the theme uses the system font (SF Pro), which the PDF then embeds.
 set -euo pipefail
@@ -29,4 +30,14 @@ npx --yes @marp-team/marp-cli@4.5.1 \
   deck.md
 
 echo "✓ deck.pdf written"
-ls -lh deck.pdf
+
+echo "→ rendering deck.html"
+npx --yes @marp-team/marp-cli@4.5.1 \
+  --theme theme.css \
+  --html \
+  --no-stdin \
+  --output deck.html \
+  deck.md
+
+echo "✓ deck.html written"
+ls -lh deck.pdf deck.html

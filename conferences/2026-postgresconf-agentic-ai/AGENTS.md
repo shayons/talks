@@ -11,7 +11,7 @@ Talk material for a 50-minute session. `CLAUDE.md` imports this file; edit this 
 | `hybrid-lab/py/` | `# %%` cells: load, embed, choose a question, evaluate. |
 | `hybrid-lab/src/hybrid_lab/` | Python package: DB access, Bedrock calls, evaluation, FastAPI UI. |
 | `hybrid-search-plugin/` | Claude Code plugin; the skill is in `skills/postgres-hybrid-search/`. Downloadable agent skill that applies the pattern to any table. |
-| `deck/` | Marp deck (`deck.md`, black `theme.css`), `deck.pdf`, talking points, SQL patterns. |
+| `deck/` | Marp deck (`deck.md`, black `theme.css`), `deck.html` to present, `deck.pdf`, talking points, SQL patterns. |
 | `.local/` (ignored) | The PostgreSQL 18 cluster, the pg_textsearch build, backups, planning notes. |
 
 ## Commands
@@ -32,7 +32,7 @@ uv run python py/4_evaluate.py        # every arm on the test questions -> resul
 uv run hybrid-lab                     # UI on http://127.0.0.1:8018
 uv run pytest -q                      # fixture DB fiqa_test; Bedrock mocked
 uv run ruff check src py tests        # zero warnings
-./deck/build.sh                       # from the talk folder: deck.pdf (set CHROME_PATH if
+./deck/build.sh                       # from the talk folder: deck.html + deck.pdf (set CHROME_PATH if
                                       # the system Chrome hangs; Playwright's Chromium works)
 ./hybrid-search-plugin/build-zip.sh   # rebuild the skill zip after editing the skill
 ```
@@ -64,4 +64,6 @@ the lab cluster; the Python code always passes an explicit DSN.
 - The deck renders with `deck/.marprc.yml`, which turns off Marp's newline-to-line-break:
   source lines reflow on the slide. Use `<br>` for a hard break. Build on macOS so the
   system font (SF Pro) renders; elsewhere it falls back to Helvetica Neue or Arial.
+- Click steps are elements with `data-marpit-fragment` (Marp's HTML player reveals them in
+  document order). Style them so the default state is the final one: the PDF has no player.
 - Never commit `.env`, `hybrid-lab/data/`, or anything under `.local/`.

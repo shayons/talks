@@ -7,6 +7,7 @@ author: "Shayon Sanyal"
 description: "Postgres Summit US 2026 · New York City · September 30, 2026"
 footer: "Hybrid Search in PostgreSQL · Postgres Summit US 2026 · NYC"
 size: 16:9
+transition: fade 250ms
 ---
 
 <!-- _class: title -->
@@ -272,37 +273,95 @@ and index plans agree.
 | `ts_rank_cd` | 1.70 | 5.40 |
 | cosine similarity | 0.478 | 0.598 |
 
-| Fusion | NDCG@10 |
-| --- | ---: |
-| `keyword_score + cosine` | 5.6 |
-| keyword list, then vector list, duplicates removed | 2.9 |
-| **Reciprocal Rank Fusion** of the same two lists | **33.8** |
+<table>
+<thead><tr><th>Fusion</th><th style="text-align:right">NDCG@10</th></tr></thead>
+<tbody data-marpit-fragment>
+<tr><td><code>keyword_score + cosine</code></td><td style="text-align:right">5.6</td></tr>
+<tr><td>keyword list, then vector list, duplicates removed</td><td style="text-align:right">2.9</td></tr>
+</tbody>
+<tbody data-marpit-fragment>
+<tr><td><strong>Reciprocal Rank Fusion</strong> of the same two lists</td><td style="text-align:right"><strong>33.8</strong></td></tr>
+</tbody>
+</table>
 
-Same inputs, 6× the score. Normalizing flags make `ts_rank_cd` bounded, not comparable.
+<p data-marpit-fragment>Same inputs, 6× the score. Normalizing flags make <code>ts_rank_cd</code> bounded, not comparable.</p>
 
 <!--
-The concatenation pattern is the one in the pgvectorscale hybrid-search branch: it relies on
-a reranker afterwards. Without one, whichever list goes first wins.
+Three clicks: the two ways of mixing scores (5.6, 2.9), then RRF on the same lists (33.8), then
+the punchline. The concatenation pattern is the one in the pgvectorscale hybrid-search branch:
+it relies on a reranker afterwards. Without one, whichever list goes first wins.
 -->
 
 ---
+
+<!-- _class: rrf -->
 
 ## Fuse ranks, not scores
 
 <p class="formula">RRF(d) = Σ 1 / (60 + rank<sub>list</sub>(d))</p>
 
-| “Transfer stock I own into my Roth IRA?” (FiQA 8512) | BM25 rank | Vector rank | RRF | Fused |
-| --- | ---: | ---: | ---: | ---: |
-| **The known answer** | 4 | 9 | 1/64 + 1/69 = **0.03012** | **#1** |
-| Another post | 2 | 17 | 1/62 + 1/77 = 0.02912 | #2 |
-| Another post | 24 | 3 | 1/84 + 1/63 = 0.02778 | #3 |
-| Vector's #1 | — | 1 | 0 + 1/61 = 0.01639 | #9 |
-
-Missing from a list contributes **0**. Agreement between lists wins; no score scales involved.
+<div class="rrf-demo">
+<div class="rrf-lane bm25"><h4>BM25</h4><ol>
+<li><span class="n">1</span><span class="pill top">66626</span></li>
+<li><span class="n">2</span><span class="pill">371922</span></li>
+<li><span class="n">3</span><span class="pill">569342</span></li>
+<li><span class="n">4</span><span class="pill answer">32811<span>known answer</span></span></li>
+<li><span class="n">5</span><span class="pill">2128</span></li>
+<li><span class="n">6</span><span class="pill">32671</span></li>
+<li><span class="n">7</span><span class="pill">404800</span></li>
+<li><span class="n">8</span><span class="pill">266457</span></li>
+<li><span class="n">9</span><span class="pill">272840</span></li>
+<li><span class="n">10</span><span class="pill">65567</span></li>
+</ol></div>
+<div class="rrf-lane vector"><h4>Vector</h4><ol>
+<li><span class="n">1</span><span class="pill top">293687</span></li>
+<li><span class="n">2</span><span class="pill">348514</span></li>
+<li><span class="n">3</span><span class="pill">469809</span></li>
+<li><span class="n">4</span><span class="pill">361639</span></li>
+<li><span class="n">5</span><span class="pill">458063</span></li>
+<li><span class="n">6</span><span class="pill">427365</span></li>
+<li><span class="n">7</span><span class="pill">209789</span></li>
+<li><span class="n">8</span><span class="pill">283692</span></li>
+<li><span class="n">9</span><span class="pill answer">32811<span>known answer</span></span></li>
+<li><span class="n">10</span><span class="pill">62897</span></li>
+</ol></div>
+<div class="rrf-lane fused"><h4>RRF · fused</h4><ol>
+<li><span class="n">1</span><span class="pill slot"></span></li>
+<li><span class="n">2</span><span class="pill slot"></span></li>
+<li><span class="n">3</span><span class="pill slot"></span></li>
+<li><span class="n">4</span><span class="pill slot"></span></li>
+<li><span class="n">5</span><span class="pill slot"></span></li>
+<li><span class="n">6</span><span class="pill slot"></span></li>
+<li><span class="n">7</span><span class="pill slot"></span></li>
+<li><span class="n">8</span><span class="pill slot"></span></li>
+<li><span class="n">9</span><span class="pill slot"></span></li>
+<li><span class="n">10</span><span class="pill slot"></span></li>
+</ol></div>
+<div class="rrf-step" data-marpit-fragment>
+<span class="pill answer fly from-bm25-4" style="top:37px">32811<span>known answer</span></span>
+<span class="pill answer fly from-vector-9" style="top:37px">32811<span>known answer</span></span>
+<p class="caption later" style="top:350px">Known answer: BM25 #4, vector #9 → 1/64 + 1/69 = <strong>0.03012</strong>, fused <strong>#1</strong>.</p>
+</div>
+<div class="rrf-step" data-marpit-fragment>
+<span class="pill top fly from-vector-1" style="top:277px">293687<span class="score">0.01639</span></span>
+<span class="pill top fly from-bm25-1" style="top:307px">66626<span class="score">0.01639</span></span>
+<span class="pill placed later" style="top:67px">371922<span>0.02912</span></span>
+<span class="pill placed later" style="top:97px">469809<span>0.02778</span></span>
+<span class="pill placed later" style="top:127px">424427<span>0.02633</span></span>
+<span class="pill placed later" style="top:157px">32671<span>0.02568</span></span>
+<span class="pill placed later" style="top:187px">72960<span>0.02452</span></span>
+<span class="pill placed later" style="top:217px">488737<span>0.02379</span></span>
+<span class="pill placed later" style="top:247px">152096<span>0.02114</span></span>
+<p class="caption later" style="top:382px">Each list's own #1 is missing from the other list: 1/61 = 0.01639, fused #9 and #10.</p>
+</div>
+</div>
 
 <!--
-Rows are real: the top of the RRF · BM25 list for this question, from 08b. Neither list put
-the answer first; agreement did. k = 60 comes from Cormack, Clarke and Büttcher (SIGIR 2009).
+Question 8512, "Is it possible to transfer stock I already own into my Roth IRA?". All rows
+are real top 10s from the lab. Click 1: the known answer leaves BM25 #4 and vector #9 and lands
+at fused #1. Neither list put it first; agreement did. Click 2: each list's own #1 drops to #9
+and #10, and the rest of the fused list fills in. Missing from a list contributes 0. k = 60
+comes from Cormack, Clarke and Büttcher (SIGIR 2009).
 -->
 
 ---
@@ -487,10 +546,12 @@ auto_explain shows the plans inside the function.
 
 <table class="gold-table">
 <thead><tr><th></th><th>FiQA</th><th>SciFact</th><th>NFCorpus</th><th>SCIDOCS</th></tr></thead>
-<tbody>
+<tbody data-marpit-fragment>
 <tr class="section"><td colspan="5">Small local model · bge-small, 384 dims, on this laptop</td></tr>
 <tr><td>Tuned blend + BM25</td><td class="up">+1.2 ↑<small>+0.4…+2.1</small></td><td class="up">+2.1 ↑<small>+0.0…+4.3</small></td><td class="up">+2.1 ↑<small>+1.3…+3.0</small></td><td>+0.2 *<small>−0.5…+0.8</small></td></tr>
 <tr><td>Equal-weight RRF + BM25</td><td class="down">−3.1 ↓<small>−4.7…−1.5</small></td><td>+1.7<small>−0.9…+4.3</small></td><td class="up">+2.3 ↑<small>+1.0…+3.7</small></td><td>−0.3<small>−1.0…+0.5</small></td></tr>
+</tbody>
+<tbody data-marpit-fragment>
 <tr class="section"><td colspan="5">Frontier model · Cohere Embed v4, 1536 dims</td></tr>
 <tr><td>Tuned blend + BM25</td><td>0.0<small>chose w = 1</small></td><td>+0.2<small>−1.2…+1.4</small></td><td class="up">+0.8 ↑<small>+0.1…+1.5</small></td><td class="down">−0.8 ↓ *<small>−1.4…−0.2</small></td></tr>
 <tr><td>Equal-weight RRF + BM25</td><td class="down">−12.5 ↓<small>−14.5…−10.6</small></td><td class="down">−2.9 ↓<small>−5.1…−0.6</small></td><td>−1.1<small>−2.2…+0.1</small></td><td class="down">−1.2 ↓<small>−2.0…−0.5</small></td></tr>
@@ -501,7 +562,7 @@ auto_explain shows the plans inside the function.
 <p class="caption">↑ / ↓: 95% paired bootstrap interval above / below zero · * SCIDOCS has no dev questions, so its blend weight is an untuned 0.5 · results/summary.md</p>
 
 <!--
-Read it row by row. Small local model: a tuned blend beats vector on three of four datasets,
+Two clicks: the small local model first, then the frontier model. Small local model: a tuned blend beats vector on three of four datasets,
 significantly, and never loses. Frontier model: equal-weight RRF, the tutorial default, never
 beats vector and loses significantly on three datasets; a tuned blend wins only on NFCorpus
 (+0.8). SCIDOCS shows why tuning matters: with no dev questions the blend used 0.5 and lost.

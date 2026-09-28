@@ -10,7 +10,7 @@ Conference material for **[Postgres Summit US 2026](https://2026.postgressummit.
 | --- | --- |
 | [`hybrid-lab/`](hybrid-lab/) | The live demo: full-text, BM25, pgvector, RRF, a tuned blend and rerank in PostgreSQL 18, each graded on 2,271 questions with known answers from four BEIR datasets. Numbered SQL files, VS Code cells, and a small UI. |
 | [`hybrid-search-plugin/`](hybrid-search-plugin/) | A downloadable agent skill that adds hybrid search to **your** table and measures it. |
-| [`deck/`](deck/) | Slides ([PDF](deck/deck.pdf), [Marp source](deck/deck.md)) and [talking points](deck/TALKING_POINTS.md). |
+| [`deck/`](deck/) | Slides ([HTML, with animations](deck/deck.html), [PDF](deck/deck.pdf), [Marp source](deck/deck.md)) and [talking points](deck/TALKING_POINTS.md). |
 
 ## What the talk shows
 

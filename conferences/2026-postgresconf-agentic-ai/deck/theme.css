@@ -76,14 +76,16 @@ pre {
 }
 pre code { background: transparent; padding: 0; color: var(--text); font-size: inherit; }
 
-/* SQL: orange keywords, green strings, cyan numbers; names stay white. */
-.hljs-keyword, .hljs-built_in, .hljs-type { color: #ffa928; font-weight: 600; }
+/* SQL: template-orange keywords, green strings, cyan numbers; names stay white. */
+.hljs-keyword, .hljs-built_in, .hljs-type { color: var(--orange); font-weight: 600; }
 .hljs-string { color: #30d158; }
 .hljs-number { color: #64d2ff; }
 .hljs-comment { color: #7f8c98; font-style: normal; }
 .hljs-function, .hljs-title, .hljs-name, .hljs-variable, .hljs-attr, .hljs-literal,
 .hljs-operator, .hljs-punctuation { color: var(--text); }
 
+/* Tables follow the re:Invent 2026 template: an orange header bar with black, tracked,
+   uppercase semi-mono text; borderless white rows with a faint band on every other row. */
 section table {
   display: table;
   width: 100%;
@@ -94,30 +96,27 @@ section table {
 }
 section table th,
 section table td {
-  border: 0;
-  border-bottom: 1px solid var(--hairline);
-  padding: 9px 12px;
+  border: 0 !important;
+  padding: 9px 16px;
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
   background: transparent !important;
   color: var(--text) !important;
 }
 section table th {
-  color: var(--text-2) !important;
-  font-weight: 600;
-  font-size: 0.82em;
-  border-bottom: 1px solid var(--text-3);
+  background: var(--orange) !important;
+  color: #000 !important;
+  font: 400 0.74em var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 8px 16px;
 }
-section table tr,
-section table tr:nth-child(even),
-section table tr:nth-child(odd),
-section table tr:nth-child(even) td,
-section table tr:nth-child(odd) td {
-  background: transparent !important;
-}
-section table td code,
-section table th code { background: var(--card-2) !important; color: var(--text) !important; }
+section table tr { background: transparent !important; border: 0 !important; }
+section table tbody tr:nth-child(even) td { background: #141416 !important; }
+section table td code { background: var(--card-2) !important; color: var(--text) !important; }
+section table th code { background: rgba(0, 0, 0, 0.14) !important; color: #000 !important; }
 section table td strong { color: #fff !important; }
+section table th strong { color: #000 !important; }
 
 section::after {
   color: var(--text-3);
@@ -214,7 +213,7 @@ section.references li { font-size: 23px; margin-bottom: 14px; }
 /* ------ Results table: hybrid vs vector, same model ------ */
 section.gold h2 { font-size: 29px; letter-spacing: -0.025em; margin-bottom: 14px; }
 .gold-table { width: 100%; border-collapse: collapse; font-size: 25px; }
-.gold-table th { text-align: right; padding: 6px 10px; }
+.gold-table th { text-align: right; padding: 7px 10px; font-size: 16px; }
 .gold-table th:first-child, .gold-table td:first-child { text-align: left; }
 .gold-table td { text-align: right; padding: 7px 10px; line-height: 1.15; }
 .gold-table td small { display: block; font-size: 16px; color: var(--text-2); font-weight: 400; }
@@ -222,5 +221,51 @@ section.gold h2 { font-size: 29px; letter-spacing: -0.025em; margin-bottom: 14px
 .gold-table td.down { color: var(--red) !important; font-weight: 700; }
 .gold-table tr.section td {
   text-align: left; font-size: 18px; font-weight: 600; color: var(--text-2) !important;
-  padding-top: 14px;
+  padding-top: 14px; background: transparent !important;
 }
+.gold-table tbody tr:nth-child(even) td { background: transparent !important; }
+
+/* ------ Presenting from deck.html ------
+   Marp's HTML player marks each click step inactive or active. The PDF has no player,
+   so it prints every step in its final state. */
+[data-bespoke-marp-fragment] { transition: opacity 300ms ease; }
+[data-bespoke-marp-fragment=inactive] { opacity: 0; }
+
+/* ------ Slide: RRF, three ranked lists ------ */
+section.rrf h2 { margin-bottom: 4px; }
+section.rrf .formula { font-size: 26px; padding: 0 0 14px; }
+.rrf-demo { position: relative; height: 412px; }
+.rrf-lane { position: absolute; top: 0; width: 340px; }
+.rrf-lane.bm25 { left: 0; }
+.rrf-lane.vector { left: 398px; }
+.rrf-lane.fused { left: 796px; }
+.rrf-lane h4 {
+  height: 30px; line-height: 30px; margin: 0 0 4px; padding: 0 14px;
+  background: var(--orange); color: #000; font: 400 15px var(--mono);
+  letter-spacing: 0.14em; text-transform: uppercase;
+}
+.rrf-lane ol { list-style: none; margin: 0; padding: 0; }
+.rrf-lane li { display: flex; align-items: center; gap: 10px; height: 30px; margin: 0; }
+.rrf-lane .n { width: 26px; text-align: right; color: var(--text-3); font-size: 16px; font-weight: 600; }
+.rrf-demo .pill {
+  box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; width: 290px; height: 24px;
+  padding: 0 10px; border-radius: 7px; background: var(--card); color: var(--text-2);
+  font: 15px var(--mono);
+}
+.rrf-demo .pill.answer { background: var(--green); color: #000; font-weight: 700; }
+.rrf-demo .pill.top { background: transparent; color: var(--text); box-shadow: inset 0 0 0 2px var(--text); }
+.rrf-demo .pill.slot { background: transparent; box-shadow: inset 0 0 0 1px var(--hairline); }
+.rrf-demo .fly, .rrf-demo .placed { position: absolute; left: 832px; }
+.rrf-demo .caption { position: absolute; left: 0; margin: 0; font-size: 21px; color: var(--text); }
+/* Moving pills sit exactly on their source rows, covering them, until the click sends them. */
+.rrf-demo .fly.top { background: var(--bg); }
+.rrf-step .score { transition: opacity 300ms ease 750ms; }
+.rrf-step[data-bespoke-marp-fragment=inactive] .score { opacity: 0; transition-delay: 0ms; }
+.rrf-step[data-bespoke-marp-fragment] { opacity: 1; visibility: visible; }
+.rrf-step .fly { transition: transform 900ms cubic-bezier(0.3, 0.7, 0.2, 1); }
+.rrf-step .later { transition: opacity 400ms ease 650ms; }
+.rrf-step[data-bespoke-marp-fragment=inactive] .later { opacity: 0; transition-delay: 0ms; }
+.rrf-step[data-bespoke-marp-fragment=inactive] .from-bm25-4 { transform: translate(-796px, 90px); }
+.rrf-step[data-bespoke-marp-fragment=inactive] .from-vector-9 { transform: translate(-398px, 240px); }
+.rrf-step[data-bespoke-marp-fragment=inactive] .from-vector-1 { transform: translate(-398px, -240px); }
+.rrf-step[data-bespoke-marp-fragment=inactive] .from-bm25-1 { transform: translate(-796px, -270px); }
