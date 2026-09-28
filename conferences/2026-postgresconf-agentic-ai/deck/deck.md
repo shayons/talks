@@ -73,8 +73,6 @@ Code, and 403b, where vector search ranks the only answer #26."
 
 I help teams build on PostgreSQL, from relational applications to retrieval and agent workflows.
 
-Today: readable SQL, measured results, and a skill you can point at your own tables.
-
 <div class="bio-links"><img src="assets/qr-linkedin.svg" alt="QR code: linkedin.com/in/shayonsanyal"><span>linkedin.com/in/shayonsanyal</span></div>
 
 </div>
