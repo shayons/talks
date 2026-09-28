@@ -1,5 +1,8 @@
 """A 20-post fixture database with known answers and hand-built embeddings.
 
+The small-model column holds the first 384 dimensions of the same vectors, which keeps the
+same cosine similarities because only the first 22 dimensions are ever non-zero.
+
 Question "101" embeds as the unit vector e0. Post n's embedding is
 [s_n, sqrt(1 - s_n^2), ...] with the second component on its own axis, so its cosine
 similarity to 101 is exactly s_n. That fixes the vector ranking without a model.
@@ -20,6 +23,7 @@ from hybrid_lab.db import run_script, sql_text
 ADMIN_DSN = os.getenv("TEST_ADMIN_URL", "postgresql://coffee:coffee@127.0.0.1:5433/postgres")
 TEST_DB = "fiqa_test"
 DIMS = 1536
+LOCAL_DIMS = 384
 
 POSTS = {
     "1": ("Roth IRA contribution limit for 2024 is 7000 dollars.", 0.40),
@@ -81,16 +85,19 @@ def test_dsn() -> str:
 
 def _insert_fixture(conn: psycopg.Connection) -> None:
     for position, (doc_id, (body, similarity)) in enumerate(POSTS.items(), start=1):
-        vector = Vector(post_vector(position, similarity)) if body else None
+        full = post_vector(position, similarity) if body else None
         conn.execute(
-            "INSERT INTO docs (id, body, embedding) VALUES (%s, %s, %s)", (doc_id, body, vector)
+            "INSERT INTO docs (id, body, embedding, embedding_local) VALUES (%s, %s, %s, %s)",
+            (doc_id, body, Vector(full) if full else None,
+             Vector(full[:LOCAL_DIMS]) if full else None),
         )
     q2_vector = post_vector(len(POSTS) + 5, 0.0)
     for query_id, body in QUESTIONS.items():
         vector = unit_axis(0) if query_id == "101" else q2_vector
         conn.execute(
-            "INSERT INTO queries (id, body, split, embedding) VALUES (%s, %s, 'test', %s)",
-            (query_id, body, Vector(vector)),
+            "INSERT INTO queries (id, body, split, embedding, embedding_local)"
+            " VALUES (%s, %s, 'test', %s, %s)",
+            (query_id, body, Vector(vector), Vector(vector[:LOCAL_DIMS])),
         )
     conn.cursor().executemany("INSERT INTO qrels VALUES (%s, %s, %s)", QRELS)
     conn.execute("ANALYZE")

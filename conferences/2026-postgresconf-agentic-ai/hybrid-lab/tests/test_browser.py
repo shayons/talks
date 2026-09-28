@@ -66,3 +66,18 @@ def test_question_renders_graded_columns_and_sql(live_server):
         assert page.locator("#drawer").is_hidden()
         browser.close()
     assert errors == []
+
+
+def test_pasted_link_in_open_tab_loads_its_question(live_server):
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        page = browser.new_page()
+        page.goto(f"{live_server}/#q=101")
+        page.wait_for_selector(".column")
+        assert "rainy-day" in page.locator("#question-text").inner_text()
+        page.evaluate("location.hash = '#q=102'")
+        page.wait_for_function(
+            "document.querySelector('#question-text').textContent.includes('roth ira')",
+            timeout=5000,
+        )
+        browser.close()

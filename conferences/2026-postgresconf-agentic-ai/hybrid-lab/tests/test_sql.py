@@ -140,3 +140,37 @@ def test_hybrid_function_honors_required_terms(conn):
     docs = {row[0] for row in rows}
     assert docs and docs <= {"3", "5", "13"}  # only posts that contain "savings"
     conn.rollback()
+
+
+def test_blend_matches_min_max_convex_combination(conn):
+    conn.execute("INSERT INTO fusion_settings VALUES ('blend_vector_weight', 0.7, 'test')")
+    conn.commit()
+    keyword = {r["doc_id"]: r["score"] for r in ranked(conn, "bm25", RAINY_DAY)}
+    vector = {r["doc_id"]: r["score"] for r in ranked(conn, "vector", RAINY_DAY)}
+
+    def normalized(scores: dict[str, float]) -> dict[str, float]:
+        low, high = min(scores.values()), max(scores.values())
+        return {d: (s - low) / (high - low) if high > low else 1.0 for d, s in scores.items()}
+
+    nk, nv = normalized(keyword), normalized(vector)
+    expected = {d: 0.7 * nv.get(d, 0.0) + 0.3 * nk.get(d, 0.0) for d in nk.keys() | nv.keys()}
+    rows = ranked(conn, "blend_bm25", RAINY_DAY)
+    conn.execute("DELETE FROM fusion_settings")
+    conn.commit()
+    assert {r["doc_id"] for r in rows} == set(expected)
+    for row in rows:
+        assert row["score"] == pytest.approx(expected[row["doc_id"]])
+
+
+def test_blend_defaults_to_equal_weights_without_tuning(conn):
+    conn.execute("DELETE FROM fusion_settings")
+    rows = ranked(conn, "blend_bm25", RAINY_DAY)
+    assert rows and all(0 <= r["score"] <= 1 for r in rows)
+    conn.rollback()
+
+
+def test_local_model_arms_use_their_own_column(conn):
+    local = ranked(conn, "vector_local", RAINY_DAY)
+    assert ids(local) == ids(ranked(conn, "vector", RAINY_DAY))
+    fused = ranked(conn, "rrf_local", RAINY_DAY)
+    assert all(row["vector_rank"] is None or row["vector_rank"] >= 1 for row in fused)

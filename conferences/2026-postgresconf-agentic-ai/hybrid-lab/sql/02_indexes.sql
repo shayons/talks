@@ -18,6 +18,10 @@ CREATE INDEX IF NOT EXISTS docs_embedding_hnsw ON docs
 CREATE EXTENSION IF NOT EXISTS pg_textsearch;
 CREATE INDEX IF NOT EXISTS docs_body_bm25 ON docs USING bm25 (body) WITH (text_config = 'english');
 
+-- The small local model's vectors get their own index (py/2b_embed_local.py fills them).
+CREATE INDEX IF NOT EXISTS docs_embedding_local_hnsw ON docs
+  USING hnsw (embedding_local vector_cosine_ops);
+
 -- Optional storage experiments (sql/12a, sql/12b): the same embedding indexed at
 -- half precision and at one bit per dimension, as expression indexes.
 CREATE INDEX IF NOT EXISTS docs_embedding_halfvec_hnsw ON docs

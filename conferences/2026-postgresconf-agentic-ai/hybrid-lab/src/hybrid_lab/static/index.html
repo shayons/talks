@@ -10,6 +10,10 @@
 <body>
   <header class="masthead">
     <h1 class="wordmark">Hybrid search lab</h1>
+    <label class="dataset-pick">
+      <span class="visually-hidden">Dataset</span>
+      <select id="dataset"></select>
+    </label>
     <nav class="tabs" aria-label="Views">
       <button type="button" class="tab" data-view="search" aria-current="page">Search</button>
       <button type="button" class="tab" data-view="scoreboard">Scoreboard</button>
@@ -22,7 +26,7 @@
       <form id="ask" class="ask" autocomplete="off">
         <label for="question-input" class="visually-hidden">Question</label>
         <input id="question-input" name="question" type="search"
-               placeholder="Pick a FiQA question below, or type your own" list="question-matches">
+               placeholder="Pick a stage question below, or type your own" list="question-matches">
         <datalist id="question-matches"></datalist>
         <button type="submit" class="primary">Search</button>
       </form>
@@ -51,8 +55,14 @@
     </section>
 
     <section id="view-scoreboard" class="view" hidden>
+      <section class="summary" id="summary-section" hidden>
+        <h2>Across datasets</h2>
+        <p>NDCG@10 on each dataset's test questions. The tuned blend's weight was chosen on
+          that dataset's held-out dev questions, never on these.</p>
+        <div id="summary"></div>
+      </section>
       <header class="board-head">
-        <h2>How each arm did on 648 questions with known answers</h2>
+        <h2 id="board-title">How each arm did on this dataset</h2>
         <p>NDCG@10 is 100 when every known answer is at the top of the list and 0 when none
           is in the top 10. Recall@50 is the share of known answers anywhere in the top 50:
           the most a reranker could ever surface.</p>
@@ -60,11 +70,11 @@
       <div id="board" class="board"></div>
       <div class="swings">
         <div>
-          <h3>Where RRF · BM25 beat vector most</h3>
+          <h3>Where BM25 helped the small model most</h3>
           <ol id="swings-gain" class="swing-list"></ol>
         </div>
         <div>
-          <h3>Where RRF · BM25 lost to vector most</h3>
+          <h3>Where BM25 hurt the small model most</h3>
           <ol id="swings-loss" class="swing-list"></ol>
         </div>
       </div>

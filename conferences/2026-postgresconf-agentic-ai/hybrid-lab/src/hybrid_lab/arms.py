@@ -28,6 +28,7 @@ class Arm:
     sql_file: str | None = None
     rerank_of: tuple[str, ...] = ()
     needs_bm25: bool = False
+    local: bool = False
     default_on: bool = False
     pitfall: bool = False
 
@@ -35,18 +36,25 @@ class Arm:
 ARMS: tuple[Arm, ...] = (
     Arm("keyword_and", "Keyword · all words", "03_keyword_and.sql", pitfall=True),
     Arm("keyword_or", "Keyword · ts_rank_cd", "04_keyword_or.sql", pitfall=True),
-    Arm("bm25", "BM25", "05_bm25.sql", needs_bm25=True, default_on=True),
-    Arm("vector", "Vector", "06_vector.sql", default_on=True),
+    Arm("bm25", "BM25", "05_bm25.sql", needs_bm25=True),
+    Arm("vector_local", "Vector · bge-small (local)", "06b_vector_local.sql", local=True),
+    Arm("rrf_local", "RRF · BM25 + bge-small", "08d_hybrid_rrf_local.sql", needs_bm25=True,
+        local=True),
+    Arm("blend_local", "Tuned blend · bge-small", "08e_hybrid_blend_local.sql",
+        needs_bm25=True, local=True),
+    Arm("vector", "Vector · Embed v4", "06_vector.sql"),
     Arm("naive_sum", "Score sum", "07a_naive_sum.sql", pitfall=True),
     Arm("concat_dedupe", "Concatenate", "07b_concat_dedupe.sql", pitfall=True),
-    Arm("rrf", "RRF · ts_rank_cd", "08a_hybrid_rrf.sql"),
-    Arm("rrf_bm25", "RRF · BM25", "08b_hybrid_rrf_bm25.sql", needs_bm25=True, default_on=True),
-    Arm("vector_rerank", "Vector + Rerank", rerank_of=("vector",), default_on=True),
+    Arm("rrf", "RRF · ts_rank_cd + Embed v4", "08a_hybrid_rrf.sql"),
+    Arm("rrf_bm25", "RRF · BM25 + Embed v4", "08b_hybrid_rrf_bm25.sql", needs_bm25=True),
+    Arm("blend_bm25", "Tuned blend · Embed v4", "08c_hybrid_blend.sql", needs_bm25=True),
+    Arm("vector_rerank", "Embed v4 + Rerank", rerank_of=("vector",)),
     Arm("rrf_rerank", "RRF · ts_rank_cd + Rerank", rerank_of=("rrf",)),
     Arm("rrf_bm25_rerank", "RRF · BM25 + Rerank", rerank_of=("rrf_bm25",), needs_bm25=True),
-    Arm("union_rerank", "Vector ∪ BM25 + Rerank", rerank_of=("vector", "bm25"), needs_bm25=True),
-    Arm("vector_halfvec", "Vector · halfvec", "12a_halfvec.sql"),
-    Arm("vector_binary", "Vector · binary + rescore", "12b_binary.sql"),
+    Arm("union_rerank", "Embed v4 ∪ BM25 + Rerank", rerank_of=("vector", "bm25"),
+        needs_bm25=True),
+    Arm("vector_halfvec", "Embed v4 · halfvec", "12a_halfvec.sql"),
+    Arm("vector_binary", "Embed v4 · binary + rescore", "12b_binary.sql"),
 )
 BY_STAGE = {arm.stage: arm for arm in ARMS}
 

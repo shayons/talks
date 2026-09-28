@@ -2,7 +2,10 @@ const RRF_K = 60;
 const STORE_KEY = "hybrid-lab-arms";
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-const state = { arms: [], selected: new Set(), matches: new Map(), answers: new Map() };
+const state = {
+  dataset: null, datasets: [], arms: [], selected: new Set(), matches: new Map(),
+  answers: new Map(),
+};
 const $ = (id) => document.getElementById(id);
 
 function el(tag, props = {}, children = []) {
@@ -20,8 +23,13 @@ function el(tag, props = {}, children = []) {
   return node;
 }
 
+function withDataset(path) {
+  if (!state.dataset) return path;
+  return `${path}${path.includes("?") ? "&" : "?"}dataset=${encodeURIComponent(state.dataset)}`;
+}
+
 async function api(path, options = {}) {
-  const response = await fetch(path, {
+  const response = await fetch(options.method ? path : withDataset(path), {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
@@ -40,7 +48,7 @@ function setStatus(message, isError = false) {
 
 function savedSelection() {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+    const saved = JSON.parse(localStorage.getItem(`${STORE_KEY}:${state.dataset}`) || "null");
     return Array.isArray(saved) ? saved : null;
   } catch {
     return null;
@@ -49,7 +57,7 @@ function savedSelection() {
 
 function saveSelection() {
   try {
-    localStorage.setItem(STORE_KEY, JSON.stringify([...state.selected]));
+    localStorage.setItem(`${STORE_KEY}:${state.dataset}`, JSON.stringify([...state.selected]));
   } catch {
     /* Private windows can refuse storage; the selection still works for this visit. */
   }
@@ -111,7 +119,7 @@ function renderDemoQuestions(demo) {
   for (const item of demo) {
     state.matches.set(item.body, item.id);
     picks.append(el("button", {
-      type: "button", class: "pick", title: item.reason,
+      type: "button", class: "pick", title: item.reason, "data-id": item.id,
       onclick: () => search({ question_id: item.id }),
     }, [el("strong", { text: item.label }), el("span", { text: item.body })]));
   }
@@ -131,12 +139,13 @@ async function search(request) {
   try {
     const result = await api("/api/search", {
       method: "POST",
-      body: JSON.stringify({ ...request, arms }),
+      body: JSON.stringify({ ...request, arms, dataset: state.dataset }),
     });
     $("question-input").value = result.question.body;
-    history.replaceState(null, "", `#q=${encodeURIComponent(result.question.id)}`);
+    const hash = `#d=${encodeURIComponent(state.dataset)}&q=${encodeURIComponent(result.question.id)}`;
+    history.replaceState(null, "", hash);
     renderResult(result);
-    setStatus("VS Code's active_query now points at this question too.");
+    setStatus("");
   } catch (error) {
     setStatus(error.message, true);
   } finally {
@@ -149,14 +158,27 @@ function renderResult(result) {
   state.answers = new Map(question.answers.map((docId, i) => [docId, LETTERS[i] || "*"]));
   $("result").hidden = false;
   $("question-text").textContent = question.body;
+  const set = datasetLabel();
   $("question-meta").textContent = question.judged
-    ? `FiQA test question ${question.id}, with ${question.answers.length} known `
-      + `answer${question.answers.length === 1 ? "" : "s"}`
-    : "Your question. FiQA has no judgments for it, so nothing is graded.";
+    ? `${set} test question ${question.id}, with ${question.answers.length} known `
+      + `answer${question.answers.length === 1 ? "" : "s"} · also active in VS Code`
+    : `Your question. ${set} has no judgments for it, so nothing is graded.`;
   renderAnswerKey(question, arms);
+  for (const pick of document.querySelectorAll(".pick")) {
+    pick.classList.toggle("current", pick.dataset.id === question.id);
+  }
+  const leader = leadingStage(arms);
   const columns = $("columns");
   columns.style.setProperty("--cols", String(arms.length));
-  columns.replaceChildren(...arms.map(renderColumn));
+  columns.replaceChildren(...arms.map((card) => renderColumn(card, card.stage === leader)));
+}
+
+function leadingStage(arms) {
+  const graded = arms.filter((card) => card.ndcg10 !== null);
+  if (graded.length < 2) return null;
+  const best = Math.max(...graded.map((card) => card.ndcg10));
+  const leaders = graded.filter((card) => card.ndcg10 === best);
+  return leaders.length === 1 ? leaders[0].stage : null;
 }
 
 function renderAnswerKey(question, arms) {
@@ -167,7 +189,7 @@ function renderAnswerKey(question, arms) {
     const foundBy = arms.filter((arm) => arm.rows.some((row) => row.doc_id === docId)).length;
     key.append(el("span", {
       class: "answer-key",
-      title: `Post ${docId}`,
+      title: `Document ${docId}`,
       onmouseenter: () => linkDoc(docId),
       onmouseleave: () => linkDoc(null),
       onclick: () => openDoc(docId),
@@ -182,7 +204,8 @@ function columnFacts(card) {
   const facts = [];
   if (card.ndcg10 !== null) {
     const found = card.rows.filter((row) => row.relevant).length;
-    facts.push(el("div", { text: `${found} of ${card.relevant_total} answers in the top 10` }));
+    const noun = card.relevant_total === 1 ? "answer" : "answers";
+    facts.push(el("div", { text: `${found} of ${card.relevant_total} ${noun} in the top 10` }));
   }
   const timing = `${card.elapsed_ms.toLocaleString()} ms, ${card.source}`;
   facts.push(el("div", { text: timing }));
@@ -192,7 +215,7 @@ function columnFacts(card) {
   return el("div", { class: "column-facts" }, facts);
 }
 
-function renderColumn(card) {
+function renderColumn(card, leads) {
   const score = card.ndcg10 === null ? "–" : Math.round(card.ndcg10 * 100).toString();
   const head = el("header", { class: "column-head" }, [
     el("div", { class: "column-title" }, [
@@ -202,13 +225,14 @@ function renderColumn(card) {
     el("div", { class: "score-line" }, [
       el("span", { class: "ndcg", text: score }),
       el("span", { class: "ndcg-label", text: "NDCG@10" }),
+      leads ? el("span", { class: "leader-chip", text: "Highest" }) : null,
     ]),
     columnFacts(card),
   ]);
   const rows = card.rows.length
     ? card.rows.map((row) => renderRow(card, row))
-    : [el("li", { class: "empty", text: "No posts matched." })];
-  return el("section", { class: "column", "aria-label": card.label }, [
+    : [el("li", { class: "empty", text: "No documents matched." })];
+  return el("section", { class: `column${leads ? " leader" : ""}`, "aria-label": card.label }, [
     head,
     el("ol", { class: "rows" }, rows),
   ]);
@@ -293,8 +317,8 @@ async function openDoc(docId, card = null, row = null) {
     if (row && (row.keyword_rank || row.vector_rank) && card.stage.startsWith("rrf")) {
       children.push(el("p", { text: "Its RRF score, from its rank in each list:" }), rrfArithmetic(row));
     }
-    children.push(el("p", { class: "doc-text", text: doc.body || "(This post is empty.)" }));
-    openDrawer(`Post ${docId}`, children);
+    children.push(el("p", { class: "doc-text", text: doc.body || "(This document is empty.)" }));
+    openDrawer(`Document ${docId}`, children);
   } catch (error) {
     setStatus(error.message, true);
   }
@@ -357,13 +381,53 @@ function renderSwings(listId, swings) {
       onclick: () => { showView("search"); search({ question_id: swing.id }); },
     }),
     el("small", {
-      text: `RRF · BM25 ${Math.round(swing.hybrid * 100)}, vector ${Math.round(swing.vector * 100)}`,
+      text: `Tuned blend ${Math.round(swing.hybrid * 100)}, bge-small alone ${Math.round(swing.vector * 100)}`,
     }),
   ])));
 }
 
+function datasetLabel() {
+  const found = state.datasets.find((d) => d.name === state.dataset);
+  return found ? found.label.split(" · ")[0] : "This dataset";
+}
+
+function summaryTable(data) {
+  const header = el("tr", {}, [
+    el("th", { text: "Arm" }),
+    ...data.datasets.map((d) => el("th", {}, [
+      d.label.split(" · ")[0],
+      el("small", { text: d.blend_weight === null ? "blend: untuned" : `blend w = ${d.blend_weight}` }),
+    ])),
+  ]);
+  const best = Object.fromEntries(data.datasets.map((d) => [d.name, Math.max(
+    ...data.arms.map((arm) => arm.cells[d.name] ?? -1))]));
+  const rows = data.arms.map((arm) => el("tr", {}, [
+    el("td", { text: arm.label }),
+    ...data.datasets.map((d) => {
+      const value = arm.cells[d.name];
+      return el("td", {
+        class: value !== undefined && value === best[d.name] ? "best" : null,
+        text: value === undefined ? "–" : value.toFixed(1),
+      });
+    }),
+  ]));
+  return el("table", {}, [el("thead", {}, header), el("tbody", {}, rows)]);
+}
+
+async function loadSummary() {
+  try {
+    const data = await api("/api/summary");
+    $("summary-section").hidden = data.datasets.length < 2;
+    $("summary").replaceChildren(summaryTable(data));
+  } catch (error) {
+    $("summary").replaceChildren(el("p", { class: "status error", text: error.message }));
+  }
+}
+
 async function loadScoreboard() {
   const board = $("board");
+  $("board-title").textContent = `How each arm did on ${datasetLabel()}`;
+  loadSummary();
   try {
     const data = await api("/api/scoreboard");
     const armsByStage = new Map(state.arms.map((arm) => [arm.stage, arm]));
@@ -373,7 +437,7 @@ async function loadScoreboard() {
       el("span", { text: "NDCG@10 (bar) and Recall@50 (line)" }),
       el("span", { class: "num", text: "Recall@50" }),
       el("span", { class: "num extra", text: "p50 ms" }),
-      el("span", { class: "num extra", text: "Beat / lost to vector" }),
+      el("span", { class: "num extra", text: "vs Embed v4 vector" }),
     ]);
     board.replaceChildren(header, ...data.rows.map((row) => boardRow(row, best, armsByStage)));
     renderSwings("swings-gain", data.swings.filter((s) => s.direction === "gain"));
@@ -421,26 +485,79 @@ function bindEvents() {
   });
 }
 
+function embeddingCoverage({ docs, embedded, empty }) {
+  const withText = docs - empty;
+  if (embedded < withText) {
+    return `${embedded.toLocaleString()} of ${withText.toLocaleString()} documents embedded`;
+  }
+  const skipped = empty ? ` (${empty.toLocaleString()} empty in the source)` : "";
+  return `All ${embedded.toLocaleString()} documents embedded${skipped}`;
+}
+
 async function loadStatus() {
   try {
     const status = await api("/api/status");
     const ext = status.extensions;
     const parts = [`PostgreSQL ${status.postgres.split(" ")[0]}`, `pgvector ${ext.vector}`];
     if (ext.pg_textsearch) parts.push(`pg_textsearch ${ext.pg_textsearch}`);
-    parts.push(`${status.embedded.toLocaleString()} of ${status.docs.toLocaleString()} posts embedded`);
-    $("versions").textContent = parts.join(", ");
+    $("versions").replaceChildren(
+      el("span", { text: parts.join(" · ") }),
+      el("span", { text: embeddingCoverage(status) }),
+    );
   } catch (error) {
     $("versions").textContent = error.message;
   }
 }
 
-async function start() {
-  bindEvents();
+async function loadDataset() {
+  state.matches = new Map();
+  $("result").hidden = true;
+  setStatus("");
   await Promise.all([loadStatus(), loadArms()]);
   const data = await loadQuestions();
   renderDemoQuestions(data.demo);
-  const match = location.hash.match(/^#q=(.+)$/);
-  if (match) search({ question_id: decodeURIComponent(match[1]) });
+  if (!$("view-scoreboard").hidden) loadScoreboard();
+}
+
+async function loadDatasets() {
+  state.datasets = await api("/api/datasets");
+  const params = new URLSearchParams(location.hash.slice(1));
+  const wanted = params.get("d");
+  state.dataset = state.datasets.some((d) => d.name === wanted) ? wanted : state.datasets[0].name;
+  const select = $("dataset");
+  select.replaceChildren(...state.datasets.map((d) => el("option", {
+    value: d.name,
+    text: `${d.label} · ${d.questions} questions`,
+  })));
+  select.value = state.dataset;
+  select.addEventListener("change", () => {
+    state.dataset = select.value;
+    history.replaceState(null, "", `#d=${encodeURIComponent(state.dataset)}`);
+    loadDataset().catch((error) => setStatus(error.message, true));
+  });
+  return params.get("q");
+}
+
+async function followHash() {
+  const params = new URLSearchParams(location.hash.slice(1));
+  const wanted = params.get("d");
+  if (wanted && wanted !== state.dataset && state.datasets.some((d) => d.name === wanted)) {
+    state.dataset = wanted;
+    $("dataset").value = wanted;
+    await loadDataset();
+  }
+  const question = params.get("q");
+  if (question) search({ question_id: question });
+}
+
+async function start() {
+  bindEvents();
+  const question = await loadDatasets();
+  await loadDataset();
+  if (question) search({ question_id: question });
+  window.addEventListener("hashchange", () => {
+    followHash().catch((error) => setStatus(error.message, true));
+  });
 }
 
 start().catch((error) => setStatus(error.message, true));

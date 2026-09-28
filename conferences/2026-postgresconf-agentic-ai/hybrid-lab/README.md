@@ -1,37 +1,57 @@
 # Hybrid search lab
 
-Hybrid search in PostgreSQL 18, measured instead of asserted. Full-text search, pgvector,
-BM25 (pg_textsearch), Reciprocal Rank Fusion in one SQL statement, and a reranker, each graded
-on the 648 test questions of [FiQA-2018](https://sites.google.com/view/fiqa), a financial
-Q&A benchmark whose questions come with human judgments of the right answers.
+Hybrid search in PostgreSQL 18, measured instead of asserted. Full-text search, BM25
+(pg_textsearch), pgvector, Reciprocal Rank Fusion and a tuned score blend in SQL, and a
+reranker, each graded on 2,271 test questions from four [BEIR](https://github.com/beir-cellar/beir)
+datasets whose questions come with human judgments of the right answers. Two embedding
+models: Cohere Embed v4 on Amazon Bedrock, and bge-small-en-v1.5 running on the laptop.
 
 Companion to **Hybrid Search in PostgreSQL: Combining Vector and Full-Text for Real-World
 Applications**, Postgres Summit US 2026, New York City.
 
 ## What it found
 
-Every arm, all 648 FiQA test questions (full table: [`results/scoreboard.md`](results/scoreboard.md)):
+NDCG@10 on each dataset's test questions. In parentheses: the difference from vector search
+with the same embedding model, and its 95% paired bootstrap interval. **↑** / ↓ mark an
+interval above / below zero. Full table: [`results/summary.md`](results/summary.md).
 
-| Arm | NDCG@10 | Recall@50 | p50 |
-| --- | ---: | ---: | ---: |
-| **Vector** (Cohere Embed v4, HNSW) | **54.0** | 78.9 | 3.9 ms |
-| Vector, `halfvec` index / binary + rescore | 54.0 / 53.9 | 78.9 / 78.3 | 3.9 / 3.3 ms |
-| RRF (`ts_rank_cd` + vector) + Cohere Rerank 3.5 | 51.4 | 72.7 | 1,079 ms |
-| Vector + Cohere Rerank 3.5 | 50.0 | 78.9 | 425 ms |
-| RRF (BM25 + vector) | 41.3 | 75.7 | 9.7 ms |
-| RRF (`ts_rank_cd` + vector) | 33.8 | 72.7 | 158 ms |
-| BM25 (pg_textsearch) | 23.6 | 47.1 | 5.2 ms |
-| Pitfall: adding keyword and cosine scores | 5.6 | 16.0 | 145 ms |
-| Pitfall: every word must match | 4.3 | 6.7 | 0.5 ms |
-| Pitfall: any word, ranked with `ts_rank_cd` | 2.8 | 14.6 | 175 ms |
+| Arm | FiQA | SciFact | NFCorpus | SCIDOCS |
+| --- | ---: | ---: | ---: | ---: |
+| BM25 (pg_textsearch) | 23.6 | 68.8 | 32.3 | 15.4 |
+| **bge-small, local** | 38.0 | 72.0 | 33.8 | 19.6 |
+| bge-small + BM25, tuned blend | **39.2** (+1.2 **↑**) | **74.2** (+2.1 **↑**) | **35.9** (+2.1 **↑**) | 19.8 (+0.2) * |
+| bge-small + BM25, equal-weight RRF | 34.9 (−3.1 ↓) | 73.7 (+1.7) | 36.1 (+2.3 **↑**) | 19.4 (−0.3) |
+| **Embed v4** | 53.9 | 77.5 | 40.1 | 20.6 |
+| Embed v4 + BM25, tuned blend | 53.9 (0.0, chose w = 1) | 77.7 (+0.2) | 40.9 (+0.8 **↑**) | 19.8 (−0.8 ↓) * |
+| Embed v4 + BM25, equal-weight RRF | 41.3 (−12.5 ↓) | 74.6 (−2.9 ↓) | 39.0 (−1.1) | 19.4 (−1.2 ↓) |
+| Embed v4 + Cohere Rerank 3.5 | 49.7 (−4.1 ↓) | 77.1 (−0.4) | 38.2 (−1.9 ↓) | 20.2 (−0.4) |
 
-On this paraphrase-heavy benchmark, one vector query beat every hybrid and reranked
-variant. Keyword search still wins individual questions with exact identifiers ("Employer
-rollover from 403b to 401k?": BM25 #1, vector #26), and it is the right tool for "similar AND
-contains this word" (`sql/09`, `sql/11`). The point of the lab is the harness: run it on your
-own questions before deciding. Latency is one laptop and one client; rerank rows include
-Bedrock calls made 8 at a time.
+\* SCIDOCS has no dev questions, so its blend weight is an untuned 0.5.
 
+- **With a small local model, hybrid pays.** BM25 blended with bge-small beat bge-small alone
+  on three of four datasets and closed 39% (SciFact) and 33% (NFCorpus) of the gap to Embed v4.
+- **With a frontier model, equal-weight RRF does not.** It never beat Embed v4 alone and lost
+  significantly on three datasets. A blend tuned on dev questions won once (NFCorpus) and on
+  FiQA chose pure vector.
+- **The reranker never beat vector search** by more than noise on any dataset.
+- **Keyword search still earns its place** for exact identifiers ("Employer rollover from 403b
+  to 401k?": BM25 #1, Embed v4 #26) and for "similar AND contains this word" (`sql/09`,
+  `sql/11`).
+
+The four ways hybrid search goes wrong, measured on FiQA's 648 questions (every arm:
+[`results/scoreboard-fiqa.md`](results/scoreboard-fiqa.md)):
+
+| Pitfall | NDCG@10 | Fix | NDCG@10 |
+| --- | ---: | --- | ---: |
+| Every word must match (`websearch_to_tsquery`) | 4.3 | Any word, BM25 | 23.6 |
+| Any word, ranked with `ts_rank_cd` (no IDF) | 2.8 | BM25 | 23.6 |
+| Adding keyword and cosine scores | 5.6 | RRF of the same two lists | 33.8 |
+| Stacking one list on the other | 2.9 | RRF of the same two lists | 33.8 |
+| `WHERE` filter after an HNSW scan | 1 of 10 rows | `hnsw.iterative_scan = relaxed_order` | 10 of 10 |
+
+Scope: public benchmarks with incomplete judgments, two embedding models and one reranker,
+one laptop and one client. The datasets were chosen by a rule that favors keyword search.
+Run the harness on your own questions before deciding.
 
 ## What you need
 
@@ -42,29 +62,38 @@ Bedrock calls made 8 at a time.
 - VS Code with SQLTools, the SQLTools PostgreSQL driver, Python, and Jupyter (the workspace
   recommends them)
 
-## Set up (about 45 minutes, mostly embedding)
+## Set up (FiQA: about 35 minutes of Bedrock embedding, plus about an hour for the local model)
 
 ```bash
 cd hybrid-lab
 ./scripts/setup.sh              # PostgreSQL 18 cluster on 127.0.0.1:5433, builds pg_textsearch
-uv sync                         # Python environment
+uv sync --extra local           # Python environment (+ fastembed for the small local model)
 cp .env.example .env            # defaults work; set AWS_PROFILE if needed
-uv run python py/1_load.py      # FiQA: 57,638 posts, 648 questions, 1,706 judgments (seconds)
+uv run python py/1_load.py      # FiQA: 57,638 posts, 648 test + 500 dev questions (seconds)
 uv run python py/2_embed.py     # Embed v4 on Bedrock, then VACUUM FULL and all indexes
-uv run python py/4_evaluate.py  # every arm on every question -> results/scoreboard.md
+uv run --extra local python py/2b_embed_local.py   # bge-small on this laptop (optional)
+uv run --extra local python py/5_tune_fusion.py     # blend weights, chosen on dev questions
+uv run python py/4_evaluate.py  # every arm on every test question -> results/
 uv run hybrid-lab               # UI at http://127.0.0.1:8018
 ```
 
-`setup.sh` runs a project-owned cluster in `../.local/postgres18` and never touches other
-PostgreSQL services. It builds pg_textsearch 1.4.0 into `../.local/extensions` and loads it
-with PostgreSQL 18's `extension_control_path` and `dynamic_library_path`, so nothing is
-installed into Homebrew's directories. It is safe to re-run.
+### More datasets
 
-If your shell exports `PGUSER`, `PGPASSWORD`, `PGHOST`, or `PGDATABASE`, the scripts ignore
-them; the Python code always uses `DATABASE_URL`.
+The same schema and SQL files work for any BEIR dataset; each gets its own database. Besides
+FiQA the lab supports three more, chosen before any measurement by one rule: under 30,000
+documents, and BM25 beat every dense retriever in the BEIR paper.
 
-Embedding 7.7 million words hits Bedrock's tokens-per-minute quota. `py/2_embed.py` waits
-out throttling and only embeds rows that are still NULL, so an interrupted run resumes.
+```bash
+for d in scifact nfcorpus scidocs; do
+  LAB_DB=$d ./scripts/setup.sh
+  LAB_DATASET=$d uv run python py/1_load.py
+  LAB_DATASET=$d uv run python py/2_embed.py
+  LAB_DATASET=$d uv run --extra local python py/2b_embed_local.py
+done
+./scripts/evaluate_all.sh       # clean rebuild, tune on dev, evaluate on test, results/summary.md
+```
+
+The UI serves every dataset whose database exists; pick one in the header.
 
 ## Walk through it in VS Code
 
@@ -75,7 +104,7 @@ view. Run a file with SQLTools (Cmd+E Cmd+E), or select one statement and run ju
 
 | File | Shows |
 | --- | --- |
-| `01_schema.sql` | One row holds the text, its generated `tsvector`, and a `vector(1536)` |
+| `01_schema.sql` | One row holds the text, its generated `tsvector`, and one vector column per model |
 | `02_indexes.sql` | GIN, HNSW, pg_textsearch BM25, plus halfvec and binary expression indexes |
 | `03_keyword_and.sql` | Pitfall: `websearch_to_tsquery` requires every word |
 | `04_keyword_or.sql` | Any-word matching ranked with `ts_rank_cd` |
@@ -85,10 +114,13 @@ view. Run a file with SQLTools (Cmd+E Cmd+E), or select one statement and run ju
 | `07b_concat_dedupe.sql` | Pitfall: stacking one list on the other is not fusion |
 | `08a_hybrid_rrf.sql` | Reciprocal Rank Fusion in one statement |
 | `08b_hybrid_rrf_bm25.sql` | The same fusion with BM25 as the keyword list |
+| `08c_hybrid_blend.sql` | A normalized score blend, its weight tuned on dev questions |
+| `06b`, `08d`, `08e` | Vector, RRF, and blend with the small local model's column |
 | `09_filtered_hybrid.sql` | "Similar AND contains a keyword": filters, HNSW, iterative scans |
 | `10_scoreboard.sql` | NDCG@10 and Recall@50 for every arm, computed in SQL |
 | `11_hybrid_function.sql` | `hybrid_search()`: the take-home function |
 | `12a_halfvec.sql`, `12b_binary.sql` | Half-precision and 1-bit indexes, measured |
+| `demo_questions.sql` | The stage questions the UI lists, per dataset |
 
 Each arm file has a line `-- == ARM QUERY ==`. Statements above it are for exploring. The
 query below it is what the evaluator and the UI execute, byte for byte.
@@ -96,35 +128,44 @@ query below it is what the evaluator and the UI execute, byte for byte.
 ## The UI
 
 `uv run hybrid-lab` serves a single page at http://127.0.0.1:8018. Pick a question, choose
-arms, and compare their top 10 side by side. Known answers get a green row and a letter
-(A, B, C) that follows the post across columns; hover a row to highlight the same post
-everywhere. Hybrid rows show each post's keyword and vector rank, and clicking one shows the
-RRF arithmetic. Each column's SQL button shows the file it ran. The Scoreboard tab shows every
-arm over all 648 questions and the questions where hybrid gained or lost most against vector.
+a dataset in the header, pick a question, choose arms, and compare their top 10 side by side,
+one card per arm. Known answers get a green row and a letter (A, B, C) that follows the
+document across cards; hover a row to highlight the same document everywhere. The card with
+the single highest NDCG@10 is outlined in green and marked Highest. Hybrid rows show each
+document's keyword and vector rank, and clicking an RRF row shows the arithmetic. Each
+column's SQL button shows the file it ran. The Scoreboard tab shows every arm over the
+dataset's test questions, the cross-dataset summary, and the questions where BM25 helped or
+hurt the small model most. Links keep the dataset and question (`#d=nfcorpus&q=PLAIN-307`).
 
-Test questions work offline, including the rerank column, which uses the stored evaluation
-run. Typed questions need Bedrock. Picking a question in the UI also makes it the active
-question for SQLTools.
+Test questions work offline, including the Embed v4 and rerank columns, which use stored
+embeddings and the stored evaluation run. Typed questions need Bedrock (and the `local` extra
+for the bge-small columns). Picking a question in the UI also makes it the active question
+for SQLTools in that dataset's database.
 
 ## Tests
 
 ```bash
-uv run pytest -q                  # creates and uses a separate fiqa_test database
+uv run --extra local pytest -q   # creates and uses a separate fiqa_test database
 uv run ruff check src py tests
 ```
 
 The tests use a 20-post fixture with hand-built embeddings whose cosine similarities are
-known exactly. They check the AND/OR behavior, the RRF arithmetic, BM25 filtering, the SQL
-NDCG against a Python reference, the `ef_search` cap, iterative scans, the API with Bedrock
-mocked, and one browser run of the UI.
+known exactly. They check the AND/OR behavior, the RRF arithmetic, the blend against a Python
+reference, BM25 filtering, the SQL NDCG against a Python reference, the `ef_search` cap,
+iterative scans, the local-model arms, the API with Bedrock mocked, and the UI in a browser.
 
 ## Credits
 
 - Dave Ebbelaar's [hybrid-retrieval tutorial](https://github.com/daveebbelaar/ai-cookbook/tree/main/knowledge/hybrid-retrieval)
   in ai-cookbook: the FiQA-plus-NDCG approach and the numbered-file structure that this lab
   moves into PostgreSQL.
-- [BEIR](https://github.com/beir-cellar/beir) and FiQA-2018 for the benchmark.
+- [BEIR](https://github.com/beir-cellar/beir) (Thakur et al., NeurIPS 2021) for FiQA-2018,
+  SciFact, NFCorpus and SCIDOCS.
+- [bge-small-en-v1.5](https://huggingface.co/BAAI/bge-small-en-v1.5) (BAAI, MIT license) through
+  [fastembed](https://github.com/qdrant/fastembed).
 - [pgvector](https://github.com/pgvector/pgvector) and
   [pg_textsearch](https://github.com/timescale/pg_textsearch).
 - Cormack, Clarke and Büttcher, *Reciprocal Rank Fusion outperforms Condorcet and individual
   rank learning methods*, SIGIR 2009.
+- Bruch, Gai and Ingber, *An Analysis of Fusion Functions for Hybrid Retrieval*, ACM TOIS 2023:
+  the normalized convex combination in `08c`.

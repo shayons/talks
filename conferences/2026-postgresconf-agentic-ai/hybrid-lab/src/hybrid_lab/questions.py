@@ -7,7 +7,7 @@ import hashlib
 import psycopg
 from pgvector import Vector
 
-from hybrid_lab import bedrock
+from hybrid_lab import bedrock, local_model
 
 
 def ask(conn: psycopg.Connection, text: str) -> str:
@@ -29,10 +29,13 @@ def ask(conn: psycopg.Connection, text: str) -> str:
     ).fetchone()
     if not exists:
         vector = Vector(bedrock.embed_query(text))
+        local = Vector(local_model.embed_query(text)) if local_model.available() else None
         conn.execute(
-            "INSERT INTO queries (id, body, split, embedding) VALUES (%s, %s, 'demo', %s)"
-            " ON CONFLICT (id) DO UPDATE SET embedding = EXCLUDED.embedding",
-            (query_id, text, vector),
+            "INSERT INTO queries (id, body, split, embedding, embedding_local)"
+            " VALUES (%s, %s, 'demo', %s, %s)"
+            " ON CONFLICT (id) DO UPDATE SET embedding = EXCLUDED.embedding,"
+            " embedding_local = EXCLUDED.embedding_local",
+            (query_id, text, vector, local),
         )
     use(conn, query_id)
     return query_id

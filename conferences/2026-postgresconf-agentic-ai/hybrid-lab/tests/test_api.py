@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from conftest import unit_axis
-from hybrid_lab import bedrock
+from hybrid_lab import bedrock, local_model
 from hybrid_lab.arms import ARMS, MARKER
 
 DEFAULT_ARMS = ["keyword_or", "vector", "rrf", "rrf_rerank"]
@@ -25,6 +25,7 @@ def client(test_dsn, monkeypatch):
         return [(index, 1.0 / (index + 1)) for index in reversed(range(len(documents)))]
 
     monkeypatch.setattr(bedrock, "embed_query", fake_embed_query)
+    monkeypatch.setattr(local_model, "embed_query", lambda text: unit_axis(0)[:384])
     monkeypatch.setattr(bedrock, "rerank", fake_rerank)
     from hybrid_lab.server import app
 
@@ -63,7 +64,7 @@ def test_union_rerank_combines_both_lists(client):
     ).json()
     cards = {card["stage"]: card for card in body["arms"]}
     union = cards["union_rerank"]
-    assert union["base_label"] == "Vector"
+    assert union["base_label"] == "Vector · Embed v4"
     vector_total, bm25_total = cards["vector"]["returned"], cards["bm25"]["returned"]
     assert max(vector_total, bm25_total) <= union["returned"] <= vector_total + bm25_total
     assert all(row["from_rank"] for row in union["rows"])  # fixture: vector ranks every post
@@ -112,3 +113,17 @@ def test_scoreboard_before_and_after_evaluation(client):
     status = client.get("/api/status").json()
     assert status["postgres"].startswith("18")
     assert status["extensions"]["vector"].startswith("0.8")
+
+
+def test_status_separates_empty_documents_from_missing_embeddings(client):
+    status = client.get("/api/status").json()
+    assert (status["docs"], status["embedded"], status["empty"]) == (20, 19, 1)
+
+
+def test_datasets_and_summary(client):
+    datasets = client.get("/api/datasets").json()
+    assert [d["name"] for d in datasets] == ["fiqa"]  # tests serve one DATABASE_URL
+    assert datasets[0]["docs"] == 20 and datasets[0]["questions"] == 2
+    summary = client.get("/api/summary").json()
+    assert set(summary) == {"datasets", "arms"}
+    assert client.get("/api/status?dataset=nope").status_code == 404

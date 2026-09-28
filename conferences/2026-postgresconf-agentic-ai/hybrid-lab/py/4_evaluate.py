@@ -1,14 +1,15 @@
 # %% [markdown]
-# # 4 · Grade every arm on all 648 FiQA test questions
+# # 4 · Grade every arm on the dataset's test questions
 #
 # Each SQL arm runs its file's `-- == ARM QUERY ==` section once per question to warm
-# the cache, then again for timing. The rerank arms send each question's stored
-# hybrid top 50 to Cohere Rerank on Bedrock. Results land in `runs` and `run_timings`;
-# sql/10_scoreboard.sql turns them into NDCG@10 and Recall@50.
+# the cache, then again for timing. The rerank arms send each question's stored candidate
+# lists (up to 100 documents) to Cohere Rerank on Bedrock. Results land in `runs` and
+# `run_timings`; sql/10_scoreboard.sql turns them into NDCG@10 and Recall@50.
+# Run py/5_tune_fusion.py first so the blend arms use weights chosen on dev questions.
 
 # %%
 from hybrid_lab.arms import BY_STAGE
-from hybrid_lab.db import connect
+from hybrid_lab.db import connect, dataset, run_script
 from hybrid_lab.evaluate import run_all, scoreboard, write_scoreboard_markdown
 
 conn = connect()
@@ -17,7 +18,11 @@ run_all(conn)  # or run_all(conn, stages=["vector", "rrf"]) to redo a few
 # %%
 rows = scoreboard(conn)
 labels = {stage: arm.label for stage, arm in BY_STAGE.items()}
-print(write_scoreboard_markdown(rows, labels))
+print(write_scoreboard_markdown(rows, labels, dataset()))
+
+# %% The stage questions the UI lists (edit sql/demo_questions.sql to change them)
+with connect(autocommit=True) as setup:
+    run_script(setup, "demo_questions.sql")
 
 # %% [markdown]
 # ## Where the arms disagree

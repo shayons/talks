@@ -1,28 +1,32 @@
 -- 01 · Schema: one row holds the text, its lexemes, and its embedding.
 --
--- FiQA-2018 (BEIR): 57,638 finance forum posts, 648 test questions, and human
--- relevance judgments (qrels) saying which posts answer which question.
+-- One database per BEIR dataset, same schema. FiQA-2018: 57,638 finance forum posts,
+-- 648 test questions, and human judgments (qrels) of which posts answer which question.
 -- Run once on an empty database; py/1_load.py applies it for you.
 
 CREATE EXTENSION IF NOT EXISTS vector;
 
 -- The corpus. The tsvector is derived by PostgreSQL and can never drift from
--- the text. The embedding comes from Cohere Embed v4 (input_type =
--- 'search_document') and is filled by py/2_embed.py.
+-- the text. One column per embedding model, never mixed:
+--   embedding        Cohere Embed v4 on Bedrock (input_type 'search_document'), py/2_embed.py
+--   embedding_local  BAAI/bge-small-en-v1.5, open source, on this laptop, py/2b_embed_local.py
 CREATE TABLE docs (
-  id        text PRIMARY KEY,
-  body      text NOT NULL,
-  tsv       tsvector GENERATED ALWAYS AS (to_tsvector('english', body)) STORED,
-  embedding vector(1536)
+  id              text PRIMARY KEY,
+  body            text NOT NULL,
+  tsv             tsvector GENERATED ALWAYS AS (to_tsvector('english', body)) STORED,
+  embedding       vector(1536),
+  embedding_local vector(384)
 );
 
--- Questions: FiQA's 648 test questions, plus any question typed on stage
+-- Questions: the test split (FiQA: 648), the dev split when a dataset has one
+-- (FiQA: 500, used only to tune fusion weights), and questions typed on stage
 -- (split = 'demo'). Questions are embedded with input_type = 'search_query'.
 CREATE TABLE queries (
   id        text PRIMARY KEY,
   body      text NOT NULL,
-  split     text NOT NULL CHECK (split IN ('test', 'demo')),
-  embedding vector(1536)
+  split     text NOT NULL CHECK (split IN ('test', 'dev', 'demo')),
+  embedding vector(1536),
+  embedding_local vector(384)
 );
 
 -- Ground truth: which documents answer which test question.
@@ -50,6 +54,13 @@ CREATE TABLE run_timings (
   PRIMARY KEY (stage, query_id)
 );
 
+-- Fusion weights chosen on held-out dev questions by py/5_tune_fusion.py, never on test.
+CREATE TABLE fusion_settings (
+  name  text PRIMARY KEY,
+  value float8 NOT NULL,
+  note  text
+);
+
 -- Curated stage questions, chosen from measured per-question results.
 CREATE TABLE demo_questions (
   query_id text PRIMARY KEY REFERENCES queries (id),
@@ -68,7 +79,7 @@ CREATE TABLE lab_state (
 INSERT INTO lab_state DEFAULT VALUES;
 
 CREATE VIEW active_query AS
-SELECT q.id, q.body, q.embedding
+SELECT q.id, q.body, q.embedding, q.embedding_local
   FROM queries q
  WHERE q.id = coalesce(nullif(current_setting('lab.query_id', true), ''),
                        (SELECT query_id FROM lab_state));

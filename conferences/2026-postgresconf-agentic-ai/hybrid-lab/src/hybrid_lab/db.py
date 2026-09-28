@@ -14,37 +14,49 @@ from psycopg_pool import ConnectionPool
 
 LAB_ROOT = Path(__file__).resolve().parents[2]
 SQL_DIR = LAB_ROOT / "sql"
-DEFAULT_DSN = "postgresql://coffee:coffee@127.0.0.1:5433/fiqa"
+CLUSTER_DSN = "postgresql://coffee:coffee@127.0.0.1:5433"
 
 load_dotenv(LAB_ROOT / ".env")
 
 
-def database_url() -> str:
-    """Return DATABASE_URL, defaulting to the local lab cluster."""
-    return os.getenv("DATABASE_URL", DEFAULT_DSN)
+def dataset() -> str:
+    """The BEIR dataset this process works on (LAB_DATASET, default fiqa)."""
+    return os.getenv("LAB_DATASET", "fiqa")
 
 
-def connect(**kwargs) -> psycopg.Connection:
+def database_url(name: str | None = None) -> str:
+    """Return DATABASE_URL if set, otherwise the lab cluster's database for the dataset."""
+    if name is None and os.getenv("DATABASE_URL"):
+        return os.environ["DATABASE_URL"]
+    return f"{CLUSTER_DSN}/{name or dataset()}"
+
+
+def connect(name: str | None = None, **kwargs) -> psycopg.Connection:
     """Open a connection with pgvector types registered.
+
+    Args:
+        name: A dataset's database; defaults to DATABASE_URL or LAB_DATASET.
+        **kwargs: Passed to psycopg.connect, for example autocommit=True.
 
     Raises:
         RuntimeError: If PostgreSQL is unreachable, with the command that starts it.
     """
+    url = database_url(name)
     try:
-        conn = psycopg.connect(database_url(), **kwargs)
+        conn = psycopg.connect(url, **kwargs)
     except psycopg.OperationalError as exc:
         raise RuntimeError(
-            f"Cannot connect to {_redacted(database_url())}: {exc}".strip()
-            + "\nStart the lab database with: ./scripts/setup.sh"
+            f"Cannot connect to {_redacted(url)}: {exc}".strip()
+            + "\nCreate and start it with: LAB_DB=<dataset> ./scripts/setup.sh"
         ) from exc
     register_vector(conn)
     return conn
 
 
-def open_pool(max_size: int = 8) -> ConnectionPool:
+def open_pool(name: str | None = None, max_size: int = 8) -> ConnectionPool:
     """Open a connection pool for the web server."""
     return ConnectionPool(
-        database_url(), min_size=1, max_size=max_size, configure=register_vector, open=True
+        database_url(name), min_size=1, max_size=max_size, configure=register_vector, open=True
     )
 
 

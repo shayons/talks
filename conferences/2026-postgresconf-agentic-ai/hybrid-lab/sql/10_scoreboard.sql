@@ -1,18 +1,25 @@
--- 10 · Scoreboard: every arm graded against FiQA's human judgments, in SQL.
+-- 10 · Scoreboard: every arm graded against the dataset's human judgments, in SQL.
 --
 -- NDCG@10 (normalized discounted cumulative gain):
 --   DCG  = Σ relevance / log2(rank + 1) over the top 10 results
 --   IDCG = the same sum for the best possible ordering of that question's answers
 --   NDCG = DCG / IDCG, from 0 (no answer in the top 10) to 1 (all answers first).
---   Averaged over all 648 test questions; a question with no results scores 0.
+--   Averaged over every test question; a question with no results scores 0.
 --
--- Recall@50: share of a question's relevant posts found anywhere in the top 50.
+-- Recall@50: share of a question's relevant documents found anywhere in the top 50.
 -- It is the ceiling for anything that only reorders those 50, like a reranker.
 --
 -- py/4_evaluate.py fills runs and run_timings, then runs this file. Latency is
 -- measured on the client around each arm's SQL; rerank arms add the Bedrock call.
+--
+-- question_scores is materialized: grading every stored run takes seconds (SCIDOCS keeps
+-- 900,000 rows of runs), and the UI reads it on every click. Re-running this file, as the
+-- evaluator does after each run, rebuilds it.
 
-CREATE OR REPLACE VIEW question_scores AS
+DROP VIEW IF EXISTS scoreboard;
+DROP MATERIALIZED VIEW IF EXISTS question_scores;
+
+CREATE MATERIALIZED VIEW question_scores AS
 WITH test_questions AS (
   SELECT id AS query_id FROM queries WHERE split = 'test'
 ),
@@ -40,7 +47,9 @@ SELECT s.stage,
   LEFT JOIN qrels j ON j.query_id = r.query_id AND j.doc_id = r.doc_id
  GROUP BY s.stage, t.query_id, i.idcg, rc.n_relevant;
 
-CREATE OR REPLACE VIEW scoreboard AS
+CREATE UNIQUE INDEX question_scores_stage_query ON question_scores (stage, query_id);
+
+CREATE VIEW scoreboard AS
 WITH versus_vector AS (
   SELECT a.stage,
          count(*) FILTER (WHERE a.ndcg10 > v.ndcg10) AS better_than_vector,

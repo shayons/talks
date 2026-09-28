@@ -25,10 +25,17 @@ def bm25_available(conn: psycopg.Connection) -> bool:
     return bool(row and row[0])
 
 
+def local_available(conn: psycopg.Connection) -> bool:
+    """Return True when the small local model's vectors have been filled in."""
+    row = conn.execute("SELECT count(embedding_local) > 0 FROM docs").fetchone()
+    conn.rollback()
+    return bool(row and row[0])
+
+
 def test_question_ids(conn: psycopg.Connection) -> list[str]:
     """Return the 648 FiQA test question ids in a stable order."""
     ids = conn.execute(
-        "SELECT id FROM queries WHERE split = 'test' ORDER BY id::int"
+        "SELECT id FROM queries WHERE split = 'test' ORDER BY id"
     ).fetchall()
     conn.rollback()
     return [row[0] for row in ids]
@@ -67,12 +74,16 @@ def run_all(
     """Evaluate the requested stages (default: all available) and refresh the scoreboard."""
     wanted = set(stages) if stages is not None else {arm.stage for arm in ARMS}
     has_bm25 = bm25_available(conn)
+    has_local = local_available(conn)
     query_ids = test_question_ids(conn)
     for arm in ARMS:
         if arm.stage not in wanted:
             continue
         if arm.needs_bm25 and not has_bm25:
             progress(f"{arm.stage}: skipped, pg_textsearch or docs_body_bm25 is missing")
+            continue
+        if arm.local and not has_local:
+            progress(f"{arm.stage}: skipped, run py/2b_embed_local.py first")
             continue
         if arm.rerank_of:
             evaluate_rerank_arm(conn, arm, progress=progress)
@@ -101,13 +112,15 @@ def scoreboard(conn: psycopg.Connection) -> list[dict]:
     return rows
 
 
-def write_scoreboard_markdown(rows: list[dict], labels: dict[str, str]) -> str:
-    """Write results/scoreboard.md and return its text."""
+def write_scoreboard_markdown(rows: list[dict], labels: dict[str, str], name: str) -> str:
+    """Write results/scoreboard-<dataset>.md and return its text."""
+    questions = rows[0]["questions"] if rows else 0
     lines = [
-        "# FiQA scoreboard",
+        f"# {name} scoreboard",
         "",
-        "648 FiQA-2018 test questions · PostgreSQL 18.6 · pgvector 0.8.6 · pg_textsearch 1.4.0",
-        "· Cohere Embed v4 (1536 dims) and Cohere Rerank 3.5 on Amazon Bedrock.",
+        f"{questions} test questions · PostgreSQL 18.6 · pgvector 0.8.6 · pg_textsearch 1.4.0",
+        "· Cohere Embed v4 (1536 dims) and Cohere Rerank 3.5 on Amazon Bedrock",
+        "· BAAI/bge-small-en-v1.5 (384 dims) on this laptop for the small-model rows.",
         "Latency is local laptop wall time per question; rerank rows include the Bedrock call.",
         "",
         "| Arm | NDCG@10 | Recall@50 | p50 ms | p95 ms | Better / worse than Vector |",
@@ -120,7 +133,7 @@ def write_scoreboard_markdown(rows: list[dict], labels: dict[str, str]) -> str:
             f"{row['recall_at_50']} | {row['p50_ms']} | {row['p95_ms']} | {versus} |"
         )
     text = "\n".join(lines) + "\n"
-    path = LAB_ROOT / "results" / "scoreboard.md"
+    path = LAB_ROOT / "results" / f"scoreboard-{name}.md"
     path.parent.mkdir(exist_ok=True)
     path.write_text(text)
     return text
@@ -141,7 +154,7 @@ def _stored_candidates(
           JOIN docs d ON d.id = r.doc_id
          WHERE r.stage = ANY(%(stages)s) AND r.rank <= %(depth)s
          GROUP BY q.id, q.body
-         ORDER BY q.id::int
+         ORDER BY q.id
         """,
         {"stages": list(stages), "depth": CANDIDATES},
     ).fetchall()
