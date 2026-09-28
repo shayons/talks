@@ -151,7 +151,13 @@ section.bio h2 { font-size: 18px; color: var(--text-2); font-weight: 600; margin
 section.bio h1 { font-size: 56px; margin: 0 0 14px; }
 section.bio .bio-text strong { font-size: 22px; font-weight: 600; display: block; }
 section.bio .bio-text p { font-size: 20px; line-height: 1.5; margin: 12px 0; }
-section.bio .bio-links { color: var(--blue); font-size: 18px; margin-top: 18px; }
+section.bio .bio-links {
+  display: flex; align-items: center; gap: 20px; color: var(--blue); font-size: 18px;
+  margin-top: 22px;
+}
+section.bio .bio-links img {
+  width: 132px; height: 132px; padding: 8px; background: #fff; border-radius: 12px;
+}
 
 /* ------ Takeaway ------ */
 section.takeaway { justify-content: center; }
@@ -177,6 +183,10 @@ section.dense p { margin: 0 0 0.4em; }
 .journey-grid > div { background: var(--card); border-radius: 22px; padding: 26px 28px; }
 .journey-grid h3 { margin-bottom: 12px; }
 .journey-grid p { font-size: 23px; margin: 0; }
+.journey-takeaway { transition: opacity 300ms ease 250ms; }
+section:has(.journey-grid > [data-bespoke-marp-fragment=inactive]) .journey-takeaway {
+  opacity: 0; transition-delay: 0ms;
+}
 .eyebrow { display: block; color: var(--text-2); font-size: 17px; font-weight: 600; margin-bottom: 12px; }
 .formula { color: var(--text); font-size: 34px; font-weight: 600; padding: 20px 0; text-align: center; }
 .caption { color: var(--text-2); font-size: 18px; margin: 16px 0 0; }
@@ -191,6 +201,8 @@ section.dense p { margin: 0 0 0.4em; }
 .evidence-image.qr { background: #fff; padding: 18px; justify-self: center; }
 .evidence-image.qr img { width: 300px; height: 300px; }
 section.split-evidence h1 { font-size: 42px; margin-bottom: 18px; }
+section.measure .evidence-grid { grid-template-columns: 0.78fr 1.22fr; gap: 32px; }
+section.measure .evidence-grid p { font-size: 22px; }
 section.split-evidence:has(.evidence-grid h1) > h2 {
   font-size: 20px; color: var(--text-2); font-weight: 600; letter-spacing: 0; margin-bottom: 0;
 }
@@ -275,6 +287,12 @@ section.patterns .pattern-grid { display: grid; grid-template-columns: 1fr 1fr; 
 section.patterns .pattern-grid p { margin: 0 0 4px; font-size: 20px; }
 section.patterns pre { font-size: 15.5px; padding: 14px 18px; margin: 0; line-height: 1.38; }
 
+/* ------ Slide: the stack ------ */
+section.stack table { font-size: 0.78em; margin-bottom: 16px; }
+section.stack td { padding-top: 7px; padding-bottom: 7px; }
+section.stack td:nth-child(-n+2) { white-space: nowrap; }
+section.stack > p { font-size: 23px; }
+
 /* ------ Slide: the four datasets ------ */
 section.datasets table { font-size: 0.8em; }
-section.datasets td:nth-child(2) { color: var(--text-2) !important; }
+section.datasets td:nth-child(2) { color: var(--text) !important; }

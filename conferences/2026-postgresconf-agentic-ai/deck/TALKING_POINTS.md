@@ -103,7 +103,7 @@ to run. Then do steps 3, 5 and 6 by hand.
 6. Wi-Fi back on, `aws sts get-caller-identity` so a typed question works live.
 7. Present from `deck/deck.html` in Chrome: `f` for fullscreen, `p` for presenter view (notes
    and the next slide in a second window), `o` for the overview. It has 250 ms fades and click
-   steps on slides 12, 13 and 22; rehearse those clicks once. Keep `deck.pdf` open as the
+   steps on slides 2, 12, 13 and 22; rehearse those clicks once. Keep `deck.pdf` open as the
    fallback: it shows every step in its final state.
 
 Stage links (paste into the open tab; the UI follows the link):
@@ -120,10 +120,11 @@ rebuild from `py/1_load.py`, `py/2_embed.py`, `py/2b_embed_local.py` and
 
 1. **Title.** "Everything today runs in one PostgreSQL 18.6 database on this laptop and is
    graded against known answers."
-2. **Two questions, two misses.** Everyday searches, not from the datasets. "Cancel my
-   subscription" shares no word with "How to end your membership": keyword search can't see
-   it, vector search matches the meaning. "AA batteries": to an embedding, AAA looks almost
-   the same. Ask the room who has hit either one. Then: "You'll see real ones from the data:
+2. **Two questions, two misses.** Everyday searches, not from the datasets. The slide opens
+   on the keyword card: "Cancel my subscription" shares no word with "How to end your
+   membership": keyword search can't see it, vector search matches the meaning. One click
+   brings up "AA batteries" (to an embedding, AAA looks almost the same) and the closing
+   line. Ask the room who has hit either one. Then: "You'll see real ones from the data:
    rainy-day in VS Code, and 403b, where vector search ranks the only answer #26. Which do
    you need? That's a measurement." If asked whether the examples were checked: yes, in
    PostgreSQL and with both models; the numbers are in the slide's presenter note.

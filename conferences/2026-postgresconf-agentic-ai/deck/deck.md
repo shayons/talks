@@ -18,7 +18,7 @@ transition: fade 250ms
 ## Combining Vector and Full-Text for Real-World Applications
 
 <div class="byline">
-Shayon Sanyal, Principal PostgreSQL Specialist SA
+Shayon Sanyal, Principal WW PostgreSQL Specialist SA
 </div>
 
 <div class="meta">
@@ -37,14 +37,14 @@ answers. Run of show and fallbacks: TALKING_POINTS.md. Demo: hybrid-lab/README.m
 
 <div class="journey-grid">
 <div><span class="eyebrow">Keyword search misses</span><h3>“How do I cancel my subscription?”</h3><p>The help page is titled <strong>“How to end your membership.”</strong> Not one word in common, so keyword search never sees it. Vector search matches it on meaning.</p></div>
-<div><span class="eyebrow">Vector search misses</span><h3>“AA batteries”</h3><p>To an embedding, <strong>AAA batteries</strong> look almost the same: close in meaning, wrong product. Keyword search matches the exact term.</p></div>
+<div data-marpit-fragment><span class="eyebrow">Vector search misses</span><h3>“AA batteries”</h3><p>To an embedding, <strong>AAA batteries</strong> look almost the same: close in meaning, wrong product. Keyword search matches the exact term.</p></div>
 </div>
 
-**Words find exact terms. Vectors find paraphrases.** Which one wins, and whether combining
-them helps, is a measurement, not a belief.
+<p class="journey-takeaway"><strong>Words find exact terms. Vectors find paraphrases.</strong> Which one wins, and
+whether combining them helps, is a measurement, not a belief.</p>
 
 <!--
-Everyday searches, not from the datasets. Checked in the lab: the subscription question and
+Everyday searches, not from the datasets. One click brings up the AA card. Checked in the lab: the subscription question and
 the help page share no word stems in PostgreSQL, and both bge-small and Embed v4 ranked the
 page first against "Cancel or change an order" and "Subscription plans and pricing". "AA
 batteries" scored AAA almost as high as AA: 0.832 vs 0.870 (bge-small), 0.518 vs 0.541
@@ -69,13 +69,13 @@ Code, and 403b, where vector search ranks the only answer #26."
 
 # Shayon Sanyal
 
-**Principal PostgreSQL Specialist Solutions Architect**
+**Principal WW PostgreSQL Specialist SA**
 
 I help teams build on PostgreSQL, from relational applications to retrieval and agent workflows.
 
 Today: readable SQL, measured results, and a skill you can point at your own tables.
 
-<div class="bio-links">linkedin.com/in/shayonsanyal</div>
+<div class="bio-links"><img src="assets/qr-linkedin.svg" alt="QR code: linkedin.com/in/shayonsanyal"><span>linkedin.com/in/shayonsanyal</span></div>
 
 </div>
 </div>
@@ -84,7 +84,7 @@ Today: readable SQL, measured results, and a skill you can point at your own tab
 
 ---
 
-<!-- _class: split-evidence -->
+<!-- _class: split-evidence measure -->
 
 ## How we'll measure
 
@@ -142,6 +142,8 @@ claim it does.
 -->
 
 ---
+
+<!-- _class: stack -->
 
 ## The stack: one PostgreSQL database
 
