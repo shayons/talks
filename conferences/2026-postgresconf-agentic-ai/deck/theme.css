@@ -269,3 +269,8 @@ section.rrf .formula { font-size: 26px; padding: 0 0 14px; }
 .rrf-step[data-bespoke-marp-fragment=inactive] .from-vector-9 { transform: translate(-398px, 240px); }
 .rrf-step[data-bespoke-marp-fragment=inactive] .from-vector-1 { transform: translate(-398px, -240px); }
 .rrf-step[data-bespoke-marp-fragment=inactive] .from-bm25-1 { transform: translate(-796px, -270px); }
+
+/* ------ Slide: two SQL patterns side by side ------ */
+section.patterns .pattern-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+section.patterns .pattern-grid p { margin: 0 0 4px; font-size: 20px; }
+section.patterns pre { font-size: 15.5px; padding: 14px 18px; margin: 0; line-height: 1.38; }

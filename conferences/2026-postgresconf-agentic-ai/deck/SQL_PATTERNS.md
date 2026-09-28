@@ -2,8 +2,10 @@
 
 Copyable versions of the patterns on the slides. Every one runs, as written, in
 [`hybrid-lab/sql/`](../hybrid-lab/sql/) against the FiQA table
-`docs (id text, body text, tsv tsvector, embedding vector(1536))`. Here `$1` is the question
-text and `$2` its embedding (input type `search_query`).
+`docs (id text, body text, tsv tsvector, embedding vector(1536))`, except the boost and
+link-expansion patterns, which need columns (`published_at`, `likes`, `category`) and a
+`links (src, dst)` table the lab doesn't have. Here `$1` is the question text and `$2` its
+embedding (input type `search_query`).
 
 ## Match any word, not every word
 
@@ -144,6 +146,59 @@ SET auto_explain.log_analyze = on;
 SET auto_explain.log_level = notice;      -- plans arrive in your client as NOTICEs
 SELECT count(*) FROM hybrid_search($1, $2);
 ```
+
+## Boost fused results by recency, popularity, and preference
+
+```sql
+SELECT h.doc_id,
+       h.score
+       * power(0.5, extract(epoch FROM now() - d.published_at) / 86400 / 30)  -- 30-day half-life
+       * (1 + ln(1 + d.likes) / 10)                                          -- popularity, damped
+       * CASE WHEN d.category = ANY($3) THEN 1.2 ELSE 1 END                  -- user preference
+         AS boosted
+  FROM hybrid_search($1, $2, match_count => 50) h
+  JOIN docs d ON d.id = h.doc_id
+ ORDER BY boosted DESC
+ LIMIT 10;
+```
+
+Boost a larger pool than you show, or a boost can't lift anything into view. Multiply after
+fusion so a boost scales relevance instead of replacing it. Not measured in the lab: BEIR has no
+dates or popularity.
+
+## Expand results along relationships (recursive CTE)
+
+```sql
+WITH RECURSIVE related (doc_id, score, depth) AS (
+  SELECT doc_id, score, 0
+    FROM hybrid_search($1, $2, match_count => 10)
+  UNION ALL
+  SELECT l.dst, r.score / 2, r.depth + 1          -- halve the score per hop
+    FROM related r
+    JOIN links l ON l.src = r.doc_id               -- citations, replies, related items
+   WHERE r.depth < 2                               -- the depth bound also stops cycles
+)
+SELECT doc_id, max(score) AS score
+  FROM related
+ GROUP BY doc_id
+ ORDER BY score DESC
+ LIMIT 10;
+```
+
+Index `links (src)`. PostgreSQL 14+ can also detect loops with `CYCLE`. Not measured in the lab:
+BEIR has no links between documents. Both patterns were run against the lab's `hybrid_search()`
+with synthetic metadata.
+
+## Operating checklist
+
+| Area | Inspect before changing it |
+| --- | --- |
+| HNSW build | `maintenance_work_mem` (the graph must fit), parallel workers, `m`, `ef_construction`, index size |
+| HNSW search | `ef_search` ≥ LIMIT, filtered recall, `iterative_scan`, `max_scan_tuples` |
+| Full text | OR vs AND queries, match counts, `ts_rank_cd` cost on common terms, BM25 availability |
+| Embeddings | Model id per column, input types, re-embedding on text change, quota and throttling |
+| Functions | Inner plans with `auto_explain`; `plan_cache_mode` for optional filters |
+| Evaluation | Re-run the question set after every change; keep per-question wins and losses |
 
 ## Score it
 

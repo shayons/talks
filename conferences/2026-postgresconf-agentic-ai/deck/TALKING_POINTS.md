@@ -42,6 +42,10 @@ Sources: `hybrid-lab/results/summary.md` and `results/scoreboard-*.md`.
 | Rerank 3.5 never beat Embed v4 alone significantly | vector top 50: −4.1 FiQA, −1.9 NFCorpus (significant); best anywhere +0.4 (SciFact, not significant) | High |
 | BM25 in PostgreSQL matches the published baseline | FiQA 23.6 = BEIR's 0.236 | High |
 | Smaller index, same quality | FiQA: `halfvec` 225 MB, 53.7; binary + rescore 28 MB, 54.1; full 450 MB, 53.9 | High for FiQA |
+| RRF's k matters little | k = 5 to 200 moves NDCG@10 by at most 4.3 (FiQA, Embed v4), 1.4 elsewhere; no k makes equal-weight RRF beat Embed v4 alone | High (sensitivity on test, not tuned) |
+| Without BM25, the keyword side adds almost nothing | `ts_rank_cd` + bge-small, tuned blend: −0.1 / +0.4 / +0.7 (none significant); SCIDOCS −3.6 untuned; 137 ms p50 on FiQA | High |
+| Query shape didn't decide it | FiQA's 177 questions with a number or acronym: vector 57.7, RRF · BM25 46.5 | High for FiQA |
+| One statement runs the two lists in sequence | No Gather node; `08b` p50 8.2 ms ≈ BM25 5.2 + vector 3.5 | High |
 
 Do not say:
 
@@ -52,6 +56,8 @@ Do not say:
 - "A tuned blend never loses." With no dev questions (SCIDOCS) it ran untuned and lost 0.8.
 - "Rerankers don't work." This reranker, with this embedding model, on these benchmarks.
 - Any latency as a production number. One laptop, one client.
+- "PostgreSQL runs the vector and text searches in parallel." Not inside one statement.
+- "Boosting or link expansion improved results." Shown as patterns only; not measured.
 
 ## Fifty-minute run of show
 
@@ -61,11 +67,11 @@ Do not say:
 | 4:00–13:00 | 6–10 | VS Code: `01`, `03`, `04`, `05`, `06` | AND matches nothing; `ts_rank_cd` has no IDF; BM25 in Postgres; vector 53.9 |
 | 13:00–21:00 | 11–15 | `07a`, `08a`, `08c`, knobs | Adding scores 5.6 vs RRF 33.8 on the same lists; the blend and its weight |
 | 21:00–26:00 | 16 | UI on NFCorpus, then FiQA 403b | Vitamin D: blend 97 vs Embed v4 71; 403b: BM25 #1, vector #26 |
-| 26:00–31:00 | 17–19 | Embeddings, `09`, `11` | 1 of 10 rows; iterative scan; the function's own settings |
-| 31:00–38:00 | 20–23 | Gold table, smaller model, rerank, storage | Hybrid pays on a small model; equal-weight RRF never paid; rerank didn't |
-| 38:00–41:00 | 24–26 | Limits, takeaways, take it home | Measure on your data; the skill |
-| 41:00–44:00 | | Buffer | |
-| 44:00–50:00 | 27–30 | Q&A, appendix | |
+| 26:00–32:00 | 17–20 | Embeddings, `09`, `11`, boost and expand | 1 of 10 rows; iterative scan; the function's own settings; two more patterns |
+| 32:00–38:30 | 21–24 | Gold table, smaller model, rerank, storage | Hybrid pays on a small model; equal-weight RRF never paid; rerank didn't |
+| 38:30–41:30 | 25–27 | Limits, takeaways, take it home | Measure on your data; the skill |
+| 41:30–44:00 | | Buffer | |
+| 44:00–50:00 | 28–30 | Q&A, appendix | |
 
 ## Preflight (the morning of the talk)
 
@@ -87,7 +93,7 @@ Do not say:
 6. Wi-Fi back on, `aws sts get-caller-identity` so a typed question works live.
 7. Present from `deck/deck.html` in Chrome: `f` for fullscreen, `p` for presenter view (notes
    and the next slide in a second window), `o` for the overview. It has 250 ms fades and click
-   steps on slides 11, 12 and 20; rehearse those clicks once. Keep `deck.pdf` open as the
+   steps on slides 11, 12 and 21; rehearse those clicks once. Keep `deck.pdf` open as the
    fallback: it shows every step in its final state.
 
 Stage links (paste into the open tab; the UI follows the link):
@@ -111,8 +117,11 @@ rebuild from `py/1_load.py`, `py/2_embed.py`, `py/2b_embed_local.py` and
    were picked by a rule written down before measuring: under 30,000 documents, and BM25
    beat every dense retriever in BEIR's 2021 paper. Say plainly that this rule favors keyword
    search, so it favors hybrid. NDCG@10 in one picture. Credit Dave Ebbelaar's tutorial.
+   Then say the abstract's promise out loud: "combining beats either alone". Today measures
+   when that's true.
 5. **Stack.** Two embedding models on purpose: a frontier API model and a 384-dimension
-   open-source model on the laptop. Everything except model calls is SQL.
+   open-source model on the laptop. The database side is all open source, and the fully open
+   path (bge-small + BM25) is where hybrid pays most.
 6. **Schema (`01`).** Generated `tsvector` can't drift; embeddings can. One column per model.
 7. **Pitfall 1 (`03`).** Run it: `&` between every word. 405 of 648 questions match nothing.
 8. **Any word (`04`).** Recall doubles, NDCG falls to 2.8. 10,460 posts match; `ts_rank_cd`
@@ -123,15 +132,20 @@ rebuild from `py/1_load.py`, `py/2_embed.py`, `py/2b_embed_local.py` and
 10. **Vector (`06`).** 53.9 at 3.5 ms p50. Point at `SET hnsw.ef_search = 100`: with the
     default 40, LIMIT 50 returns 40 rows.
 11. **Pitfall 2 (`07a`, `07b`).** Keyword scores 1.70–5.40, cosine 0.478–0.598. Adding them
-    lets keyword decide: 5.6. Stacking lists: 2.9. RRF on the same lists: 33.8.
-12. **Fuse ranks.** Question 8512: BM25 #4, vector #9, fused #1. "Agreement wins."
+    lets keyword decide: 5.6. Stacking lists: 2.9. RRF on the same lists: 33.8. Three
+    clicks: the two score-mixing rows, then RRF, then the punchline.
+12. **Fuse ranks.** Question 8512, three real top 10s. Click 1: the known answer leaves BM25
+    #4 and vector #9 and lands at fused #1 (1/64 + 1/69). Click 2: each list's own #1 drops
+    to #9 and #10, and the rest fills in. "Agreement wins."
 13. **RRF is a full outer join (`08a`).** One statement, two indexes. 150 ms with
-    `ts_rank_cd`, 8.2 ms with BM25.
+    `ts_rank_cd`, 8.2 ms with BM25. The abstract says "parallel execution": inside one
+    statement the two lists run in sequence (no Gather node). For concurrency, two queries on
+    two connections, fused in the application.
 14. **Blend (`08c`).** RRF throws away how confident each list is. Min-max normalize each
     list per question, then weight. The weight is chosen on dev questions only. On FiQA the
     tuning chose 1.0, pure vector: "the data is allowed to say don't blend."
-15. **Knobs.** Depth, k, weights, `ef_search`. Equal-weight RRF lost on all four datasets
-    with Embed v4.
+15. **Knobs.** Depth, k, weights, `ef_search`. k measured from 5 to 200: it moves NDCG@10
+    by 4.3 at most, and no k rescues equal-weight RRF with Embed v4. Weights matter more.
 16. **Live UI.** See the demo script below.
 17. **Text to vector.** Input types; one model per column; bge-small took about an hour on
     the laptop CPU for FiQA, Embed v4 35 minutes behind a quota.
@@ -141,26 +155,35 @@ rebuild from `py/1_load.py`, `py/2_embed.py`, `py/2b_embed_local.py` and
 19. **Similar AND contains (`11`).** The function carries its settings. `plan_cache_mode`
     came from measurement: planned generically, the vector list became a sequential scan,
     197 ms instead of 73 ms.
-20. **The gold table.** Read it row by row, and say what the arrows mean before reading any
-    number. Small model: tuned blend up on three datasets, never down. Frontier model:
+20. **Boost and expand.** The abstract's advanced techniques, as SQL on top of
+    `hybrid_search()`: recency, popularity and preference boosts; a recursive CTE that follows
+    links two hops. Both run as written; neither is measured, because BEIR has no dates or
+    links. Boost a larger pool than you show.
+21. **The gold table.** Read it row by row, and say what the arrows mean before reading any
+    number. Two clicks: small model, then frontier model. Small model: tuned blend up on
+    three datasets, never down. Frontier model:
     equal-weight RRF down on three, never up; the tuned blend up only on NFCorpus, down on
     SCIDOCS where it couldn't be tuned. Rerank never up.
-21. **When hybrid pays.** "If you can use a better embedding model, do: it beats hybrid on a
+22. **When hybrid pays.** "If you can use a better embedding model, do: it beats hybrid on a
     small one. If you run a small or local model, for cost, privacy or latency, BM25 in the
-    same database closes a third or more of the gap on two of four datasets."
-22. **Rerank.** Not a bug: rerank scores separate answers from non-answers (0.55 vs 0.26),
+    same database closes a third or more of the gap on two of four datasets." Core
+    PostgreSQL alone (`ts_rank_cd`, no IDF) gained nothing significant: BM25 is what pays.
+23. **Rerank.** Not a bug: rerank scores separate answers from non-answers (0.55 vs 0.26),
     and it lifts 403b from #26 to #2. But it puts a known answer first on 47.5% of FiQA
     questions against 53.9% for Embed v4 alone. Models improve; measure the pair you use.
-23. **Storage.** `halfvec`: half the index, same NDCG within noise. Binary plus rescore:
+24. **Storage.** `halfvec`: half the index, same NDCG within noise. Binary plus rescore:
     1/16 of the index, 54.1.
-24. **Limits.** One laptop; public benchmarks with incomplete judgments; two embedding models
-    and one reranker; possible training overlap; SCIDOCS blends untuned.
-25. **Takeaways.** Rank words with BM25. Blend, tuned on held-out questions. Hybrid pays most
-    on smaller models. Measure before you choose.
-26. **Take it home.** QR code, the two install lines. The skill proposes the migration and
+25. **Limits.** One laptop; public benchmarks with incomplete judgments; two embedding models
+    and one reranker; possible training overlap; SCIDOCS blends untuned; English only, no
+    phrase search; boost and link patterns unmeasured.
+26. **Takeaways.** Rank words with BM25. Blend, tuned on held-out questions. Hybrid pays most
+    on smaller models. Measure before you choose. The abstract's takeaway "choose based on
+    query characteristics": on FiQA, even the 177 questions with a number or acronym favored
+    vector (57.7 vs 46.5). Measure; don't guess from query shape.
+27. **Take it home.** QR code, the two install lines. The skill proposes the migration and
     waits for approval, then evaluates with labeled or synthetic questions and reports RRF,
     the tuned blend and vector alone side by side.
-27. **Thank you.**
+28. **Thank you.**
 
 ## Live demo script
 
@@ -181,11 +204,14 @@ UI, slide 16 (about five minutes):
    answers in its top ranks because both lists agree on them.
 3. Open **SQL** on the blend column: `08e`, the same query as `08c` with the local column.
    The dimmed part above the marker is exploration; the part below is what ran.
-4. Say: "One question. Averages in five minutes." Click **Olive oil** (blend 71, Embed v4
+4. Optional: under **More arms**, tick "Tuned blend · ts_rank_cd + bge-small" and search
+   again. It scores 77, the same as bge-small alone; the BM25 blend scored 97. "Same fusion,
+   no IDF: that's what BM25 buys."
+5. Say: "One question. Averages in five minutes." Click **Olive oil** (blend 71, Embed v4
    60) if time allows.
-5. Switch the header to **FiQA**, click **Keyword wins** (403b). BM25 100, Embed v4 0,
+6. Switch the header to **FiQA**, click **Keyword wins** (403b). BM25 100, Embed v4 0,
    RRF · BM25 33, Embed v4 + Rerank 63. "Exact identifiers are what keyword search is for."
-6. Optional: **Scoreboard** tab on NFCorpus to show every arm at once.
+7. Optional: **Scoreboard** tab on NFCorpus to show every arm at once.
 
 VS Code, slides 18–19: `sql/09_filtered_hybrid.sql` top to bottom, then the last statement
 in `sql/11_hybrid_function.sql`.
@@ -230,9 +256,18 @@ so no NDCG appears.
 - **"Why is the reranker worse?"** Embed v4 already puts a known answer first more often than
   Rerank 3.5 reorders one into first place. Possible training overlap with public
   benchmarks. The harness tests any reranker; try a newer one.
-- **"Is pg_textsearch available on RDS or Aurora?"** Check your platform's supported
-  extensions list; I have not verified it for this talk. Native `tsvector` works everywhere,
-  and the RRF and blend SQL work with it (NDCG is lower without IDF).
+- **"Is pg_textsearch available on RDS or Aurora?"** It isn't in their published extension
+  lists today. Core `tsvector` search works everywhere and the fusion SQL runs on it, but in
+  this lab a blend with `ts_rank_cd` gained nothing significant: use BM25 where you can
+  install it.
+- **"The abstract said combining beats either alone."** Sometimes. With the small local model,
+  a tuned blend with BM25 did, significantly, on three of four datasets. With the frontier
+  model, equal-weight RRF never did. That is the point of measuring.
+- **"Does PostgreSQL run the two searches in parallel?"** Not inside one statement: the plan
+  has no Gather node, and `08b`'s 8.2 ms is about BM25's 5.2 plus vector's 3.5. Run two
+  queries on two connections if the latency matters.
+- **"What k should I use?"** 60 is fine to start. From 5 to 200, k moved NDCG@10 by at most
+  4.3, and no k made equal-weight RRF beat vector with Embed v4. Weights matter more.
 - **"Why not ParadeDB pg_search?"** Also BM25 in PostgreSQL (AGPL). This lab uses
   pg_textsearch (PostgreSQL license); the fusion SQL works with either.
 - **"ts_rank instead of ts_rank_cd?"** Neither uses corpus statistics; both lack IDF.

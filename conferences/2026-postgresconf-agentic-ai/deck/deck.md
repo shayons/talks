@@ -98,6 +98,8 @@ Today: readable SQL, measured results, and a skill you can point at your own tab
 
 **NDCG@10** scores a ranking higher when the known answers sit near the top.
 
+The abstract promised that combining beats either alone. **We'll measure when it does, and when it doesn't.**
+
 </div>
 <div class="evidence-image">
 
@@ -126,7 +128,7 @@ train split; SCIDOCS has none). Credit Dave Ebbelaar's tutorial for the FiQA-and
 | bge-small-en-v1.5 · fastembed | 384 dims | A small open-source model, on this laptop |
 | VS Code + SQLTools | | Numbered SQL files you can run yourself |
 
-Everything except the model calls is SQL. Every number today is from this laptop.
+The database side is all open source: PostgreSQL, pgvector, pg_textsearch. So is bge-small, and that fully open path is where hybrid pays most. Every number today is from this laptop.
 
 <!--
 PostgreSQL 19 is in beta; not used. pg_textsearch is loaded from a project directory through
@@ -390,11 +392,14 @@ SELECT coalesce(k.id, v.id) AS id,
  LIMIT 10;
 ```
 
-One statement, two indexes (GIN and HNSW). p50 **150 ms** with `ts_rank_cd`; **8.2 ms** with BM25 as the keyword list (`08b`).
+One statement, two indexes (GIN and HNSW). p50 **150 ms** with `ts_rank_cd`; **8.2 ms** with BM25 (`08b`). The lists run **one after the other** in one backend, not in parallel: no Gather node, and 8.2 ms is about BM25's 5.2 plus vector's 3.5.
 
 <!--
 The lab file reads the question from the active_query view and exposes weights in a settings
 CTE. EXPLAIN shows Bitmap Index Scan on docs_tsv_gin and Index Scan using docs_embedding_hnsw.
+The abstract says "parallel execution": inside one statement PostgreSQL runs the two lists in
+sequence, even with max_parallel_workers_per_gather = 2 (no Gather node for question 8512). To
+run them concurrently, send two queries on two connections and fuse in the application.
 -->
 
 ---
@@ -433,7 +438,7 @@ never sees the test set. On FiQA it chooses pure vector: the data can say "don't
 | Knob | Controls | Watch |
 | --- | --- | --- |
 | **Candidate depth** (50) | How many posts each list contributes | A post outside both lists can't be fused or reranked: **Recall@50** |
-| **k** (60) | How fast credit falls with rank | Smaller k favors each list's top few |
+| **k** (60) | How fast credit falls with rank | Measured k = 5 to 200: at most 4.3 NDCG@10 (FiQA), 1.4 elsewhere. No k made equal-weight RRF beat Embed v4 alone |
 | **Weights** | Trust in each list | Equal-weight RRF lost to vector on all four datasets; tune a blend on dev questions instead |
 | **`hnsw.ef_search`** (100) | Work per HNSW scan | Must be ≥ the candidate depth |
 
@@ -441,7 +446,9 @@ Change one at a time, and re-run the test questions.
 
 <!--
 Depth and ef_search are different things: depth is a LIMIT, ef_search bounds the HNSW
-candidate queue.
+candidate queue. The k numbers are a sensitivity check on test questions (py/7_k_sweep.py,
+results/k_sweep.md), recomputed from the stored lists; no k was chosen on them. Smaller k helps
+a little (FiQA with Embed v4: 41.3 at k = 60, 45.4 at k = 5), still far below vector's 53.9.
 -->
 
 ---
@@ -540,6 +547,69 @@ auto_explain shows the plans inside the function.
 
 ---
 
+<!-- _class: code-first dense patterns -->
+
+## Boost and expand: two patterns on top of `hybrid_search()`
+
+<div class="pattern-grid">
+<div>
+
+**Boost** by recency, popularity, preference
+
+```sql
+SELECT h.doc_id,
+       h.score
+       * power(0.5, extract(epoch FROM
+           now() - d.published_at) / 86400 / 30)
+       * (1 + ln(1 + d.likes) / 10)
+       * CASE WHEN d.category = ANY(:'preferred')
+              THEN 1.2 ELSE 1 END AS boosted
+  FROM hybrid_search(:'question',
+         :'question_embedding', match_count => 50) h
+  JOIN docs d ON d.id = h.doc_id
+ ORDER BY boosted DESC
+ LIMIT 10;
+```
+
+</div>
+<div>
+
+**Expand** along links, two hops
+
+```sql
+WITH RECURSIVE related (doc_id, score, depth) AS (
+  SELECT doc_id, score, 0
+    FROM hybrid_search(:'question',
+           :'question_embedding', match_count => 10)
+  UNION ALL
+  SELECT l.dst, r.score / 2, r.depth + 1
+    FROM related r
+    JOIN links l ON l.src = r.doc_id
+   WHERE r.depth < 2
+)
+SELECT doc_id, max(score) AS score
+  FROM related
+ GROUP BY doc_id
+ ORDER BY score DESC
+ LIMIT 10;
+```
+
+</div>
+</div>
+
+Boost a larger pool than you show (50, then keep 10), or a boost can't lift anything. **Not measured here:** BEIR has no dates, popularity, or links.
+
+<!--
+The abstract's advanced techniques. Both run as written against the lab's hybrid_search() (tested
+with synthetic dates, likes, categories and links in a rolled-back session). Boost: a 30-day
+half-life, a log-damped popularity factor, and a 1.2x lift for the user's preferred categories;
+multiply after fusion so the boost can't swamp relevance. Expand: citations, replies, "related
+items"; the depth bound stops cycles, and links needs an index on src. PostgreSQL 14+ also has
+the CYCLE clause for graphs with loops.
+-->
+
+---
+
 <!-- _class: gold -->
 
 ## Hybrid vs vector, same embedding model · NDCG@10 change on 2,271 test questions
@@ -578,17 +648,19 @@ frontier 53.9 / 77.5 / 40.1 / 20.6. Weights were tuned on each dataset's dev que
 | --- | ---: | ---: | ---: | ---: |
 | bge-small alone · local, open source | 38.0 | 72.0 | 33.8 | 19.6 |
 | **bge-small + BM25, tuned blend · all local** | **39.2** | **74.2** | **35.9** | 19.8 |
+| bge-small + `ts_rank_cd`, tuned blend · core PostgreSQL only | 37.9 | 72.4 | 34.4 | 16.0 ↓ |
 | Cohere Embed v4 alone · frontier API | 53.9 | 77.5 | 40.1 | 20.6 |
 | **Share of the gap closed by BM25** | 8% | **39%** | **33%** | not significant |
 
-PostgreSQL, BM25, and a 384-dimension model on one laptop, no API calls: adding keyword search
-closes **a third or more of the gap** to a frontier model on SciFact and NFCorpus.
+PostgreSQL, BM25, and a 384-dimension model on one laptop, no API calls: adding keyword search closes **a third or more of the gap** to a frontier model on SciFact and NFCorpus. Without BM25's IDF, `ts_rank_cd` gained nothing significant.
 
 <!--
 The honest framing: a better embedding model beats hybrid on a small one. But if you run local
 or open-source models for cost, privacy, or latency, BM25 in PostgreSQL is cheap and measurably
 helps. Live example (NFCorpus): "Vitamin D: Shedding some light on the new recommendations",
-small vector 77, BM25 65, tuned blend 97, Embed v4 alone 71.
+small vector 77, BM25 65, tuned blend 97, Embed v4 alone 71. The ts_rank_cd row (08f) is core
+PostgreSQL only, weight tuned on dev: -0.1, +0.4, +0.7, none significant; SCIDOCS, untuned at 0.5,
+lost 3.6 (significant). It also costs 137 ms p50 on FiQA, against 7.3 ms for the BM25 blend.
 -->
 
 ---
@@ -644,6 +716,8 @@ candidates and re-orders them by exact cosine distance on the full vectors.
 | This embedding and rerank model pair | Future models: they improve, and results depend on the model versions used |
 | A public benchmark | That the models never saw similar text in training |
 | Two embedding models, one reranker | How other models behave; SCIDOCS blends are untuned (no dev split) |
+| English questions, word matching | Multilingual queries or phrase search (`<->`) |
+| Boost and link-expansion patterns | Their effect: BEIR has no dates, popularity, or links |
 
 BEIR judgments are incomplete: an unjudged document can be a good answer and still count as a miss.
 
@@ -660,7 +734,7 @@ against another benchmark's numbers.
 
 # Rank words with BM25.<br>Blend, tuned on held-out questions.<br>Hybrid pays most on smaller models.
 
-Local model + BM25: **+1.2 to +2.1 NDCG@10 on three of four datasets**. Frontier model: equal-weight RRF never won. **Measure on your own questions before you choose.**
+Local model + BM25: **+1.2 to +2.1 NDCG@10 on three of four datasets**. Frontier model: equal-weight RRF never won, not even on FiQA's 177 questions with a number or acronym (vector 57.7, RRF 46.5). **Measure on your own questions before you choose.**
 
 <!--
 Keyword search earns its place for exact identifiers (403b/401k), as a required-term filter
@@ -719,12 +793,7 @@ Shayon Sanyal · linkedin.com/in/shayonsanyal
 Six minutes for questions. Appendix: operating the workload and references.
 -->
 
----
-
-## Appendix · operate the measured workload
-
-| Area | Inspect before changing it |
-| --- | --- |
+--- | --- |
 | **HNSW build** | `maintenance_work_mem` (graph must fit), parallel workers, `m`, `ef_construction`, index size |
 | **HNSW search** | `ef_search` ≥ LIMIT, filtered recall, `iterative_scan`, `max_scan_tuples` |
 | **Full text** | OR vs AND queries, match counts, `ts_rank_cd` cost on common terms, BM25 availability |
