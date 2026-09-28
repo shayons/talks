@@ -40,8 +40,8 @@ answers. Run of show and fallbacks: TALKING_POINTS.md. Demo: hybrid-lab/README.m
 <div data-marpit-fragment><span class="eyebrow">Vector search misses</span><h3>“AA batteries”</h3><p>To an embedding, <strong>AAA batteries</strong> look almost the same: close in meaning, wrong product. Keyword search matches the exact term.</p></div>
 </div>
 
-<p class="journey-takeaway"><strong>Words find exact terms. Vectors find paraphrases.</strong> Which one wins, and
-whether combining them helps, is a measurement, not a belief.</p>
+<p class="journey-takeaway"><strong>Your users type both kinds.</strong> Today: keyword and vector search in one
+PostgreSQL query, and how to check on your own questions whether combining them helps.</p>
 
 <!--
 Everyday searches, not from the datasets. One click brings up the AA card. Checked in the lab: the subscription question and
