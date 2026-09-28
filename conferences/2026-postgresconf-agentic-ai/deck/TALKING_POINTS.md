@@ -116,6 +116,172 @@ Backups: `pg_dump` of the `fiqa` database is in `.local/backups/`. The other thr
 rebuild from `py/1_load.py`, `py/2_embed.py`, `py/2b_embed_local.py` and
 `scripts/evaluate_all.sh` (Bedrock needed for Embed v4 and Rerank).
 
+## Say this: about 30 seconds a slide
+
+Plain words for each slide, about 75 words each. [click] marks a click. The same text opens
+each slide's presenter note (press `p` in deck.html). Slides 8 to 11, 17, 19 and 20 run longer
+because of the live SQL and the UI; the numbers and demo steps are in Slide by slide below.
+
+1. **Title.** Good morning, everyone, and thanks for coming. This talk is about hybrid search:
+   using keyword search and vector search together, in plain PostgreSQL. I'll show you the SQL,
+   the mistakes that are easy to make, and how much each approach actually helps. Everything
+   runs on this laptop in one PostgreSQL database, and every number you'll see comes from a
+   real test run, with the scripts in a public repo.
+2. **Two questions, two misses.** Let's start with two searches you've probably typed yourself.
+   Someone asks how to cancel a subscription, but the help page is called "How to end your
+   membership." Not one shared word, so keyword search never finds it. Vector search matches it
+   on meaning. [click] Now the opposite: "AA batteries." To vector search, AAA batteries look
+   almost the same, and that's the wrong product. Keyword search matches the exact term. Your
+   users type both kinds, so today we'll run both in one query and check when combining really
+   helps.
+3. **About me.** A quick intro. I'm Shayon, a Principal Worldwide PostgreSQL Specialist
+   Solutions Architect at AWS. I help teams build on PostgreSQL, from regular relational
+   applications to search and AI agent workflows. Search over your own data is one of those
+   topics, and that's today. If you'd like to connect after the talk, the QR code goes to my
+   LinkedIn.
+4. **How we'll measure.** How do we know if search is any good? We need questions where the
+   right answers are already known. We have 2,271 of them, across four public datasets from the
+   BEIR benchmark. FiQA, finance forum posts, is the main example. I picked the other three
+   before measuring, because keyword search did well on them, so they give hybrid a fair
+   chance. The score is NDCG at 10: more credit when the right answers sit near the top.
+5. **The four datasets.** These four datasets ask very different kinds of questions. FiQA has
+   real forum questions. SciFact has science claims to check. NFCorpus has short medical
+   topics, often just two words. SCIDOCS takes a paper's title and looks for the papers it
+   cites. Now look at the last column. On SciFact, keyword search gets 89% of vector search's
+   score. On FiQA, only 44%. Test on one dataset and you'd tell a very different story.
+6. **Stack.** Here's the stack. PostgreSQL 18, pgvector for vectors and the HNSW index, and
+   pg_textsearch, which adds BM25 keyword ranking. All three are open source. For embeddings I
+   used two models: Cohere Embed v4 on Amazon Bedrock, a frontier model, and bge-small, a small
+   open-source model that runs on this laptop. The reranker, Cohere Rerank, is also on Bedrock.
+   Keep that small local model in mind. It's where hybrid search helps the most.
+7. **Schema (`01_schema.sql`).** Here's the table. Each post is stored three ways: the text, a
+   tsvector for keyword search, and embeddings for vector search. The tsvector is a generated
+   column, so PostgreSQL keeps it in sync with the text for you. Embeddings can't work that
+   way: when the text changes, you re-embed it yourself. And each embedding model gets its own
+   column, because vectors from different models can't be compared. Then three indexes: GIN,
+   HNSW, and BM25.
+8. **Pitfall 1 (`03_keyword_and.sql`).** First pitfall. The usual way to run keyword search in
+   PostgreSQL is websearch_to_tsquery or plainto_tsquery, and both require every word to match.
+   Real questions are long, and an answer rarely contains every word of the question. Let's run
+   it. On FiQA, 405 of 648 questions match no post at all. The score is 4.3 out of 100. So
+   requiring every word is the first thing to fix.
+9. **Any word (`04_keyword_or.sql`).** So let's match any word instead, and rank the matches
+   with ts_rank_cd. Now we find twice as many right answers somewhere in the top 50. But the
+   ranking gets worse: 2.8. The problem is that ts_rank_cd doesn't know which words are rare.
+   Common words like "fund" and "day" count as much as "rainy-day". It's also slow: this
+   question matches 10,460 posts, and ts_rank_cd scores every one of them. That takes 81
+   milliseconds.
+10. **BM25 (`05_bm25.sql`).** This is what BM25 fixes. It gives rare words more weight, it
+    stops rewarding a word just for repeating, and it adjusts for long documents. pg_textsearch
+    adds BM25 to PostgreSQL as an index. The score goes from 2.8 to 23.6, which matches the
+    published benchmark number for FiQA exactly. And because the index keeps the statistics, it
+    returns the top 50 without scoring every match: about a quarter of a millisecond instead of
+    81.
+11. **Vector (`06_vector.sql`).** Now vector search with pgvector. Embed the question, order by
+    distance, take the top 50. Keep the ORDER BY and LIMIT exactly like this, so PostgreSQL
+    uses the HNSW index. One setting to watch: by default HNSW returns at most 40 rows, so we
+    raise ef_search to 100. Questions are embedded as search_query, posts as search_document.
+    On FiQA, vector search scores 53.9, more than double BM25, at about 3.5 milliseconds a
+    question.
+12. **Pitfall 2 (`07a_naive_sum.sql`, `07b_concat_dedupe.sql`).** Now let's combine the two
+    lists. Pitfall two is adding the scores together. Look at the ranges: keyword scores run
+    from 1.7 to 5.4, cosine similarity only from 0.48 to 0.6. [click] So when you add them,
+    keyword search decides almost everything, and the score is 5.6. Putting one list after the
+    other is even worse: 2.9. [click] Combining by rank instead, with Reciprocal Rank Fusion,
+    scores 33.8. [click] Same inputs, six times the score.
+13. **Fuse ranks.** Here's how RRF works. Each list gives a document points based only on its
+    rank: one over 60 plus the rank. Then you add up the points. This is a real FiQA question.
+    [click] The known answer is 4th in BM25 and 9th in vector search. Neither list has it on
+    top, but it shows up in both, so it adds up to first place. [click] Each list's own number
+    one appears in only one list, so they drop to 9th and 10th.
+14. **RRF is a full outer join (`08a_hybrid_rrf.sql`).** In SQL, RRF is a full outer join. One
+    CTE gets the keyword top 50, another gets the vector top 50, and you join them on the id
+    and add the two rank scores. It's one statement that uses both indexes. With BM25 it takes
+    8.2 milliseconds. One detail: PostgreSQL runs the two lists one after the other, in one
+    process. The 8.2 is about BM25's 5 milliseconds plus vector's 3.5.
+15. **Blend (`08c_hybrid_blend.sql`).** RRF only looks at rank, so it ignores how strong each
+    match is. A blend keeps that: scale each list's scores to between 0 and 1, then take a
+    weighted sum. It's what adding scores should have been in pitfall two. The weight is chosen
+    on separate tuning questions, never on the test questions. Look at FiQA with the frontier
+    model: the best weight was 1.0, which means vector only. Keyword search added nothing
+    there.
+16. **Knobs.** There are four knobs, and each does a different job. How many results each list
+    returns: an answer that isn't in either list can't be found later. RRF's k: I tried values
+    from 5 to 200, and it barely mattered. The weights matter most: equal-weight RRF lost to
+    Embed v4 alone on all four datasets. And ef_search has to be at least as big as your LIMIT.
+    Change one knob at a time, and re-run your test questions.
+17. **Live UI.** Let me show you the live app. This is NFCorpus, medical abstracts. Everything
+    here runs on this laptop except the last column, which uses Cohere's model on Bedrock. For
+    this question, BM25 alone scores 65, the small local model 77, and the two blended together
+    score 97. The frontier model on its own scores 71. So here, a small local model plus BM25
+    beats the frontier model. That doesn't happen on every question, and I'll show you the
+    averages.
+18. **Text to vector.** A few practical rules for embeddings. Embed documents and questions
+    with the right input type: if you swap them, quality drops and you get no error. Never mix
+    models in one column, even when the dimensions match, and store which model you used.
+    Embedding FiQA's 57,000 posts took about an hour with the small model on this laptop, and
+    35 minutes on Bedrock because of rate limits. Write the job so a rerun only fills the empty
+    rows.
+19. **Pitfall 3 (`09_filtered_hybrid.sql`).** Pitfall three: adding a WHERE filter to vector
+    search. HNSW finds its 40 nearest candidates first, and then the filter runs. Here the
+    filter removes 39 of them, so you ask for 10 results and get 1. Let's run it. The fix in
+    pgvector 0.8 is iterative scan: set it to relaxed_order, and HNSW keeps searching until 10
+    rows pass. For a very rare term, PostgreSQL may use the GIN index instead, which also
+    works.
+20. **Similar AND contains (`11_hybrid_function.sql`).** Most apps want both: similar to the
+    question, and must contain a certain word. Here that's wrapped in a function,
+    hybrid_search. The key detail is that the required word goes into both lists before their
+    LIMIT, so nothing gets filtered away afterwards. The function also sets its own search
+    settings, so callers can't forget them. One of those we found by measuring: without it, a
+    generic plan can skip the HNSW index.
+21. **Boost and expand.** Two patterns you can add on top of that function. Boost: adjust the
+    score by recency, popularity, or user preference. Boost a bigger pool than you show, say 50
+    and keep 10, or the boost has nothing to lift. Expand: follow links to related documents,
+    two hops out, with a recursive CTE. Both run as written, but I haven't measured them,
+    because these datasets have no dates, popularity, or links.
+22. **The results table.** Here's the main result. Each cell is hybrid minus vector search,
+    same embedding model, over all 2,271 test questions. A green up arrow is a real gain, a red
+    down arrow a real loss, and no arrow means it's within noise. [click] With the small local
+    model, the tuned blend helps on three of four datasets. [click] Cut the frontier model to
+    256 dimensions, and BM25 helps on three. [click] With the full frontier model, hybrid
+    mostly doesn't help, and equal-weight RRF and reranking often hurt.
+23. **When hybrid pays.** So when does hybrid pay? With a smaller model. The small open-source
+    model plus BM25, all on this laptop with no API calls, closes a third or more of the gap to
+    the frontier model on SciFact and NFCorpus. On FiQA it helps, but only a little. And it has
+    to be real BM25: the same blend with ts_rank_cd gained nothing beyond noise. This is the
+    path you can run entirely on open-source pieces.
+24. **Rerank.** Rerankers are popular, so I measured one. Cohere Rerank 3.5 on FiQA made the
+    score worse: 49.7, against 53.9 for vector search alone. It did fix some questions: the
+    403b question went from 26th to 2nd. But it adds about 400 milliseconds and a network call,
+    and your text leaves the database. On no dataset did reranking beat vector search by more
+    than noise. Measure it before you add it.
+25. **Storage.** If you need to save space, reduce bits before you reduce dimensions. halfvec
+    halves the index, binary quantization shrinks it to 28 megabytes, and both kept the same
+    score. Cutting to 512 or 256 dimensions lost points on every dataset. And 1024 dimensions
+    saves no index space at all, because an 8 KB page still holds only one vector. If you do
+    cut dimensions, add BM25: it won back roughly half of what you lost.
+26. **Limits.** Here's what these numbers don't tell you. They don't prove the same results on
+    your data. This is one laptop and one client, so they say nothing about production latency
+    or 50 million rows. It's two embedding models and one reranker, in English. And the boost
+    and link patterns aren't measured. That's why everything is in a repo: so you can run the
+    same tests on your own data and your own questions.
+27. **Takeaways.** Three things to take home. First, for the keyword side, use BM25: on FiQA,
+    ts_rank_cd scored 2.8 and BM25 23.6. Second, blend the two lists, with a weight tuned on
+    separate questions. Equal-weight RRF never beat the frontier model alone, not even on
+    questions with numbers or acronyms. Third, hybrid pays most with smaller models: 1.2 to 2.1
+    points on three of four datasets. And whatever you pick, measure it on your own questions.
+28. **Take it home.** Everything is on GitHub. The lab has the numbered SQL files, the Python
+    cells, the UI you saw, and the scoreboard. There's also a Claude Code skill: point it at
+    your own table, and it adds hybrid search and evaluates it with your labeled questions, or
+    synthetic ones if you have none. If you use a different agent, copy the skill folder. Scan
+    the QR code for the repo.
+29. **Thank you.** Thank you. One question to leave you with: which of your queries need both
+    exact words and meaning? That's where to start. I'm happy to take questions now. The QR
+    code goes to my LinkedIn, and the repo link is right there.
+30. **References.** All the docs and papers I used are listed here and in the repo. The two to
+    read first are the original RRF paper and the Bruch, Gai and Ingber paper on blending
+    scores.
+
 ## Slide by slide
 
 1. **Title.** "Everything today runs in one PostgreSQL 18.6 database on this laptop and is
@@ -128,7 +294,7 @@ rebuild from `py/1_load.py`, `py/2_embed.py`, `py/2b_embed_local.py` and
    rainy-day in VS Code, and 403b, where vector search ranks the only answer #26. Which do
    you need? That's a measurement." If asked whether the examples were checked: yes, in
    PostgreSQL and with both models; the numbers are in the slide's presenter note.
-3. **About me.** Twenty seconds.
+3. **About me.** About 30 seconds.
 4. **How we'll measure.** 2,271 test questions. FiQA is the running example. The other three
    were picked by a rule written down before measuring: under 30,000 documents, and BM25
    beat every dense retriever in BEIR's 2021 paper. Say plainly that this rule favors keyword

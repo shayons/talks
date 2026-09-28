@@ -27,6 +27,12 @@ September 30, 10:30–11:20 EDT, Letterpress
 </div>
 
 <!--
+Say: Good morning, everyone, and thanks for coming. This talk is about hybrid search: using
+keyword search and vector search together, in plain PostgreSQL. I'll show you the SQL, the
+mistakes that are easy to make, and how much each approach actually helps. Everything runs on
+this laptop in one PostgreSQL database, and every number you'll see comes from a real test run,
+with the scripts in a public repo.
+
 Everything today runs in one local PostgreSQL 18.6 database and is graded against known
 answers. Run of show and fallbacks: TALKING_POINTS.md. Demo: hybrid-lab/README.md.
 -->
@@ -44,6 +50,13 @@ answers. Run of show and fallbacks: TALKING_POINTS.md. Demo: hybrid-lab/README.m
 PostgreSQL query, and how to check on your own questions whether combining them helps.</p>
 
 <!--
+Say: Let's start with two searches you've probably typed yourself. Someone asks how to cancel a
+subscription, but the help page is called "How to end your membership." Not one shared word, so
+keyword search never finds it. Vector search matches it on meaning. [click] Now the opposite:
+"AA batteries." To vector search, AAA batteries look almost the same, and that's the wrong
+product. Keyword search matches the exact term. Your users type both kinds, so today we'll run
+both in one query and check when combining really helps.
+
 Everyday searches, not from the datasets. One click brings up the AA card. Checked in the lab: the subscription question and
 the help page share no word stems in PostgreSQL, and both bge-small and Embed v4 ranked the
 page first against "Cancel or change an order" and "Subscription plans and pricing". "AA
@@ -78,7 +91,12 @@ I help teams build on PostgreSQL, from relational applications to retrieval and 
 </div>
 </div>
 
-<!-- Keep the introduction to 20 seconds. -->
+<!--
+Say: A quick intro. I'm Shayon, a Principal Worldwide PostgreSQL Specialist Solutions Architect
+at AWS. I help teams build on PostgreSQL, from regular relational applications to search and AI
+agent workflows. Search over your own data is one of those topics, and that's today. If you'd
+like to connect after the talk, the QR code goes to my LinkedIn.
+-->
 
 ---
 
@@ -109,6 +127,12 @@ The abstract promised that combining beats either alone. **We'll measure when it
 </div>
 
 <!--
+Say: How do we know if search is any good? We need questions where the right answers are
+already known. We have 2,271 of them, across four public datasets from the BEIR benchmark.
+FiQA, finance forum posts, is the main example. I picked the other three before measuring,
+because keyword search did well on them, so they give hybrid a fair chance. The score is NDCG
+at 10: more credit when the right answers sit near the top.
+
 BEIR benchmark (Thakur et al., 2021). Test questions: FiQA 648, SciFact 300, NFCorpus 323,
 SCIDOCS 1,000. Blend weights are tuned only on each dataset's separate tuning questions (SciFact: its
 train split; SCIDOCS has none). Credit Dave Ebbelaar's tutorial for the FiQA-and-NDCG idea.
@@ -130,6 +154,12 @@ train split; SCIDOCS has none). Credit Dave Ebbelaar's tutorial for the FiQA-and
 Same methods, very different gaps: BM25 reaches **89%** of vector search's score on SciFact but only **44%** on FiQA. One dataset would have told a different story.
 
 <!--
+Say: These four datasets ask very different kinds of questions. FiQA has real forum questions.
+SciFact has science claims to check. NFCorpus has short medical topics, often just two words.
+SCIDOCS takes a paper's title and looks for the papers it cites. Now look at the last column.
+On SciFact, keyword search gets 89% of vector search's score. On FiQA, only 44%. Test on one
+dataset and you'd tell a very different story.
+
 All from the BEIR benchmark (Thakur et al., 2021), with human-judged answers. Questions are real
 test questions picked for readability, near each set's median length. Medians: question words
 10 / 12 / 2 / 9; document words 90 / 204 / 237 / 161. NFCorpus answers are graded 1 or 2; the
@@ -158,6 +188,12 @@ claim it does.
 The database side is all open source: PostgreSQL, pgvector, pg_textsearch. So is bge-small, and that fully open path is where hybrid pays most. Every number today is from this laptop.
 
 <!--
+Say: Here's the stack. PostgreSQL 18, pgvector for vectors and the HNSW index, and
+pg_textsearch, which adds BM25 keyword ranking. All three are open source. For embeddings I
+used two models: Cohere Embed v4 on Amazon Bedrock, a frontier model, and bge-small, a small
+open-source model that runs on this laptop. The reranker, Cohere Rerank, is also on Bedrock.
+Keep that small local model in mind. It's where hybrid search helps the most.
+
 PostgreSQL 19 is in beta; not used. pg_textsearch is loaded from a project directory through
 PostgreSQL 18's extension_control_path, not installed into Homebrew.
 -->
@@ -185,6 +221,12 @@ The lexemes are **generated** and cannot drift from the text. Embeddings are not
 **one column per model**, re-embedded when the text changes.
 
 <!--
+Say: Here's the table. Each post is stored three ways: the text, a tsvector for keyword search,
+and embeddings for vector search. The tsvector is a generated column, so PostgreSQL keeps it in
+sync with the text for you. Embeddings can't work that way: when the text changes, you re-embed
+it yourself. And each embedding model gets its own column, because vectors from different
+models can't be compared. Then three indexes: GIN, HNSW, and BM25.
+
 Build times measured on 57,638 posts, M-series laptop, maintenance_work_mem = 1GB, 7 parallel
 workers. m = 16 and ef_construction = 64 are pgvector's defaults.
 -->
@@ -206,6 +248,12 @@ rarely has all its words in one answer.
 <p class="formula">405 of 648 questions match no post at all. NDCG@10: 4.3</p>
 
 <!--
+Say: First pitfall. The usual way to run keyword search in PostgreSQL is websearch_to_tsquery
+or plainto_tsquery, and both require every word to match. Real questions are long, and an
+answer rarely contains every word of the question. Let's run it. On FiQA, 405 of 648 questions
+match no post at all. The score is 4.3 out of 100. So requiring every word is the first thing
+to fix.
+
 Measured: keyword_and method. Many tutorials, including the pgvectorscale hybrid-search example,
 use exactly this call. Fine for a search box of product codes; wrong for questions.
 -->
@@ -233,6 +281,12 @@ Recall@50 (known answers anywhere in the top 50) doubles, 6.7 → 14.6, but NDCG
 `ts_rank_cd` scores every one of them: **81 ms**.
 
 <!--
+Say: So let's match any word instead, and rank the matches with ts_rank_cd. Now we find twice
+as many right answers somewhere in the top 50. But the ranking gets worse: 2.8. The problem is
+that ts_rank_cd doesn't know which words are rare. Common words like "fund" and "day" count as
+much as "rainy-day". It's also slow: this question matches 10,460 posts, and ts_rank_cd scores
+every one of them. That takes 81 milliseconds.
+
 EXPLAIN in 04_keyword_or.sql: the planner picks a Seq Scan here. Forcing the GIN bitmap scan finds the 10,460
 matches in about 3 ms and the query takes about 40 ms; ranking every match is the cost either
 way. Medians of 9 runs.
@@ -262,6 +316,12 @@ keeps the corpus statistics and returns the top 50 **without scoring every match
 | BM25, pg_textsearch | **23.6** | **0.27 ms** |
 
 <!--
+Say: This is what BM25 fixes. It gives rare words more weight, it stops rewarding a word just
+for repeating, and it adjusts for long documents. pg_textsearch adds BM25 to PostgreSQL as an
+index. The score goes from 2.8 to 23.6, which matches the published benchmark number for FiQA
+exactly. And because the index keeps the statistics, it returns the top 50 without scoring
+every match: about a quarter of a millisecond instead of 81.
+
 <@> returns the negative score so an ascending ORDER BY can use the index. Posts with none of
 the terms score 0 and can fill the LIMIT; the lab filters them out. Check availability on your
 platform before depending on it.
@@ -288,6 +348,12 @@ Keep the distance operator in `ORDER BY`, ascending, with a `LIMIT`. Embed quest
 NDCG@10 **53.9**, median **3.5 ms** per question
 
 <!--
+Say: Now vector search with pgvector. Embed the question, order by distance, take the top 50.
+Keep the ORDER BY and LIMIT exactly like this, so PostgreSQL uses the HNSW index. One setting
+to watch: by default HNSW returns at most 40 rows, so we raise ef_search to 100. Questions are
+embedded as search_query, posts as search_document. On FiQA, vector search scores 53.9, more
+than double BM25, at about 3.5 milliseconds a question.
+
 Pitfall 4 in the lab: an HNSW scan returns at most hnsw.ef_search rows. The test suite proves
 it on this pgvector version. Posts without an embedding are excluded explicitly so sequential
 and index plans agree.
@@ -316,6 +382,12 @@ and index plans agree.
 <p data-marpit-fragment>Same inputs, 6× the score. <code>ts_rank_cd</code>'s normalization options keep its scores in a range, but still not comparable to cosine.</p>
 
 <!--
+Say: Now let's combine the two lists. Pitfall two is adding the scores together. Look at the
+ranges: keyword scores run from 1.7 to 5.4, cosine similarity only from 0.48 to 0.6. [click] So
+when you add them, keyword search decides almost everything, and the score is 5.6. Putting one
+list after the other is even worse: 2.9. [click] Combining by rank instead, with Reciprocal
+Rank Fusion, scores 33.8. [click] Same inputs, six times the score.
+
 Three clicks: the two ways of mixing scores (5.6, 2.9), then RRF on the same lists (33.8), then
 the punchline. The concatenation pattern is the one in the pgvectorscale hybrid-search branch:
 it relies on a reranker afterwards. Without one, whichever list goes first wins.
@@ -386,6 +458,12 @@ it relies on a reranker afterwards. Without one, whichever list goes first wins.
 </div>
 
 <!--
+Say: Here's how RRF works. Each list gives a document points based only on its rank: one over
+60 plus the rank. Then you add up the points. This is a real FiQA question. [click] The known
+answer is 4th in BM25 and 9th in vector search. Neither list has it on top, but it shows up in
+both, so it adds up to first place. [click] Each list's own number one appears in only one
+list, so they drop to 9th and 10th.
+
 Question 8512, "Is it possible to transfer stock I already own into my Roth IRA?". All rows
 are real top 10s from the lab. Click 1: the known answer leaves BM25 #4 and vector #9 and lands
 at fused #1. Neither list put it first; agreement did. Click 2: each list's own #1 drops to #9
@@ -422,6 +500,11 @@ SELECT coalesce(k.id, v.id) AS id,
 One statement, two indexes (GIN and HNSW). Median **150 ms** with `ts_rank_cd`; **8.2 ms** with BM25 (`08b_hybrid_rrf_bm25.sql`). The two lists run **one after the other** in one backend process, not in parallel: the plan has no Gather node, and 8.2 ms is about BM25's 5.2 plus vector's 3.5.
 
 <!--
+Say: In SQL, RRF is a full outer join. One CTE gets the keyword top 50, another gets the vector
+top 50, and you join them on the id and add the two rank scores. It's one statement that uses
+both indexes. With BM25 it takes 8.2 milliseconds. One detail: PostgreSQL runs the two lists
+one after the other, in one process. The 8.2 is about BM25's 5 milliseconds plus vector's 3.5.
+
 The lab file reads the question from the active_query view and exposes weights in a settings
 CTE. EXPLAIN shows Bitmap Index Scan on docs_tsv_gin and Index Scan using docs_embedding_hnsw.
 The abstract says "parallel execution": inside one statement PostgreSQL runs the two lists in
@@ -453,6 +536,12 @@ then weight them. It is what “adding scores” should have been in pitfall 2.
 | bge-small (local) | 0.65 | 0.55 | 0.65 | 0.5, not tuned |
 
 <!--
+Say: RRF only looks at rank, so it ignores how strong each match is. A blend keeps that: scale
+each list's scores to between 0 and 1, then take a weighted sum. It's what adding scores should
+have been in pitfall two. The weight is chosen on separate tuning questions, never on the test
+questions. Look at FiQA with the frontier model: the best weight was 1.0, which means vector
+only. Keyword search added nothing there.
+
 Bruch, Gai & Ingber, "An Analysis of Fusion Functions for Hybrid Retrieval", ACM TOIS 2023.
 The weight lives in fusion_settings; py/5_tune_fusion.py chooses it on separate tuning questions and
 never sees the test set. On FiQA it chooses pure vector: the data can say "don't blend".
@@ -472,6 +561,12 @@ never sees the test set. On FiQA it chooses pure vector: the data can say "don't
 Change one at a time, and re-run the test questions.
 
 <!--
+Say: There are four knobs, and each does a different job. How many results each list returns:
+an answer that isn't in either list can't be found later. RRF's k: I tried values from 5 to
+200, and it barely mattered. The weights matter most: equal-weight RRF lost to Embed v4 alone
+on all four datasets. And ef_search has to be at least as big as your LIMIT. Change one knob at
+a time, and re-run your test questions.
+
 Depth and ef_search are different things: depth is a LIMIT, ef_search bounds the HNSW
 candidate queue. The k numbers are a sensitivity check on test questions (py/7_k_sweep.py,
 results/k_sweep.md), recomputed from the stored lists; no k was chosen on them. Smaller k helps
@@ -491,6 +586,12 @@ a little (FiQA with Embed v4: 41.3 at k = 60, 45.4 at k = 5), still far below ve
 <p class="stage-url">localhost:8018, pick NFCorpus, then “Local hybrid beats the frontier model”</p>
 
 <!--
+Say: Let me show you the live app. This is NFCorpus, medical abstracts. Everything here runs on
+this laptop except the last column, which uses Cohere's model on Bedrock. For this question,
+BM25 alone scores 65, the small local model 77, and the two blended together score 97. The
+frontier model on its own scores 71. So here, a small local model plus BM25 beats the frontier
+model. That doesn't happen on every question, and I'll show you the averages.
+
 Question: "Vitamin D: Shedding some light on the new recommendations" (3 known answers).
 BM25 65, bge-small alone 77, tuned blend of the two 97, Cohere Embed v4 alone 71. Hover the
 answer letters to follow each paper across columns; the blend's rows show each paper's rank in
@@ -514,6 +615,12 @@ open "Keyword wins" (403b to 401k) to show BM25 #1 against vector #26.
   behind a tokens-per-minute quota. Either way, a rerun fills only the rows still NULL.
 
 <!--
+Say: A few practical rules for embeddings. Embed documents and questions with the right input
+type: if you swap them, quality drops and you get no error. Never mix models in one column,
+even when the dimensions match, and store which model you used. Embedding FiQA's 57,000 posts
+took about an hour with the small model on this laptop, and 35 minutes on Bedrock because of
+rate limits. Write the job so a rerun only fills the empty rows.
+
 Blank posts (38 in FiQA) cannot be embedded and stay NULL. One judged answer is a blank post,
 so no method can ever find it.
 -->
@@ -539,6 +646,12 @@ SELECT id FROM docs
 pgvector 0.8 iterative scans are bounded by `hnsw.max_scan_tuples` (20,000).
 
 <!--
+Say: Pitfall three: adding a WHERE filter to vector search. HNSW finds its 40 nearest
+candidates first, and then the filter runs. Here the filter removes 39 of them, so you ask for
+10 results and get 1. Let's run it. The fix in pgvector 0.8 is iterative scan: set it to
+relaxed_order, and HNSW keeps searching until 10 rows pass. For a very rare term, PostgreSQL
+may use the GIN index instead, which also works.
+
 Question 988, "Where should I invest my savings?". 1 + 39 = 40 = ef_search. The exact split
 varies between index builds (an earlier build returned 2 and removed 38). The planner chose
 HNSW for mortgage and GIN for heloc on its own; check EXPLAIN rather than assume.
@@ -567,6 +680,12 @@ CREATE FUNCTION hybrid_search(...) ... LANGUAGE sql STABLE
 The required word goes into **both** lists, before their LIMIT.
 
 <!--
+Say: Most apps want both: similar to the question, and must contain a certain word. Here that's
+wrapped in a function, hybrid_search. The key detail is that the required word goes into both
+lists before their LIMIT, so nothing gets filtered away afterwards. The function also sets its
+own search settings, so callers can't forget them. One of those we found by measuring: without
+it, a generic plan can skip the HNSW index.
+
 The last setting was found by measurement. Planned generically, the optional filter hides the
 HNSW index and the vector list becomes a parallel sequential scan: 197 ms instead of 73 ms with
 no filter, 67 ms instead of 15 ms with 'mortgage' (question 988, medians of 7 calls).
@@ -628,6 +747,12 @@ SELECT doc_id, max(score) AS score
 Boost a larger pool than you show (50, then keep 10), or a boost can't lift anything. **Not measured here:** these datasets have no dates, popularity, or links.
 
 <!--
+Say: Two patterns you can add on top of that function. Boost: adjust the score by recency,
+popularity, or user preference. Boost a bigger pool than you show, say 50 and keep 10, or the
+boost has nothing to lift. Expand: follow links to related documents, two hops out, with a
+recursive CTE. Both run as written, but I haven't measured them, because these datasets have no
+dates, popularity, or links.
+
 The abstract's advanced techniques. Both run as written against the lab's hybrid_search() (tested
 with synthetic dates, likes, categories and links in a rolled-back session). Boost: a 30-day
 half-life, a log-damped popularity factor, and a 1.2x lift for the user's preferred categories;
@@ -664,6 +789,13 @@ the CYCLE clause for graphs with loops.
 <p class="caption">↑ / ↓: 95% confidence range entirely above / below zero, so not noise. * SCIDOCS: no tuning questions, weight 0.5</p>
 
 <!--
+Say: Here's the main result. Each cell is hybrid minus vector search, same embedding model,
+over all 2,271 test questions. A green up arrow is a real gain, a red down arrow a real loss,
+and no arrow means it's within noise. [click] With the small local model, the tuned blend helps
+on three of four datasets. [click] Cut the frontier model to 256 dimensions, and BM25 helps on
+three. [click] With the full frontier model, hybrid mostly doesn't help, and equal-weight RRF
+and reranking often hurt.
+
 Three clicks: the small local model, the frontier model cut to 256 dimensions, then the full
 frontier model. The weaker the vectors, the more BM25 pays: at 256 dims the blend gained 1.9 to
 3.5 points on three datasets (weights 0.80 / 0.50 / 0.50 on tuning questions, SCIDOCS untuned at
@@ -690,6 +822,12 @@ frontier 53.9 / 77.5 / 40.1 / 20.6. Weights were tuned on each dataset's separat
 PostgreSQL, BM25, and a 384-dimension model on one laptop, no API calls: adding keyword search closes **a third or more of the gap** to a frontier model on SciFact and NFCorpus. Without BM25's IDF, `ts_rank_cd` gained nothing beyond noise.
 
 <!--
+Say: So when does hybrid pay? With a smaller model. The small open-source model plus BM25, all
+on this laptop with no API calls, closes a third or more of the gap to the frontier model on
+SciFact and NFCorpus. On FiQA it helps, but only a little. And it has to be real BM25: the same
+blend with ts_rank_cd gained nothing beyond noise. This is the path you can run entirely on
+open-source pieces.
+
 The honest framing: a better embedding model beats hybrid on a small one. But if you run local
 or open-source models for cost, privacy, or latency, BM25 in PostgreSQL is cheap and measurably
 helps. Live example (NFCorpus): "Vitamin D: Shedding some light on the new recommendations",
@@ -715,6 +853,12 @@ It lifts 403b from #26 to #2, but puts a known answer first on 47.5% of question
 - It runs **outside PostgreSQL**: a network call per question, and the results' text leaves the database.
 
 <!--
+Say: Rerankers are popular, so I measured one. Cohere Rerank 3.5 on FiQA made the score worse:
+49.7, against 53.9 for vector search alone. It did fix some questions: the 403b question went
+from 26th to 2nd. But it adds about 400 milliseconds and a network call, and your text leaves
+the database. On no dataset did reranking beat vector search by more than noise. Measure it
+before you add it.
+
 Not a bug: rerank scores separate answers from non-answers (0.55 vs 0.26 on average). On this
 benchmark, this embedding model is simply better at the top ranks than this reranker. Latency here
 was measured with 8 concurrent calls from a laptop. Models improve; measure the pair you use.
@@ -736,6 +880,12 @@ was measured with 8 concurrent calls from a laptop. Models improve; measure the 
 **Quantize before you truncate.** Fewer bits kept NDCG within noise; 512 and 256 dims lost 1.6 to 5.5 points on every dataset. And 1024 dims saves no index space: an 8 KB page still holds one vector. If you do truncate, add BM25: at 256 dims it won back 46% to 64% of the loss on three datasets.
 
 <!--
+Say: If you need to save space, reduce bits before you reduce dimensions. halfvec halves the
+index, binary quantization shrinks it to 28 megabytes, and both kept the same score. Cutting to
+512 or 256 dimensions lost points on every dataset. And 1024 dimensions saves no index space at
+all, because an 8 KB page still holds only one vector. If you do cut dimensions, add BM25: it
+won back roughly half of what you lost.
+
 12a_halfvec.sql to 12e_dims_256.sql; results/dimensions.md has all four datasets with paired intervals. Embed v4's
 output_dimension returns a prefix of the 1536 vector (Matryoshka-style; checked against the API:
 cosine 1.0000 between the 256/512/1024 outputs and the first N numbers), so one stored column
@@ -771,6 +921,12 @@ candidates and re-orders them by exact cosine on the full vectors.
 The judgments are incomplete: an unjudged document can be a good answer and still count as a miss.
 
 <!--
+Say: Here's what these numbers don't tell you. They don't prove the same results on your data.
+This is one laptop and one client, so they say nothing about production latency or 50 million
+rows. It's two embedding models and one reranker, in English. And the boost and link patterns
+aren't measured. That's why everything is in a repo: so you can run the same tests on your own
+data and your own questions.
+
 Every method is penalized equally by unjudged answers. Compare methods against each other, not
 against another benchmark's numbers.
 -->
@@ -786,6 +942,12 @@ against another benchmark's numbers.
 Local model + BM25: **+1.2 to +2.1 NDCG@10 on three of four datasets**. Frontier model: equal-weight RRF never won, not even on FiQA's 177 questions with a number or acronym (vector 57.7, RRF 46.5). **Measure on your own questions before you choose.**
 
 <!--
+Say: Three things to take home. First, for the keyword side, use BM25: on FiQA, ts_rank_cd
+scored 2.8 and BM25 23.6. Second, blend the two lists, with a weight tuned on separate
+questions. Equal-weight RRF never beat the frontier model alone, not even on questions with
+numbers or acronyms. Third, hybrid pays most with smaller models: 1.2 to 2.1 points on three of
+four datasets. And whatever you pick, measure it on your own questions.
+
 Keyword search earns its place for exact identifiers (403b/401k), as a required-term filter
 (09, 11), and as a partner to a smaller embedding model. Blind equal-weight fusion does not.
 -->
@@ -821,6 +983,11 @@ Other agents: copy `hybrid-search-plugin/skills/postgres-hybrid-search/`.
 <p class="caption">github.com/shayons/talks, in conferences/2026-postgresconf-agentic-ai</p>
 
 <!--
+Say: Everything is on GitHub. The lab has the numbered SQL files, the Python cells, the UI you
+saw, and the scoreboard. There's also a Claude Code skill: point it at your own table, and it
+adds hybrid search and evaluates it with your labeled questions, or synthetic ones if you have
+none. If you use a different agent, copy the skill folder. Scan the QR code for the repo.
+
 The skill inspects the table, proposes the migration and waits for approval, backfills
 embeddings, installs the function, and evaluates it with labeled or synthetic questions.
 -->
@@ -844,6 +1011,10 @@ Which of your queries needs both words and meaning?
 </div>
 
 <!--
+Say: Thank you. One question to leave you with: which of your queries need both exact words and
+meaning? That's where to start. I'm happy to take questions now. The QR code goes to my
+LinkedIn, and the repo link is right there.
+
 Six minutes for questions. The live UI's Scoreboard tab shows every method on every dataset.
 -->
 
@@ -861,3 +1032,8 @@ Six minutes for questions. The live UI's Scoreboard tab shows every method on ev
 - **This talk:** `hybrid-lab/sql/`, `hybrid-lab/results/`, `hybrid-search-plugin/`
 
 <p class="caption">Measured on PostgreSQL 18.6, pgvector 0.8.6, pg_textsearch 1.4.0, September 2026</p>
+
+<!--
+Say: All the docs and papers I used are listed here and in the repo. The two to read first are
+the original RRF paper and the Bruch, Gai and Ingber paper on blending scores.
+-->
