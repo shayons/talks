@@ -142,11 +142,20 @@ def test_hybrid_function_honors_required_terms(conn):
     conn.rollback()
 
 
-def test_blend_matches_min_max_convex_combination(conn):
-    conn.execute("INSERT INTO fusion_settings VALUES ('blend_vector_weight', 0.7, 'test')")
+@pytest.mark.parametrize(
+    ("blend_stage", "setting", "keyword_stage", "vector_stage"),
+    [
+        ("blend_bm25", "blend_vector_weight", "bm25", "vector"),
+        ("blend_native_local", "blend_vector_weight_native_local", "keyword_or", "vector_local"),
+    ],
+)
+def test_blend_matches_min_max_convex_combination(
+    conn, blend_stage, setting, keyword_stage, vector_stage
+):
+    conn.execute("INSERT INTO fusion_settings VALUES (%s, 0.7, 'test')", (setting,))
     conn.commit()
-    keyword = {r["doc_id"]: r["score"] for r in ranked(conn, "bm25", RAINY_DAY)}
-    vector = {r["doc_id"]: r["score"] for r in ranked(conn, "vector", RAINY_DAY)}
+    keyword = {r["doc_id"]: r["score"] for r in ranked(conn, keyword_stage, RAINY_DAY)}
+    vector = {r["doc_id"]: r["score"] for r in ranked(conn, vector_stage, RAINY_DAY)}
 
     def normalized(scores: dict[str, float]) -> dict[str, float]:
         low, high = min(scores.values()), max(scores.values())
@@ -154,7 +163,7 @@ def test_blend_matches_min_max_convex_combination(conn):
 
     nk, nv = normalized(keyword), normalized(vector)
     expected = {d: 0.7 * nv.get(d, 0.0) + 0.3 * nk.get(d, 0.0) for d in nk.keys() | nv.keys()}
-    rows = ranked(conn, "blend_bm25", RAINY_DAY)
+    rows = ranked(conn, blend_stage, RAINY_DAY)
     conn.execute("DELETE FROM fusion_settings")
     conn.commit()
     assert {r["doc_id"] for r in rows} == set(expected)

@@ -18,6 +18,7 @@ Latency is local laptop wall time per question; rerank rows include the Bedrock 
 | RRF · BM25 + Embed v4 | 41.3 | 75.2 | 8.2 | 10.2 | 98 / 325 |
 | Tuned blend · bge-small | 39.2 | 62.3 | 7.3 | 9.4 | 86 / 342 |
 | Vector · bge-small (local) | 38.0 | 59.8 | 2.0 | 3.1 | 81 / 344 |
+| Tuned blend · ts_rank_cd + bge-small | 37.9 | 58.6 | 137.5 | 375.4 | 80 / 344 |
 | RRF · BM25 + bge-small | 34.9 | 61.8 | 6.6 | 8.4 | 73 / 381 |
 | RRF · ts_rank_cd + Embed v4 | 33.8 | 72.6 | 149.9 | 397.2 | 37 / 443 |
 | BM25 | 23.6 | 47.1 | 5.2 | 7.2 | 38 / 440 |

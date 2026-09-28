@@ -21,6 +21,7 @@ interval above / below zero. Full table: [`results/summary.md`](results/summary.
 | **bge-small, local** | 38.0 | 72.0 | 33.8 | 19.6 |
 | bge-small + BM25, tuned blend | **39.2** (+1.2 **↑**) | **74.2** (+2.1 **↑**) | **35.9** (+2.1 **↑**) | 19.8 (+0.2) * |
 | bge-small + BM25, equal-weight RRF | 34.9 (−3.1 ↓) | 73.7 (+1.7) | 36.1 (+2.3 **↑**) | 19.4 (−0.3) |
+| bge-small + `ts_rank_cd` (core PostgreSQL), tuned blend | 37.9 (−0.1) | 72.4 (+0.4) | 34.4 (+0.7) | 16.0 (−3.6 ↓) * |
 | **Embed v4** | 53.9 | 77.5 | 40.1 | 20.6 |
 | Embed v4 + BM25, tuned blend | 53.9 (0.0, chose w = 1) | 77.7 (+0.2) | 40.9 (+0.8 **↑**) | 19.8 (−0.8 ↓) * |
 | Embed v4 + BM25, equal-weight RRF | 41.3 (−12.5 ↓) | 74.6 (−2.9 ↓) | 39.0 (−1.1) | 19.4 (−1.2 ↓) |
@@ -33,6 +34,11 @@ interval above / below zero. Full table: [`results/summary.md`](results/summary.
 - **With a frontier model, equal-weight RRF does not.** It never beat Embed v4 alone and lost
   significantly on three datasets. A blend tuned on dev questions won once (NFCorpus) and on
   FiQA chose pure vector.
+- **Without BM25, the keyword side adds almost nothing.** A blend with core PostgreSQL's
+  `ts_rank_cd` (no IDF) gained nothing significant, and cost 137 ms p50 on FiQA.
+- **RRF's k matters little.** From 5 to 200 it moved NDCG@10 by at most 4.3 (FiQA, Embed v4),
+  1.4 elsewhere, and no k made equal-weight RRF beat Embed v4 alone
+  ([`results/k_sweep.md`](results/k_sweep.md)).
 - **The reranker never beat vector search** by more than noise on any dataset.
 - **Keyword search still earns its place** for exact identifiers ("Employer rollover from 403b
   to 401k?": BM25 #1, Embed v4 #26) and for "similar AND contains this word" (`sql/09`,
@@ -117,6 +123,7 @@ view. Run a file with SQLTools (Cmd+E Cmd+E), or select one statement and run ju
 | `08b_hybrid_rrf_bm25.sql` | The same fusion with BM25 as the keyword list |
 | `08c_hybrid_blend.sql` | A normalized score blend, its weight tuned on dev questions |
 | `06b`, `08d`, `08e` | Vector, RRF, and blend with the small local model's column |
+| `08f_hybrid_blend_native_local.sql` | The blend with core PostgreSQL's `ts_rank_cd` instead of BM25 |
 | `09_filtered_hybrid.sql` | "Similar AND contains a keyword": filters, HNSW, iterative scans |
 | `10_scoreboard.sql` | NDCG@10 and Recall@50 for every arm, computed in SQL |
 | `11_hybrid_function.sql` | `hybrid_search()`: the take-home function |

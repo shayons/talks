@@ -42,6 +42,8 @@ ARMS: tuple[Arm, ...] = (
         local=True),
     Arm("blend_local", "Tuned blend · bge-small", "08e_hybrid_blend_local.sql",
         needs_bm25=True, local=True),
+    Arm("blend_native_local", "Tuned blend · ts_rank_cd + bge-small",
+        "08f_hybrid_blend_native_local.sql", local=True),
     Arm("vector", "Vector · Embed v4", "06_vector.sql"),
     Arm("naive_sum", "Score sum", "07a_naive_sum.sql", pitfall=True),
     Arm("concat_dedupe", "Concatenate", "07b_concat_dedupe.sql", pitfall=True),

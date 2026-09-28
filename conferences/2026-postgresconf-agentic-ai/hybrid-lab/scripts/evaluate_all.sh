@@ -27,4 +27,5 @@ with connect(autocommit=True) as setup:
     run_script(setup, 'demo_questions.sql')"
 done
 uv run python py/6_summary.py
+uv run python py/7_k_sweep.py
 echo "=== done $(date +%H:%M:%S)"

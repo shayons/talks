@@ -25,7 +25,8 @@ uv run python py/1_load.py            # LAB_DATASET (default fiqa) into its data
 uv run python py/2_embed.py           # Cohere Embed v4 on Bedrock, then indexes
 uv run --extra local python py/2b_embed_local.py   # bge-small into embedding_local
 uv run --extra local python py/5_tune_fusion.py   # blend weights, dev questions only
-./scripts/evaluate_all.sh             # clean rebuild, tune, evaluate all datasets, summary
+./scripts/evaluate_all.sh             # clean rebuild, tune, evaluate all datasets, summary, k sweep
+uv run python py/7_k_sweep.py         # RRF k sensitivity from stored runs -> results/k_sweep.md
 uv run python py/4_evaluate.py        # every arm on the test questions -> results/scoreboard-<dataset>.md,
                                       # then sql/demo_questions.sql (FiQA: SQL arms ~25 min;
                                       # each rerank arm calls Bedrock once per question)

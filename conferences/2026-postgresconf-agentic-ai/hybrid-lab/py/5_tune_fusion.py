@@ -8,8 +8,8 @@
 #
 # (Bruch, Gai & Ingber, "An Analysis of Fusion Functions for Hybrid Retrieval", ACM TOIS
 # 2023.) The weight w is chosen per dataset on its held-out dev questions (FiQA: its dev
-# split; SciFact: its train split) and stored in fusion_settings, where
-# sql/08c_hybrid_blend.sql reads it. Test questions are never looked at.
+# split; SciFact: its train split) and stored in fusion_settings, where the blend files
+# (08c, 08e, 08f) read it. Test questions are never looked at.
 #
 # Run per dataset: LAB_DATASET=scifact uv run python py/5_tune_fusion.py
 
@@ -42,7 +42,7 @@ def retrieve(stage: str) -> dict[str, list[tuple[str, float]]]:
 
 if not dev_ids:
     raise SystemExit(f"{dataset()} has no dev questions; sql/08c uses the default weight 0.5.")
-keyword_lists = retrieve("bm25")
+keyword_cache: dict[str, dict[str, list[tuple[str, float]]]] = {}
 print(f"{dataset()}: {len(dev_ids)} dev questions")
 
 
@@ -67,15 +67,19 @@ def dev_ndcg(ranking) -> float:
     return 100 * mean(ndcg_at_k(ranking(q), relevance[q]) for q in dev_ids)
 
 
-def tune(vector_stage: str, setting: str) -> None:
+def tune(vector_stage: str, setting: str, keyword_stage: str = "bm25") -> None:
     """Grid-search the weight on dev questions and store the best (ties favor vector)."""
+    if keyword_stage not in keyword_cache:
+        keyword_cache[keyword_stage] = retrieve(keyword_stage)
+    keyword_lists = keyword_cache[keyword_stage]
     vector_lists = retrieve(vector_stage)
     baseline = dev_ndcg(lambda q: [d for d, _ in vector_lists[q]])
     grid = {w / 20: dev_ndcg(lambda q, w=w / 20: blend(vector_lists[q], keyword_lists[q], w))
             for w in range(0, 21)}
     best = max(grid, key=lambda w: (grid[w], w))
     note = (f"chosen on {len(dev_ids)} dev questions: NDCG@10 {grid[best]:.1f} "
-            f"(vector alone {baseline:.1f}, BM25 alone {grid[0.0]:.1f})")
+            f"(vector alone {baseline:.1f}, {BY_STAGE[keyword_stage].label} alone "
+            f"{grid[0.0]:.1f})")
     conn.execute(
         "INSERT INTO fusion_settings VALUES (%s, %s, %s)"
         " ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value, note = EXCLUDED.note",
@@ -85,11 +89,12 @@ def tune(vector_stage: str, setting: str) -> None:
     print(f"{setting} = {best:.2f}: {note}")
 
 
-# %% Cohere Embed v4 (sql/08c) and the small local model (sql/08e)
+# %% Cohere Embed v4 (sql/08c), the small local model (08e), and core PostgreSQL only (08f)
 tune("vector", "blend_vector_weight")
 local_ready = conn.execute("SELECT count(embedding_local) > 0 FROM docs").fetchone()[0]
 conn.rollback()
 if local_ready:
     tune("vector_local", "blend_vector_weight_local")
+    tune("vector_local", "blend_vector_weight_native_local", keyword_stage="keyword_or")
 else:
     print("Small-model vectors not filled yet; run py/2b_embed_local.py, then this file again.")
