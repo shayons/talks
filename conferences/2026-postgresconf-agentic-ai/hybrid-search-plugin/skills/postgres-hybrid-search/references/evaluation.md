@@ -61,6 +61,10 @@ NFCorpus chose 0.70. With bge-small, a weaker local model, FiQA chose 0.65, SciF
 NFCorpus 0.65: the weaker the vectors, the more weight keyword search earns. Let the held-out
 questions decide; "hybrid" is not automatically better.
 
+Spend tuning effort on the weight, not on RRF's k. In the lab, k from 5 to 200 moved NDCG@10
+by at most 4.3 points (1.4 on three of four datasets), and no k made equal-weight RRF beat a
+strong embedding model alone. k = 60 is a fine default.
+
 ## Reading the scoreboard
 
 - If RRF does not beat the best single arm, check Recall@50 for the weak arm. A keyword arm

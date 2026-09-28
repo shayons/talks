@@ -44,6 +44,7 @@ Sources: `hybrid-lab/results/summary.md` and `results/scoreboard-*.md`.
 | BM25 in PostgreSQL matches the published baseline | FiQA 23.6 = BEIR's 0.236 | High |
 | Smaller index, same quality | FiQA: `halfvec` 225 MB, 53.7; binary + rescore 28 MB, 54.1; full 450 MB, 53.9 (both within noise) | High for FiQA |
 | Fewer dimensions cost quality | Embed v4 at 512 dims: −1.6 to −2.7; at 256: −4.1 to −5.5 (all four datasets, significant). 1024: −0.3 to −1.2 | High |
+| BM25 pays more on fewer dimensions | Embed v4 at 256 dims + BM25, tuned blend: +3.5 SciFact, +2.8 NFCorpus, +1.9 SCIDOCS (beyond noise), +0.5 FiQA (noise); wins back 46–64% of the 256-dim loss | High |
 | 1024 dims saves no HNSW space | 450 MB at both 1536 and 1024 (one entry per 8 KB page); 512 → 150 MB, 256 → 75 MB | High |
 | RRF's k matters little | k = 5 to 200 moves NDCG@10 by at most 4.3 (FiQA, Embed v4), 1.4 elsewhere; no k makes equal-weight RRF beat Embed v4 alone | High (sensitivity on test, not tuned) |
 | Without BM25, the keyword side adds almost nothing | `ts_rank_cd` + bge-small, tuned blend: −0.1 / +0.4 / +0.7 (none significant); SCIDOCS −3.6 not tuned; 137 ms p50 on FiQA | High |
@@ -77,6 +78,12 @@ Do not say:
 | 44:00–50:00 | 29–30 | Q&A, references | The live UI's Scoreboard tab shows every method |
 
 ## Preflight (the morning of the talk)
+
+**One command does steps 1, 2 and 4:** `cd hybrid-lab && ./scripts/preflight.sh --open`. It
+starts the database and the UI if they aren't running, checks every dataset, runs every stage
+question through the UI, makes the rainy-day question active for VS Code, tests Bedrock, and
+opens the deck and the Vitamin D question in Chrome. Every line should show ✓; a ✗ says what
+to run. Then do steps 3, 5 and 6 by hand.
 
 1. `cd hybrid-lab && ./scripts/setup.sh`. It must end with `pg_textsearch 1.4.0` and
    `vector 0.8.6`.
@@ -168,7 +175,9 @@ rebuild from `py/1_load.py`, `py/2_embed.py`, `py/2b_embed_local.py` and
     links two hops. Both run as written; neither is measured, because BEIR has no dates or
     links. Boost a larger pool than you show.
 22. **The gold table.** Read it row by row, and say what the arrows mean before reading any
-    number. Two clicks: small model, then frontier model. Small model: tuned blend up on
+    number. Three clicks: small model, frontier cut to 256 dims, full frontier. The weaker the
+    vectors, the more BM25 pays: at 256 dims the blend gained 1.9 to 3.5 on three datasets.
+    Small model: tuned blend up on
     three datasets, never down. Frontier model:
     equal-weight RRF down on three, never up; the tuned blend up only on NFCorpus, down on
     SCIDOCS where it couldn't be tuned. Rerank never up.
@@ -183,7 +192,9 @@ rebuild from `py/1_load.py`, `py/2_embed.py`, `py/2b_embed_local.py` and
     noise. Binary plus rescore: 1/16 of the index, 54.1. Embed v4's shorter outputs are
     prefixes of the full vector, so one column serves every size through `subvector()`
     expression indexes. 1024 dims: same 450 MB index, because an 8 KB page still holds one
-    vector. 512 and 256 shrink it 3× and 6× but lose 2 and 5 points.
+    vector. 512 and 256 shrink it 3× and 6× but lose 2 and 5 points. If you do cut to 256, add
+    BM25: it won back half the loss or more on three datasets, with 91 MB of indexes on FiQA
+    against 450 MB.
 26. **Limits.** One laptop; public benchmarks with incomplete judgments; two embedding models
     and one reranker; possible training overlap; SCIDOCS blends not tuned; English only, no
     phrase search; boost and link patterns unmeasured.
@@ -279,7 +290,8 @@ so no NDCG appears.
   queries on two connections if the latency matters.
 - **"How many dimensions should I use?"** Measure on your data, but in this lab 1024 was
   close to free in quality (−0.3 to −1.2) and saved no index space; 512 and 256 lost 2 and 5
-  points. If the index is the problem, `halfvec` or binary + rescore kept quality. With
+  points. If the index is the problem, `halfvec` or binary + rescore kept quality. If you do
+  cut dimensions, add BM25: at 256 it won back half the loss or more on three datasets. With
   Embed v4 you don't need to re-embed to test it: the shorter outputs are prefixes.
 - **"What k should I use?"** 60 is fine to start. From 5 to 200, k moved NDCG@10 by at most
   4.3, and no k made equal-weight RRF beat vector with Embed v4. Weights matter more.

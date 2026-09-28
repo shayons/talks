@@ -45,7 +45,8 @@ Ask, one at a time, only what the inspection could not answer:
 3. Embedding provider and dimensions (default: Cohere Embed v4 on Amazon Bedrock, 1536).
    See `references/providers.md` for OpenAI and local fastembed alternatives.
 4. Keyword ranking: native `ts_rank_cd` (works everywhere, including RDS and Aurora) or
-   pg_textsearch BM25 if the extension is available on their platform.
+   pg_textsearch BM25 if the extension is available on their platform. Prefer BM25: in the
+   talk's lab, blending with `ts_rank_cd` added nothing measurable, and BM25 did.
 
 ### 3. Migrate
 

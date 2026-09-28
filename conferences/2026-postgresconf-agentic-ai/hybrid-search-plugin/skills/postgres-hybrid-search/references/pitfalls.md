@@ -44,6 +44,10 @@ average length: pg_textsearch (PostgreSQL license, PG 17/18) provides a `bm25` i
 `<@>` operator. `<@>` returns the negative score; documents with none of the terms score 0
 and can still fill the LIMIT, so filter `score < 0`.
 
+It matters for fusion too. In the talk's lab, a tuned blend of `ts_rank_cd` with a small local
+model gained nothing beyond noise on any of four datasets, and cost about 137 ms per question
+on 57,638 rows; the same blend with BM25 gained 1.2 to 2.1 NDCG@10 on three of them.
+
 Check: is pg_textsearch available (`pg_available_extensions`)? If yes, evaluate both.
 
 ## 4. HNSW returns at most `ef_search` rows

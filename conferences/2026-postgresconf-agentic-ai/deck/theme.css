@@ -215,13 +215,13 @@ section.gold h2 { font-size: 29px; letter-spacing: -0.025em; margin-bottom: 14px
 .gold-table { width: 100%; border-collapse: collapse; font-size: 25px; }
 .gold-table th { text-align: right; padding: 7px 10px; font-size: 16px; }
 .gold-table th:first-child, .gold-table td:first-child { text-align: left; }
-.gold-table td { text-align: right; padding: 7px 10px; line-height: 1.15; }
+.gold-table td { text-align: right; padding: 5px 10px; line-height: 1.12; }
 .gold-table td small { display: block; font-size: 16px; color: var(--text-2); font-weight: 400; }
 .gold-table td.up { color: var(--green) !important; font-weight: 700; }
 .gold-table td.down { color: var(--red) !important; font-weight: 700; }
 .gold-table tr.section td {
   text-align: left; font-size: 18px; font-weight: 600; color: var(--text-2) !important;
-  padding-top: 14px; background: transparent !important;
+  padding-top: 10px; background: transparent !important;
 }
 .gold-table tbody tr:nth-child(even) td { background: transparent !important; }
 

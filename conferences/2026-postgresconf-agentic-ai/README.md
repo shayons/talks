@@ -15,18 +15,27 @@ Conference material for **[Postgres Summit US 2026](https://2026.postgressummit.
 ## What the talk shows
 
 Hybrid search in PostgreSQL pays when you fuse correctly, and pays most when your embedding
-model is small. Measured on four BEIR datasets with 95% bootstrap intervals:
+model is small. Measured on four public BEIR datasets (finance forum questions, science
+claims, health topics, paper titles), with 95% confidence ranges:
 
 - **Small local model (bge-small) + BM25, tuned blend:** +1.2 to +2.1 NDCG@10 over the small
   model alone on three of four datasets, closing up to 39% of the gap to a frontier model.
 - **Frontier model (Cohere Embed v4) + BM25, equal-weight RRF:** never better than vector
-  search alone, and significantly worse on three datasets. A blend tuned on dev questions
-  won once.
+  search alone, and worse beyond noise on three datasets. A blend tuned on separate
+  questions won once.
+- **BM25 is what makes keyword search pay.** The same blend with PostgreSQL's built-in
+  `ts_rank_cd` gained nothing beyond noise.
+- **RRF's k matters little:** from 5 to 200 it moved NDCG@10 by at most 4.3 points.
+- **Quantize before you truncate:** `halfvec` and binary quantization kept quality; cutting
+  Embed v4 to 512 or 256 dimensions cost 1.6 to 5.5 points, and 1024 dimensions saved no
+  index space in PostgreSQL. If you do truncate, add BM25: at 256 dimensions it won back half
+  the loss or more on three datasets.
 - **Cohere Rerank 3.5:** never better than Embed v4 alone by more than noise.
 - **Four pitfalls** that fail silently: every-word `tsquery`, `ts_rank_cd` without IDF,
   adding scores from different scales, and filtering after an HNSW scan.
 
 Details and every number: [`hybrid-lab/README.md`](hybrid-lab/README.md#what-it-found).
+To run the demo: `hybrid-lab/scripts/preflight.sh` starts and checks everything.
 
 ## Take the skill home
 

@@ -50,4 +50,5 @@ HNSW index size moves in 8 KB page steps, because each graph entry (vector plus 
 must fit on a page. 1024 floats still take one entry per page, the same index as 1536; 512
 fits three and 256 six. In the lab (four BEIR datasets, Embed v4), `halfvec` and binary +
 rescore kept NDCG@10 within noise, while 512 and 256 dimensions lost 1.6 to 5.5 points:
-quantize before you truncate, and measure on your own questions.
+quantize before you truncate, and measure on your own questions. If you do truncate, add
+BM25 with a tuned blend: at 256 dimensions it won back 46–64% of the loss on three datasets.

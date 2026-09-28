@@ -647,6 +647,10 @@ the CYCLE clause for graphs with loops.
 <tr><td>Equal-weight RRF + BM25</td><td class="down">−3.1 ↓<small>−4.7…−1.5</small></td><td>+1.7<small>−0.9…+4.3</small></td><td class="up">+2.3 ↑<small>+1.0…+3.7</small></td><td>−0.3<small>−1.0…+0.5</small></td></tr>
 </tbody>
 <tbody data-marpit-fragment>
+<tr class="section"><td colspan="5">Frontier model cut to its first 256 dims · Cohere Embed v4</td></tr>
+<tr><td>Tuned blend + BM25</td><td>+0.5<small>−0.0…+1.1</small></td><td class="up">+3.5 ↑<small>+1.3…+5.7</small></td><td class="up">+2.8 ↑<small>+1.5…+4.1</small></td><td class="up">+1.9 ↑ *<small>+1.3…+2.5</small></td></tr>
+</tbody>
+<tbody data-marpit-fragment>
 <tr class="section"><td colspan="5">Frontier model · Cohere Embed v4, 1536 dims</td></tr>
 <tr><td>Tuned blend + BM25</td><td>0.0<small>chose vector only</small></td><td>+0.2<small>−1.2…+1.4</small></td><td class="up">+0.8 ↑<small>+0.1…+1.5</small></td><td class="down">−0.8 ↓ *<small>−1.4…−0.2</small></td></tr>
 <tr><td>Equal-weight RRF + BM25</td><td class="down">−12.5 ↓<small>−14.5…−10.6</small></td><td class="down">−2.9 ↓<small>−5.1…−0.6</small></td><td>−1.1<small>−2.2…+0.1</small></td><td class="down">−1.2 ↓<small>−2.0…−0.5</small></td></tr>
@@ -654,10 +658,13 @@ the CYCLE clause for graphs with loops.
 </tbody>
 </table>
 
-<p class="caption">↑ / ↓: the 95% confidence range is entirely above / below zero, so it isn't noise · * SCIDOCS has no tuning questions, so its blend weight stayed at 0.5 · results/summary.md</p>
+<p class="caption">↑ / ↓: 95% confidence range entirely above / below zero, so not noise · * SCIDOCS: no tuning questions, weight 0.5</p>
 
 <!--
-Two clicks: the small local model first, then the frontier model. Small local model: a tuned blend beats vector on three of four datasets,
+Three clicks: the small local model, the frontier model cut to 256 dimensions, then the full
+frontier model. The weaker the vectors, the more BM25 pays: at 256 dims the blend gained 1.9 to
+3.5 points on three datasets (weights 0.80 / 0.50 / 0.50 on tuning questions, SCIDOCS untuned at
+0.5), against 0.0 to +0.8 at full size. Small local model: a tuned blend beats vector on three of four datasets,
 beyond noise, and never loses. Frontier model: equal-weight RRF, the tutorial default, never
 beats vector and loses significantly on three datasets; a tuned blend wins only on NFCorpus
 (+0.8). SCIDOCS shows why tuning matters: with no tuning questions the blend stayed at 0.5 and lost.
@@ -723,7 +730,7 @@ was measured with 8 concurrent calls from a laptop. Models improve; measure the 
 | first 512 dims | 2,056 | 150 MB | 51.8 ↓ | 2.2 |
 | first 256 dims | 1,032 | 75 MB | 49.3 ↓ | 1.7 |
 
-**Quantize before you truncate.** Fewer bits kept NDCG within noise; 512 and 256 dims lost 1.6 to 5.5 points on every dataset. And 1024 dims saves no index space: an 8 KB page still holds one vector.
+**Quantize before you truncate.** Fewer bits kept NDCG within noise; 512 and 256 dims lost 1.6 to 5.5 points on every dataset. And 1024 dims saves no index space: an 8 KB page still holds one vector. If you do truncate, add BM25: at 256 dims it won back half the loss or more on three datasets.
 
 <!--
 12a-12e; results/dimensions.md has all four datasets with paired intervals. Embed v4's
@@ -735,7 +742,9 @@ an HNSW entry is the vector plus its neighbor list. 1536 floats is about 6.3 KB 
 fits two. Changes vs 1536 (NDCG@10): 1024 -0.3 to -1.2; 512 -1.6 to -2.7; 256 -4.1 to -5.5,
 all significant except 1024 on FiQA and NFCorpus. halfvec -0.2 and binary +0.2 on FiQA are noise.
 Embed v4 at 256 dims still beats bge-small (384) by 11 points on FiQA; they tie on SciFact and
-NFCorpus. Binary quantization keeps the sign of each dimension; the query takes 200 Hamming
+NFCorpus. 256 dims + BM25, tuned blend (08g): wins back 64% / 51% / 46% of the 256-dim loss on
+SciFact / NFCorpus / SCIDOCS (12% on FiQA, noise), with indexes of 75 + 16 MB on FiQA against
+450 MB for the full vector. Binary quantization keeps the sign of each dimension; the query takes 200 Hamming
 candidates and re-orders them by exact cosine on the full vectors.
 -->
 
