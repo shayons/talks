@@ -1,5 +1,5 @@
 # %% [markdown]
-# # 2b · Embed with a small open-source model, on this laptop
+# # 2b. Embed with a small open-source model, on this laptop
 #
 # `BAAI/bge-small-en-v1.5` (MIT license, 384 dimensions) through fastembed (ONNX on the CPU).
 # No API, no network after the first model download. Documents use `passage_embed`;

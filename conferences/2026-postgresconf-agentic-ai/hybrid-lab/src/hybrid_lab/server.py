@@ -23,10 +23,10 @@ from hybrid_lab.evaluate import bm25_available, local_available
 STATIC = Path(__file__).parent / "static"
 LOG = logging.getLogger("hybrid_lab")
 DATASET_LABELS = {
-    "fiqa": "FiQA · finance questions",
-    "scifact": "SciFact · science claims",
-    "nfcorpus": "NFCorpus · nutrition and medicine",
-    "scidocs": "SCIDOCS · paper citations",
+    "fiqa": "FiQA (finance questions)",
+    "scifact": "SciFact (science claims)",
+    "nfcorpus": "NFCorpus (nutrition and medicine)",
+    "scidocs": "SCIDOCS (paper citations)",
 }
 
 

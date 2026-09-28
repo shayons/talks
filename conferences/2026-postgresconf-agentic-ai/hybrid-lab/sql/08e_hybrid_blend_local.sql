@@ -1,4 +1,4 @@
--- 08e · The tuned blend with the small local model (bge-small, 384 dims).
+-- 08e. The tuned blend with the small local model (bge-small, 384 dims).
 --
 -- Same as 08c; its weight is tuned separately on the dev questions (a weaker vector list
 -- earns a different weight) and stored as blend_vector_weight_local.

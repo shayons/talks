@@ -1,10 +1,10 @@
--- 08c · A tuned blend: normalize each list's scores, then weight them.
+-- 08c. A tuned blend: normalize each list's scores, then weight them.
 --
 -- RRF uses only ranks, so a list that is sure of its top hit counts the same as a list
 -- that is guessing. A convex combination keeps that confidence:
 --
 --     min-max normalize each list's scores to [0, 1] for this question, then
---     score = w · vector + (1 − w) · bm25
+--     score = w × vector + (1 − w) × bm25
 --
 -- (Bruch, Gai & Ingber, "An Analysis of Fusion Functions for Hybrid Retrieval", ACM TOIS
 -- 2023.) This is the correct way to "add scores": pitfall 2 (07a) skipped both the

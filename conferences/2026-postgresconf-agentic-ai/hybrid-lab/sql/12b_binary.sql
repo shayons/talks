@@ -1,4 +1,4 @@
--- 12b · Storage: one bit per dimension, then re-score with the full vector.
+-- 12b. Storage: one bit per dimension, then re-score with the full vector.
 --
 -- binary_quantize() keeps only the sign of each dimension: 1536 bits = 192 bytes
 -- instead of 6 KB. Hamming distance (<~>) on bits is a coarse first pass, so we

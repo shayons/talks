@@ -1,4 +1,4 @@
--- 06b · The same vector search with a small open-source model, run on this laptop.
+-- 06b. The same vector search with a small open-source model, run on this laptop.
 --
 -- BAAI/bge-small-en-v1.5: 384 dimensions, MIT license, embedded locally with fastembed
 -- (py/2b_embed_local.py). Only the column changes: embedding_local instead of embedding.

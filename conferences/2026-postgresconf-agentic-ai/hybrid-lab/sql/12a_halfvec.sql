@@ -1,4 +1,4 @@
--- 12a · Storage: the same embedding indexed at half precision (halfvec).
+-- 12a. Storage: the same embedding indexed at half precision (halfvec).
 --
 -- vector(1536) stores 4 bytes per dimension; halfvec(1536) stores 2. Here the
 -- table keeps full precision and only the index uses halfvec, through an

@@ -1,8 +1,8 @@
-# Talking points · Postgres Summit US 2026
+# Talking points: Postgres Summit US 2026
 
 **Hybrid Search in PostgreSQL: Combining Vector and Full-Text for Real-World Applications**
 
-Shayon Sanyal · Wednesday, September 30, 2026 · 10:30–11:20 EDT · Letterpress, Convene,
+Shayon Sanyal, Wednesday, September 30, 2026, 10:30–11:20 EDT, Letterpress, Convene,
 555 Broadway, New York City.
 
 ## What you are presenting
@@ -48,7 +48,7 @@ Sources: `hybrid-lab/results/summary.md` and `results/scoreboard-*.md`.
 | 1024 dims saves no HNSW space | 450 MB at both 1536 and 1024 (one entry per 8 KB page); 512 → 150 MB, 256 → 75 MB | High |
 | RRF's k matters little | k = 5 to 200 moves NDCG@10 by at most 4.3 (FiQA, Embed v4), 1.4 elsewhere; no k makes equal-weight RRF beat Embed v4 alone | High (sensitivity on test, not tuned) |
 | Without BM25, the keyword side adds almost nothing | `ts_rank_cd` + bge-small, tuned blend: −0.1 / +0.4 / +0.7 (none significant); SCIDOCS −3.6 not tuned; 137 ms p50 on FiQA | High |
-| Query shape didn't decide it | FiQA's 177 questions with a number or acronym: vector 57.7, RRF · BM25 46.5 | High for FiQA |
+| Query shape didn't decide it | FiQA's 177 questions with a number or acronym: vector 57.7, RRF (BM25) 46.5 | High for FiQA |
 | One statement runs the two lists in sequence | No Gather node; `08b` p50 8.2 ms ≈ BM25 5.2 + vector 3.5 | High |
 
 Do not say:
@@ -94,7 +94,7 @@ to run. Then do steps 3, 5 and 6 by hand.
    the source)". Those 38 FiQA posts are empty strings in BEIR, so there is nothing to embed.
    If the line ever reads "X of Y documents embedded", embedding is incomplete: re-run
    `py/2_embed.py`. Click all four FiQA stage questions. Open the Scoreboard tab on each.
-4. Open VS Code on the `hybrid-lab` folder. SQLTools → connect "hybrid-lab · fiqa". In
+4. Open VS Code on the `hybrid-lab` folder. SQLTools → connect "hybrid-lab (fiqa)". In
    `py/3_ask.py`, run the first two cells with `"4641"` so the rainy-day question is active,
    then run `sql/06_vector.sql` with Cmd+E Cmd+E.
 5. **Turn Wi-Fi off** and repeat step 3. Every column must still load, including Embed v4 and
@@ -219,20 +219,20 @@ VS Code, before slide 8:
 UI, slide 17 (about five minutes):
 
 1. Paste the Vitamin D link (`#d=nfcorpus&q=PLAIN-307`). Cards: BM25 65, bge-small 77,
-   tuned blend · bge-small 97 (outlined in green, marked Highest), Embed v4 71. "Three cards
+   tuned blend (bge-small) 97 (outlined in green, marked Highest), Embed v4 71. "Three cards
    ran on this laptop with no API. The last one is the frontier model." Green rows are the
    known answers; that is all the audience needs to track.
 2. Hover answer letter A, then B and C, across the columns: the blend puts all three known
    answers in its top ranks because both lists agree on them.
 3. Open **SQL** on the blend column: `08e`, the same query as `08c` with the local column.
    The dimmed part above the marker is exploration; the part below is what ran.
-4. Optional: under **More arms**, tick "Tuned blend · ts_rank_cd + bge-small" and search
+4. Optional: under **More methods**, tick "Tuned blend (ts_rank_cd + bge-small)" and search
    again. It scores 77, the same as bge-small alone; the BM25 blend scored 97. "Same fusion,
    no IDF: that's what BM25 buys."
 5. Say: "One question. Averages in five minutes." Click **Olive oil** (blend 71, Embed v4
    60) if time allows.
 6. Switch the header to **FiQA**, click **Keyword wins** (403b). BM25 100, Embed v4 0,
-   RRF · BM25 33, Embed v4 + Rerank 63. "Exact identifiers are what keyword search is for."
+   RRF (BM25) 33, Embed v4 + Rerank 63. "Exact identifiers are what keyword search is for."
 7. Optional: **Scoreboard** tab on NFCorpus to show every arm at once.
 
 VS Code, slides 19–20: `sql/09_filtered_hybrid.sql` top to bottom, then the last statement

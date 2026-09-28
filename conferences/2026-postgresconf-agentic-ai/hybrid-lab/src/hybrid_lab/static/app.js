@@ -161,7 +161,7 @@ function renderResult(result) {
   const set = datasetLabel();
   $("question-meta").textContent = question.judged
     ? `${set} test question ${question.id}, with ${question.answers.length} known `
-      + `answer${question.answers.length === 1 ? "" : "s"} · also active in VS Code`
+      + `answer${question.answers.length === 1 ? "" : "s"}, also active in VS Code`
     : `Your question. ${set} has no judgments for it, so nothing is graded.`;
   renderAnswerKey(question, arms);
   for (const pick of document.querySelectorAll(".pick")) {
@@ -388,14 +388,14 @@ function renderSwings(listId, swings) {
 
 function datasetLabel() {
   const found = state.datasets.find((d) => d.name === state.dataset);
-  return found ? found.label.split(" · ")[0] : "This dataset";
+  return found ? found.label.split(" (")[0] : "This dataset";
 }
 
 function summaryTable(data) {
   const header = el("tr", {}, [
     el("th", { text: "Method" }),
     ...data.datasets.map((d) => el("th", {}, [
-      d.label.split(" · ")[0],
+      d.label.split(" (")[0],
       el("small", { text: d.blend_weight === null ? "blend weight: not tuned" : `blend weight ${d.blend_weight}` }),
     ])),
   ]);
@@ -501,7 +501,7 @@ async function loadStatus() {
     const parts = [`PostgreSQL ${status.postgres.split(" ")[0]}`, `pgvector ${ext.vector}`];
     if (ext.pg_textsearch) parts.push(`pg_textsearch ${ext.pg_textsearch}`);
     $("versions").replaceChildren(
-      el("span", { text: parts.join(" · ") }),
+      el("span", { text: parts.join(", ") }),
       el("span", { text: embeddingCoverage(status) }),
     );
   } catch (error) {
@@ -527,7 +527,7 @@ async function loadDatasets() {
   const select = $("dataset");
   select.replaceChildren(...state.datasets.map((d) => el("option", {
     value: d.name,
-    text: `${d.label} · ${d.questions} questions`,
+    text: `${d.label}, ${d.questions} test questions`,
   })));
   select.value = state.dataset;
   select.addEventListener("change", () => {

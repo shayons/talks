@@ -1,4 +1,4 @@
--- 07b · "Hybrid" by concatenation: keyword results first, then vector results,
+-- 07b. "Hybrid" by concatenation: keyword results first, then vector results,
 -- duplicates removed.
 --
 -- Pitfall 2, second form: no fusion at all. The order is decided by which list

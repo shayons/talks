@@ -1,4 +1,4 @@
--- 04 · Keyword search that matches ANY of the question's words.
+-- 04. Keyword search that matches ANY of the question's words.
 --
 -- Fix for pitfall 1: same lexemes as plainto_tsquery, joined with OR (|).
 -- The ranking function then decides which matches are best.

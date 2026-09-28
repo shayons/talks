@@ -84,13 +84,13 @@ def check_stage_questions(name: str) -> bool:
                                            "dataset": name})
             graded = [card for card in result["arms"] if card["ndcg10"] is not None]
             if len(graded) != len(methods):
-                return report(False, f"UI · {name}", f"'{item['label']}' came back incomplete")
+                return report(False, f"UI ({name})", f"'{item['label']}' came back incomplete")
     except (urllib.error.URLError, KeyError, TimeoutError) as exc:
-        return report(False, f"UI · {name}", f"{exc}; is `uv run hybrid-lab` running?")
+        return report(False, f"UI ({name})", f"{exc}; is `uv run hybrid-lab` running?")
     seconds = time.perf_counter() - started
     labels = ", ".join(item["label"] for item in demo)
     detail = f"{len(demo)} stage questions in {seconds:.1f} s ({labels})"
-    return report(True, f"UI · {name}", detail)
+    return report(True, f"UI ({name})", detail)
 
 
 def check_bedrock() -> None:

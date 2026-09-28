@@ -1,4 +1,4 @@
--- 08g · The tuned blend with Cohere Embed v4 cut to its first 256 dimensions.
+-- 08g. The tuned blend with Cohere Embed v4 cut to its first 256 dimensions.
 --
 -- Same as 08c, but the vector list searches the 256-dimension prefix (12e's expression index).
 -- Question: does BM25 earn more weight, and pay more, when the vectors are this much smaller?

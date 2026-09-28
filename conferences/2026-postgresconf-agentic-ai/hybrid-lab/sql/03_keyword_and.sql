@@ -1,4 +1,4 @@
--- 03 · Keyword search the usual way: every word must match.
+-- 03. Keyword search the usual way: every word must match.
 --
 -- Pitfall 1. websearch_to_tsquery joins the question's words with AND (&).
 -- A natural-language question rarely has all of its words in one answer, so

@@ -1,4 +1,4 @@
--- 08b · The same RRF, with BM25 (pg_textsearch) as the keyword list.
+-- 08b. The same RRF, with BM25 (pg_textsearch) as the keyword list.
 --
 -- Only the keyword CTE changes. Because RRF uses ranks, swapping the keyword
 -- scorer needs no re-tuning of the fusion.

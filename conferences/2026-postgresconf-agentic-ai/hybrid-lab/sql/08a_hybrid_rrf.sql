@@ -1,4 +1,4 @@
--- 08a · Hybrid search in one statement: Reciprocal Rank Fusion (RRF).
+-- 08a. Hybrid search in one statement: Reciprocal Rank Fusion (RRF).
 --
 -- Fuse RANKS, not scores:  rrf(d) = Σ weight / (k + rank of d in each list)
 --

@@ -1,10 +1,10 @@
 # %% [markdown]
-# # 5 · Tune the score blend on dev questions, never on test
+# # 5. Tune the score blend on dev questions, never on test
 #
 # RRF throws away how confident each list is. A convex combination keeps it: min-max
 # normalize each list's scores to [0, 1] per question, then
 #
-#     score = w · vector_normalized + (1 − w) · bm25_normalized
+#     score = w × vector_normalized + (1 − w) × bm25_normalized
 #
 # (Bruch, Gai & Ingber, "An Analysis of Fusion Functions for Hybrid Retrieval", ACM TOIS
 # 2023.) The weight w is chosen per dataset on its held-out dev questions (FiQA: its dev

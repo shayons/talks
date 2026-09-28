@@ -1,5 +1,5 @@
 # %% [markdown]
-# # 1 · Load a BEIR dataset into PostgreSQL
+# # 1. Load a BEIR dataset into PostgreSQL
 #
 # FiQA-2018 is the main example: 57,638 finance forum posts, 648 test questions, and human
 # judgments of which posts answer which question. The judgments are what let us grade every

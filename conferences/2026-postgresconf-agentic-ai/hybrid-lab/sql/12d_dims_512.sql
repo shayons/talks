@@ -1,4 +1,4 @@
--- 12d · Dimensions: Cohere Embed v4 cut to its first 512 of 1536 dimensions.
+-- 12d. Dimensions: Cohere Embed v4 cut to its first 512 of 1536 dimensions.
 --
 -- Embed v4 is trained so that a prefix of its vector is itself an embedding: asking
 -- Bedrock for output_dimension = 512 returns these same 512 numbers (checked against

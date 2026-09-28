@@ -118,9 +118,9 @@ def write_scoreboard_markdown(rows: list[dict], labels: dict[str, str], name: st
     lines = [
         f"# {name} scoreboard",
         "",
-        f"{questions} test questions · PostgreSQL 18.6 · pgvector 0.8.6 · pg_textsearch 1.4.0",
-        "· Cohere Embed v4 (1536 dims) and Cohere Rerank 3.5 on Amazon Bedrock",
-        "· BAAI/bge-small-en-v1.5 (384 dims) on this laptop for the small-model rows.",
+        f"{questions} test questions. PostgreSQL 18.6, pgvector 0.8.6, pg_textsearch 1.4.0.",
+        "Cohere Embed v4 (1536 dims) and Cohere Rerank 3.5 on Amazon Bedrock;",
+        "BAAI/bge-small-en-v1.5 (384 dims) on this laptop for the small-model rows.",
         "Latency is local laptop wall time per question; rerank rows include the Bedrock call.",
         "",
         "| Arm | NDCG@10 | Recall@50 | p50 ms | p95 ms | Better / worse than Vector |",

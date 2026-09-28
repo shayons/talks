@@ -26,7 +26,7 @@ the list appended first wins.
 
 Fix: Reciprocal Rank Fusion, `score = Σ 1 / (k + rank)` with k = 60 over each list's top N
 (missing from a list contributes 0), or better, a normalized blend: min-max each list's scores
-per question, then `w · vector + (1 − w) · keyword` with w tuned on held-out questions
+per question, then `w × vector + (1 − w) × keyword` with w tuned on held-out questions
 (`templates/hybrid_blend.sql`). In the talk's lab, with Cohere Embed v4, equal-weight RRF lost
 to vector search on all four BEIR datasets tested (significantly on three). A blend tuned on
 dev questions never lost; on the one dataset without dev questions, an untuned 0.5 blend lost

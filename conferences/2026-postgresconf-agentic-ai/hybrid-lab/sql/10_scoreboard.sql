@@ -1,4 +1,4 @@
--- 10 · Scoreboard: every arm graded against the dataset's human judgments, in SQL.
+-- 10. Scoreboard: every arm graded against the dataset's human judgments, in SQL.
 --
 -- NDCG@10 (normalized discounted cumulative gain):
 --   DCG  = Σ relevance / log2(rank + 1) over the top 10 results

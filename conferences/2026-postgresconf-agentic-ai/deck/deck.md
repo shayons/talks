@@ -4,8 +4,8 @@ theme: hybrid-search
 paginate: true
 title: "Hybrid Search in PostgreSQL: Combining Vector and Full-Text for Real-World Applications"
 author: "Shayon Sanyal"
-description: "Postgres Summit US 2026 · New York City · September 30, 2026"
-footer: "Hybrid Search in PostgreSQL · Postgres Summit US 2026 · NYC"
+description: "Postgres Summit US 2026, New York City, September 30, 2026"
+footer: "Hybrid Search in PostgreSQL, Postgres Summit US 2026, NYC"
 size: 16:9
 transition: fade 250ms
 ---
@@ -18,12 +18,12 @@ transition: fade 250ms
 ## Combining Vector and Full-Text for Real-World Applications
 
 <div class="byline">
-Shayon Sanyal · Principal PostgreSQL Specialist SA · Lead, Agentic AI for Databases
+Shayon Sanyal, Principal PostgreSQL Specialist SA
 </div>
 
 <div class="meta">
-Postgres Summit US 2026 · New York City<br>
-September 30 · 10:30–11:20 EDT · Letterpress
+Postgres Summit US 2026, New York City<br>
+September 30, 10:30–11:20 EDT, Letterpress
 </div>
 
 <!--
@@ -67,7 +67,6 @@ claim comes with a number.
 # Shayon Sanyal
 
 **Principal PostgreSQL Specialist Solutions Architect**
-Tech Lead — Agentic AI for Databases
 
 I help teams build on PostgreSQL, from relational applications to retrieval and agent workflows.
 
@@ -120,12 +119,12 @@ train split; SCIDOCS has none). Credit Dave Ebbelaar's tutorial for the FiQA-and
 
 ## Four datasets, four kinds of question
 
-| Dataset · what it searches | A typical test question | Test questions | Known answers per question | BM25 vs vector (Embed v4), NDCG@10 |
+| Dataset: what it searches | A typical test question | Test questions | Known answers per question | BM25 vs vector (Embed v4), NDCG@10 |
 | --- | --- | ---: | ---: | ---: |
-| **FiQA** · 57,638 finance forum posts | “Where should I park my rainy-day / emergency fund?” | 648 | 2.6 | 23.6 vs 53.9 |
-| **SciFact** · 5,183 science abstracts | “Anthrax spores can be disposed of easily after they are dispersed.” A claim to check | 300 | 1.1 | 68.8 vs 77.5 |
-| **NFCorpus** · 3,633 medical abstracts | “low-carb diets.” Half are two words or fewer | 323 | 38.2, graded | 32.3 vs 40.1 |
-| **SCIDOCS** · 25,657 paper abstracts | “A Fast Learning Algorithm for Deep Belief Nets.” A title; its answers are papers it cites | 1,000 | 4.9 | 15.4 vs 20.6 |
+| **FiQA**: 57,638 finance forum posts | “Where should I park my rainy-day / emergency fund?” | 648 | 2.6 | 23.6 vs 53.9 |
+| **SciFact**: 5,183 science abstracts | “Anthrax spores can be disposed of easily after they are dispersed.” A claim to check | 300 | 1.1 | 68.8 vs 77.5 |
+| **NFCorpus**: 3,633 medical abstracts | “low-carb diets.” Half are two words or fewer | 323 | 38.2, graded | 32.3 vs 40.1 |
+| **SCIDOCS**: 25,657 paper abstracts | “A Fast Learning Algorithm for Deep Belief Nets.” A title; its answers are papers it cites | 1,000 | 4.9 | 15.4 vs 20.6 |
 
 Same methods, very different gaps: BM25 reaches **89%** of vector search on SciFact but **44%** on FiQA. One dataset would have told a different story.
 
@@ -148,9 +147,9 @@ claim it does.
 | PostgreSQL | **18.6** | `tsvector`, GIN, `ts_rank_cd`, the SQL that combines and scores results |
 | pgvector | **0.8.6** | `vector(1536)`, HNSW, iterative index scans, `halfvec`, `bit` |
 | pg_textsearch | **1.4.0** | BM25 index and `<@>` operator (PostgreSQL license) |
-| Cohere Embed v4 · Amazon Bedrock | 1536 dims | Posts as `search_document`, questions as `search_query` |
-| Cohere Rerank · Amazon Bedrock | 3.5 | Reorders a top 50 outside the database |
-| bge-small-en-v1.5 · fastembed | 384 dims | A small open-source model, on this laptop |
+| Cohere Embed v4 on Amazon Bedrock | 1536 dims | Posts as `search_document`, questions as `search_query` |
+| Cohere Rerank on Amazon Bedrock | 3.5 | Reorders a top 50 outside the database |
+| bge-small-en-v1.5 with fastembed | 384 dims | A small open-source model, on this laptop |
 | VS Code + SQLTools | | Numbered SQL files you can run yourself |
 
 The database side is all open source: PostgreSQL, pgvector, pg_textsearch. So is bge-small, and that fully open path is where hybrid pays most. Every number today is from this laptop.
@@ -164,7 +163,7 @@ PostgreSQL 18's extension_control_path, not installed into Homebrew.
 
 <!-- _class: code-first -->
 
-## One row, three representations · `01_schema.sql`
+## One row, three representations `01_schema.sql`
 
 ```sql
 CREATE TABLE docs (
@@ -191,7 +190,7 @@ workers. m = 16 and ef_construction = 64 are pgvector's defaults.
 
 <!-- _class: code-first -->
 
-## Pitfall 1: every word must match · `03`
+## Pitfall 1: every word must match `03`
 
 ```sql
 SELECT websearch_to_tsquery('english', 'Where should I park my rainy-day / emergency fund?');
@@ -201,7 +200,7 @@ SELECT websearch_to_tsquery('english', 'Where should I park my rainy-day / emerg
 `websearch_to_tsquery` and `plainto_tsquery` join words with **AND**. A natural question
 rarely has all its words in one answer.
 
-<p class="formula">405 of 648 questions match no post at all · NDCG@10 4.3</p>
+<p class="formula">405 of 648 questions match no post at all. NDCG@10: 4.3</p>
 
 <!--
 Measured: keyword_and method. Many tutorials, including the pgvectorscale hybrid-search example,
@@ -212,7 +211,7 @@ use exactly this call. Fine for a search box of product codes; wrong for questio
 
 <!-- _class: code-first -->
 
-## Match any word, rank the matches · `04`
+## Match any word, rank the matches `04`
 
 ```sql
 WITH question AS (
@@ -241,7 +240,7 @@ ts_rank_cd scores each post alone: no corpus statistics, so "fund" weighs as muc
 
 <!-- _class: code-first -->
 
-## `ts_rank_cd` is not BM25 · `05`
+## `ts_rank_cd` is not BM25 `05`
 
 ```sql
 SELECT id, -(body <@> to_bm25query(:'question', 'docs_body_bm25')) AS bm25
@@ -269,7 +268,7 @@ platform before depending on it.
 
 <!-- _class: code-first -->
 
-## Vector search: the top 50 by meaning · `06`
+## Vector search: the top 50 by meaning `06`
 
 ```sql
 SET hnsw.ef_search = 100;          -- default 40: LIMIT 50 would silently return 40
@@ -283,7 +282,7 @@ SELECT id, 1 - (embedding <=> (SELECT embedding FROM active_query)) AS cosine
 Keep the distance operator in `ORDER BY`, ascending, with a `LIMIT`. Embed questions as
 `search_query` and posts as `search_document`.
 
-NDCG@10 **53.9** · median **3.5 ms** per question
+NDCG@10 **53.9**, median **3.5 ms** per question
 
 <!--
 Pitfall 4 in the lab: an HNSW scan returns at most hnsw.ef_search rows. The test suite proves
@@ -293,7 +292,7 @@ and index plans agree.
 
 ---
 
-## Pitfall 2: adding scores from different scales · `07a` `07b`
+## Pitfall 2: adding scores from different scales `07a` `07b`
 
 | Rainy-day question, each list's top 50 | min | max |
 | --- | ---: | ---: |
@@ -352,7 +351,7 @@ it relies on a reranker afterwards. Without one, whichever list goes first wins.
 <li><span class="n">9</span><span class="pill answer">32811<span>known answer</span></span></li>
 <li><span class="n">10</span><span class="pill">62897</span></li>
 </ol></div>
-<div class="rrf-lane fused"><h4>RRF · combined</h4><ol>
+<div class="rrf-lane fused"><h4>Combined by RRF</h4><ol>
 <li><span class="n">1</span><span class="pill slot"></span></li>
 <li><span class="n">2</span><span class="pill slot"></span></li>
 <li><span class="n">3</span><span class="pill slot"></span></li>
@@ -395,7 +394,7 @@ comes from Cormack, Clarke and Büttcher (SIGIR 2009).
 
 <!-- _class: code-first dense -->
 
-## RRF is a full outer join · `08a`
+## RRF is a full outer join `08a`
 
 ```sql
 WITH keyword AS (
@@ -431,7 +430,7 @@ run them concurrently, send two queries on two connections and fuse in the appli
 
 <!-- _class: code-first dense -->
 
-## Blend scores the right way · `08c`
+## Blend scores the right way `08c`
 
 ```sql
 keyword_norm AS (        -- per question: min-max to [0, 1]; semantic_norm is the same
@@ -480,13 +479,13 @@ a little (FiQA with Embed v4: 41.3 at k = 60, 45.4 at k = 5), still far below ve
 
 <!-- _class: demo-slide -->
 
-## Live · NFCorpus · all local except the last column
+## Live on NFCorpus: all local except the last column
 
 # Small model + BM25 beat the frontier model here
 
 ![Hybrid search lab UI on NFCorpus: BM25 65, bge-small 77, tuned blend 97, Embed v4 71 NDCG@10](assets/ui-search.png)
 
-<p class="stage-url">localhost:8018 · pick NFCorpus · “Local hybrid beats the frontier model”</p>
+<p class="stage-url">localhost:8018, pick NFCorpus, then “Local hybrid beats the frontier model”</p>
 
 <!--
 Question: "Vitamin D: Shedding some light on the new recommendations" (3 known answers).
@@ -519,7 +518,7 @@ so no method can ever find it.
 
 <!-- _class: code-first -->
 
-## Pitfall 3: a filter is not a pre-filter · `09`
+## Pitfall 3: a filter is not a pre-filter `09`
 
 ```sql
 SELECT id FROM docs
@@ -545,7 +544,7 @@ HNSW for mortgage and GIN for heloc on its own; check EXPLAIN rather than assume
 
 <!-- _class: code-first -->
 
-## Similar to the question AND contains a word · `11`
+## Similar to the question AND contains a word `11`
 
 ```sql
 SELECT h.*, left(d.body, 60)
@@ -637,28 +636,28 @@ the CYCLE clause for graphs with loops.
 
 <!-- _class: gold -->
 
-## Hybrid vs vector, same embedding model · NDCG@10 change on 2,271 test questions
+## Hybrid vs vector, same embedding model: NDCG@10 change on 2,271 test questions
 
 <table class="gold-table">
 <thead><tr><th></th><th>FiQA</th><th>SciFact</th><th>NFCorpus</th><th>SCIDOCS</th></tr></thead>
 <tbody data-marpit-fragment>
-<tr class="section"><td colspan="5">Small local model · bge-small, 384 dims, on this laptop</td></tr>
+<tr class="section"><td colspan="5">Small local model: bge-small, 384 dims, on this laptop</td></tr>
 <tr><td>Tuned blend + BM25</td><td class="up">+1.2 ↑<small>+0.4…+2.1</small></td><td class="up">+2.1 ↑<small>+0.0…+4.3</small></td><td class="up">+2.1 ↑<small>+1.3…+3.0</small></td><td>+0.2 *<small>−0.5…+0.8</small></td></tr>
 <tr><td>Equal-weight RRF + BM25</td><td class="down">−3.1 ↓<small>−4.7…−1.5</small></td><td>+1.7<small>−0.9…+4.3</small></td><td class="up">+2.3 ↑<small>+1.0…+3.7</small></td><td>−0.3<small>−1.0…+0.5</small></td></tr>
 </tbody>
 <tbody data-marpit-fragment>
-<tr class="section"><td colspan="5">Frontier model cut to its first 256 dims · Cohere Embed v4</td></tr>
+<tr class="section"><td colspan="5">Frontier model cut to its first 256 dims: Cohere Embed v4</td></tr>
 <tr><td>Tuned blend + BM25</td><td>+0.5<small>−0.0…+1.1</small></td><td class="up">+3.5 ↑<small>+1.3…+5.7</small></td><td class="up">+2.8 ↑<small>+1.5…+4.1</small></td><td class="up">+1.9 ↑ *<small>+1.3…+2.5</small></td></tr>
 </tbody>
 <tbody data-marpit-fragment>
-<tr class="section"><td colspan="5">Frontier model · Cohere Embed v4, 1536 dims</td></tr>
+<tr class="section"><td colspan="5">Frontier model: Cohere Embed v4, 1536 dims</td></tr>
 <tr><td>Tuned blend + BM25</td><td>0.0<small>chose vector only</small></td><td>+0.2<small>−1.2…+1.4</small></td><td class="up">+0.8 ↑<small>+0.1…+1.5</small></td><td class="down">−0.8 ↓ *<small>−1.4…−0.2</small></td></tr>
 <tr><td>Equal-weight RRF + BM25</td><td class="down">−12.5 ↓<small>−14.5…−10.6</small></td><td class="down">−2.9 ↓<small>−5.1…−0.6</small></td><td>−1.1<small>−2.2…+0.1</small></td><td class="down">−1.2 ↓<small>−2.0…−0.5</small></td></tr>
 <tr><td>Cohere Rerank 3.5, top 50</td><td class="down">−4.1 ↓<small>−6.0…−2.3</small></td><td>−0.4<small>−2.8…+1.9</small></td><td class="down">−1.9 ↓<small>−3.3…−0.4</small></td><td>−0.4<small>−1.1…+0.3</small></td></tr>
 </tbody>
 </table>
 
-<p class="caption">↑ / ↓: 95% confidence range entirely above / below zero, so not noise · * SCIDOCS: no tuning questions, weight 0.5</p>
+<p class="caption">↑ / ↓: 95% confidence range entirely above / below zero, so not noise. * SCIDOCS: no tuning questions, weight 0.5</p>
 
 <!--
 Three clicks: the small local model, the frontier model cut to 256 dimensions, then the full
@@ -678,10 +677,10 @@ frontier 53.9 / 77.5 / 40.1 / 20.6. Weights were tuned on each dataset's separat
 
 | NDCG@10 | FiQA | SciFact | NFCorpus | SCIDOCS |
 | --- | ---: | ---: | ---: | ---: |
-| bge-small alone · local, open source | 38.0 | 72.0 | 33.8 | 19.6 |
-| **bge-small + BM25, tuned blend · all local** | **39.2** | **74.2** | **35.9** | 19.8 |
-| bge-small + `ts_rank_cd`, tuned blend · core PostgreSQL only | 37.9 | 72.4 | 34.4 | 16.0 ↓ |
-| Cohere Embed v4 alone · frontier API | 53.9 | 77.5 | 40.1 | 20.6 |
+| bge-small alone (local, open source) | 38.0 | 72.0 | 33.8 | 19.6 |
+| **bge-small + BM25, tuned blend (all local)** | **39.2** | **74.2** | **35.9** | 19.8 |
+| bge-small + `ts_rank_cd`, tuned blend (core PostgreSQL only) | 37.9 | 72.4 | 34.4 | 16.0 ↓ |
+| Cohere Embed v4 alone (frontier API) | 53.9 | 77.5 | 40.1 | 20.6 |
 | **Share of the gap closed by BM25** | 8% | **39%** | **33%** | within noise |
 
 PostgreSQL, BM25, and a 384-dimension model on one laptop, no API calls: adding keyword search closes **a third or more of the gap** to a frontier model on SciFact and NFCorpus. Without BM25's IDF, `ts_rank_cd` gained nothing beyond noise.
@@ -697,13 +696,13 @@ lost 3.6 (beyond noise). It also costs 137 ms (median) on FiQA, against 7.3 ms f
 
 ---
 
-## Rerank: measure it too · FiQA
+## Rerank on FiQA: measure it too
 
 | What Cohere Rerank 3.5 reorders | NDCG@10 | Recall@50 | Median |
 | --- | ---: | ---: | ---: |
 | none: vector alone | **53.9** | 78.5 | **3.5 ms** |
 | vector top 50 | 49.7 | 78.5 | 417 ms |
-| RRF · BM25 top 50 | 50.4 | 75.2 | 1,093 ms |
+| RRF (BM25) top 50 | 50.4 | 75.2 | 1,093 ms |
 | vector ∪ BM25, up to 100 | 49.0 | 76.5 | 1,208 ms |
 
 It lifts 403b from #26 to #2, but puts a known answer first on 47.5% of questions against 53.9% for Embed v4 alone. On no dataset did a reranked method beat vector search by more than noise.
@@ -719,7 +718,7 @@ was measured with 8 concurrent calls from a laptop. Models improve; measure the 
 
 ---
 
-## Storage: fewer bits or fewer dimensions? · FiQA
+## Storage on FiQA: fewer bits or fewer dimensions?
 
 | Index on `embedding` | Bytes per vector | HNSW size | NDCG@10 | Median ms |
 | --- | ---: | ---: | ---: | ---: |
@@ -815,7 +814,7 @@ Other agents: copy `hybrid-search-plugin/skills/postgres-hybrid-search/`.
 </div>
 </div>
 
-<p class="caption">github.com/shayons/talks · conferences/2026-postgresconf-agentic-ai</p>
+<p class="caption">github.com/shayons/talks, in conferences/2026-postgresconf-agentic-ai</p>
 
 <!--
 The skill inspects the table, proposes the migration and waits for approval, backfills
@@ -831,7 +830,7 @@ embeddings, installs the function, and evaluates it with labeled or synthetic qu
 
 Which of your queries needs both words and meaning?
 
-Shayon Sanyal · linkedin.com/in/shayonsanyal
+Shayon Sanyal, linkedin.com/in/shayonsanyal
 
 [github.com/shayons/talks](https://github.com/shayons/talks)
 
@@ -846,10 +845,10 @@ Six minutes for questions. The live UI's Scoreboard tab shows every method on ev
 ## References
 
 - **PostgreSQL 18:** [Full-text search](https://www.postgresql.org/docs/18/textsearch.html), [Using EXPLAIN](https://www.postgresql.org/docs/18/using-explain.html), [auto_explain](https://www.postgresql.org/docs/18/auto-explain.html)
-- **pgvector 0.8.6:** [HNSW, filtering, iterative index scans](https://github.com/pgvector/pgvector) · **pg_textsearch 1.4.0:** [BM25 for PostgreSQL](https://github.com/timescale/pg_textsearch)
-- **RRF:** Cormack, Clarke & Büttcher, [SIGIR 2009](https://doi.org/10.1145/1571941.1572114) · **HNSW:** Malkov & Yashunin, [arXiv:1603.09320](https://arxiv.org/abs/1603.09320)
-- **Score blending:** Bruch, Gai & Ingber, “An Analysis of Fusion Functions for Hybrid Retrieval”, [ACM TOIS 2023](https://doi.org/10.1145/3596512) · **bge-small-en-v1.5:** [BAAI, MIT license](https://huggingface.co/BAAI/bge-small-en-v1.5), run with [fastembed](https://github.com/qdrant/fastembed)
-- **FiQA-2018, SciFact, NFCorpus, SCIDOCS** via [BEIR](https://github.com/beir-cellar/beir) (Thakur et al., NeurIPS 2021) · Dave Ebbelaar, [hybrid-retrieval tutorial](https://github.com/daveebbelaar/ai-cookbook/tree/main/knowledge/hybrid-retrieval) (the FiQA + NDCG approach this lab moves into PostgreSQL)
+- **pgvector 0.8.6:** [HNSW, filtering, iterative index scans](https://github.com/pgvector/pgvector); **pg_textsearch 1.4.0:** [BM25 for PostgreSQL](https://github.com/timescale/pg_textsearch)
+- **RRF:** Cormack, Clarke & Büttcher, [SIGIR 2009](https://doi.org/10.1145/1571941.1572114); **HNSW:** Malkov & Yashunin, [arXiv:1603.09320](https://arxiv.org/abs/1603.09320)
+- **Score blending:** Bruch, Gai & Ingber, “An Analysis of Fusion Functions for Hybrid Retrieval”, [ACM TOIS 2023](https://doi.org/10.1145/3596512); **bge-small-en-v1.5:** [BAAI, MIT license](https://huggingface.co/BAAI/bge-small-en-v1.5), run with [fastembed](https://github.com/qdrant/fastembed)
+- **FiQA-2018, SciFact, NFCorpus, SCIDOCS** via [BEIR](https://github.com/beir-cellar/beir) (Thakur et al., NeurIPS 2021); Dave Ebbelaar, [hybrid-retrieval tutorial](https://github.com/daveebbelaar/ai-cookbook/tree/main/knowledge/hybrid-retrieval) (the FiQA + NDCG approach this lab moves into PostgreSQL)
 - **This talk:** `hybrid-lab/sql/`, `hybrid-lab/results/`, `hybrid-search-plugin/`
 
-<p class="caption">Measured on PostgreSQL 18.6, pgvector 0.8.6, pg_textsearch 1.4.0 · September 2026</p>
+<p class="caption">Measured on PostgreSQL 18.6, pgvector 0.8.6, pg_textsearch 1.4.0, September 2026</p>

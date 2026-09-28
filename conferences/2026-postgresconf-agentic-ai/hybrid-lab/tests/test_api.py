@@ -64,7 +64,7 @@ def test_union_rerank_combines_both_lists(client):
     ).json()
     cards = {card["stage"]: card for card in body["arms"]}
     union = cards["union_rerank"]
-    assert union["base_label"] == "Vector · Embed v4"
+    assert union["base_label"] == "Vector (Embed v4)"
     vector_total, bm25_total = cards["vector"]["returned"], cards["bm25"]["returned"]
     assert max(vector_total, bm25_total) <= union["returned"] <= vector_total + bm25_total
     assert all(row["from_rank"] for row in union["rows"])  # fixture: vector ranks every post

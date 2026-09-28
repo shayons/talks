@@ -1,4 +1,4 @@
--- 01 · Schema: one row holds the text, its lexemes, and its embedding.
+-- 01. Schema: one row holds the text, its lexemes, and its embedding.
 --
 -- One database per BEIR dataset, same schema. FiQA-2018: 57,638 finance forum posts,
 -- 648 test questions, and human judgments (qrels) of which posts answer which question.

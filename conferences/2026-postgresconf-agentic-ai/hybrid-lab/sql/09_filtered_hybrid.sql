@@ -1,4 +1,4 @@
--- 09 · "Semantically similar AND contains a keyword", and what the index does with it.
+-- 09. "Semantically similar AND contains a keyword", and what the index does with it.
 --
 -- Pitfall 3. HNSW collects about hnsw.ef_search nearest neighbors first and applies the
 -- WHERE clause afterwards. When the filter matches a few percent of the posts, most of

@@ -1,5 +1,5 @@
 # %% [markdown]
-# # 3 · Choose the question
+# # 3. Choose the question
 #
 # Every file in sql/ reads its question from the `active_query` view. This cell sets it.
 #

@@ -1,5 +1,5 @@
 # %% [markdown]
-# # 7 · How much does RRF's k matter?
+# # 7. How much does RRF's k matter?
 #
 # RRF scores each document Σ 1 / (k + rank). The stored runs already hold every test
 # question's BM25 and vector top 50, so RRF at any k is recomputed here in SQL, with no new

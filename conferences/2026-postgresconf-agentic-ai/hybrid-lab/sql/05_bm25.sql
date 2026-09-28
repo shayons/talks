@@ -1,4 +1,4 @@
--- 05 · BM25 inside PostgreSQL with pg_textsearch.
+-- 05. BM25 inside PostgreSQL with pg_textsearch.
 --
 -- BM25 weighs each matching term by how rare it is across the corpus (IDF),
 -- saturates repeated terms (k1 = 1.2), and normalizes for post length (b = 0.75).

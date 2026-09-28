@@ -1,4 +1,4 @@
--- 02 · Indexes: one table, three kinds of index.
+-- 02. Indexes: one table, three kinds of index.
 -- Build after loading and embedding. py/2_embed.py runs this file and times each index.
 
 -- HNSW keeps its graph in memory while it builds; 57,638 × 1536 dims fits in 1 GB.

@@ -1,7 +1,7 @@
 {
   "sqltools.connections": [
     {
-      "name": "hybrid-lab · fiqa",
+      "name": "hybrid-lab (fiqa)",
       "driver": "PostgreSQL",
       "server": "127.0.0.1",
       "port": 5433,

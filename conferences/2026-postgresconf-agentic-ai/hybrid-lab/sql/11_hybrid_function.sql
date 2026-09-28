@@ -1,4 +1,4 @@
--- 11 · Take it home: hybrid search as one SQL function.
+-- 11. Take it home: hybrid search as one SQL function.
 --
 -- Keyword (any-word ts_rank_cd) + vector (HNSW cosine), fused with RRF.
 -- Optional required_terms turns it into "similar to the question AND contains

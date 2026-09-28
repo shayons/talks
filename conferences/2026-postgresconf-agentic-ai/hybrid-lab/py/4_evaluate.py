@@ -1,5 +1,5 @@
 # %% [markdown]
-# # 4 · Grade every arm on the dataset's test questions
+# # 4. Grade every arm on the dataset's test questions
 #
 # Each SQL arm runs its file's `-- == ARM QUERY ==` section once per question to warm
 # the cache, then again for timing. The rerank arms send each question's stored candidate

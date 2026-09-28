@@ -1,5 +1,5 @@
 # %% [markdown]
-# # 6 · Summarize every dataset, with uncertainty
+# # 6. Summarize every dataset, with uncertainty
 #
 # For each dataset: NDCG@10 of the main arms on its test questions, and each hybrid arm's
 # difference from vector search with the same embedding model. The 95% interval comes

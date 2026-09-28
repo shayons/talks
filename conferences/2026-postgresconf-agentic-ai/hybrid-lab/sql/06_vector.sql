@@ -1,4 +1,4 @@
--- 06 · Semantic search with pgvector: nearest posts by cosine distance.
+-- 06. Semantic search with pgvector: nearest posts by cosine distance.
 --
 -- Finds paraphrases: "park my rainy-day fund" can match "keep emergency savings
 -- in a high-yield account" with no words in common.

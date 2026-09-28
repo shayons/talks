@@ -3,7 +3,7 @@
 -- on the held-out half of the questions, and pass the weight it chose as vector_weight.
 --
 -- Each list's scores are min-max normalized to [0, 1] for this question, then
---     score = vector_weight · vector + (1 − vector_weight) · keyword
+--     score = vector_weight × vector + (1 − vector_weight) × keyword
 -- (Bruch, Gai & Ingber, "An Analysis of Fusion Functions for Hybrid Retrieval", 2023).
 -- Unlike equal-weight RRF, it keeps how confident each list is. Measured in the talk's lab:
 -- with a strong embedding model, equal-weight RRF lost to vector search on four of four

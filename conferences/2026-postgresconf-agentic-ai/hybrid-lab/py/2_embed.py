@@ -1,5 +1,5 @@
 # %% [markdown]
-# # 2 · Embed the corpus and the test questions with Cohere Embed v4 on Bedrock
+# # 2. Embed the corpus and the test questions with Cohere Embed v4 on Bedrock
 #
 # Posts use `input_type='search_document'`; questions use `'search_query'`.
 # Only rows whose `embedding IS NULL` are sent, so this cell is safe to re-run after

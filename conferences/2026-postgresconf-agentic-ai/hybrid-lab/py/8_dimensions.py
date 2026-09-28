@@ -1,5 +1,5 @@
 # %% [markdown]
-# # 8 · How many dimensions do you need?
+# # 8. How many dimensions do you need?
 #
 # Cohere Embed v4 returns 256, 512, 1024, or 1536 dimensions (output_dimension), and the
 # shorter vectors are prefixes of the 1536 one: the same numbers, checked against the API.

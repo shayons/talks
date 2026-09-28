@@ -1,4 +1,4 @@
--- 08f · The tuned blend with nothing but core PostgreSQL and an open-source model.
+-- 08f. The tuned blend with nothing but core PostgreSQL and an open-source model.
 --
 -- Same as 08e, but the keyword list is 04's any-word ts_rank_cd instead of BM25: no
 -- pg_textsearch, only tsvector and GIN. The vector list is bge-small (open source, local).

@@ -1,4 +1,4 @@
--- 07a · Naive fusion: add the keyword score to the vector score.
+-- 07a. Naive fusion: add the keyword score to the vector score.
 --
 -- Pitfall 2. The two scores live on different scales. ts_rank_cd is unbounded
 -- and depends on how many words match; cosine similarity for this model sits in a

@@ -4,7 +4,7 @@ Conference material for **[Postgres Summit US 2026](https://2026.postgressummit.
 
 **Session:** [Hybrid Search in PostgreSQL: Combining Vector and Full-Text for Real-World Applications](https://postgresql.us/events/postgressummitus2026/schedule/session/2349-hybrid-search-in-postgresql-combining-vector-and-full-text-for-real-world-applications/)
 
-**Speaker:** Shayon Sanyal · **When:** Wednesday, September 30, 2026, 10:30–11:20 EDT · **Where:** Letterpress, Convene, 555 Broadway
+**Speaker:** Shayon Sanyal. **When:** Wednesday, September 30, 2026, 10:30–11:20 EDT. **Where:** Letterpress, Convene, 555 Broadway.
 
 | Start here | What it is |
 | --- | --- |

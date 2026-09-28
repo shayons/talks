@@ -1,4 +1,4 @@
--- 08d · RRF of BM25 and the small local model (bge-small, 384 dims).
+-- 08d. RRF of BM25 and the small local model (bge-small, 384 dims).
 --
 -- Identical to 08b except for the vector column. With a weaker embedding model the keyword
 -- list has more to contribute.
