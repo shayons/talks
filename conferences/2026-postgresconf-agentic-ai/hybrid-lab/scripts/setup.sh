@@ -62,7 +62,7 @@ else
 fi
 
 step "Starting the project cluster on port $LAB_PORT"
-PG18_BIN="$PG18_BIN" COFFEE_PG18_PORT="$LAB_PORT" "$TALK_ROOT/scripts/postgres18.sh" start >/dev/null
+PG18_BIN="$PG18_BIN" LAB_PGPORT="$LAB_PORT" "$LAB_ROOT/scripts/postgres18.sh" start >/dev/null
 "${PSQL[@]}" -d postgres -Atc "SELECT 'running ' || current_setting('server_version')"
 
 step "Configuring extension paths, preload, and memory"

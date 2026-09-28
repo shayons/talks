@@ -2,8 +2,6 @@
 .env
 .env.*
 !.env.example
-compose.override.yaml
-compose.override.yml
 
 # Dependencies, caches, and local verification output
 .venv/
@@ -18,6 +16,3 @@ node_modules/
 .impeccable/
 *.log
 .DS_Store
-
-# Interrupted archive builds; published PDFs, HTML, and ZIP are intentional.
-static/take-home.zip.tmp

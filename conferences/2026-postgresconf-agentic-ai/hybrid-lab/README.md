@@ -75,6 +75,7 @@ uv run --extra local python py/2b_embed_local.py   # bge-small on this laptop (o
 uv run --extra local python py/5_tune_fusion.py     # blend weights, chosen on dev questions
 uv run python py/4_evaluate.py  # every arm on every test question -> results/
 uv run hybrid-lab               # UI at http://127.0.0.1:8018
+./scripts/postgres18.sh stop    # when you're done (start | stop | status)
 ```
 
 ### More datasets

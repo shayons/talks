@@ -15,6 +15,16 @@
   "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
   "jupyter.interactiveWindow.creationMode": "perFile",
   "jupyter.notebookFileRoot": "${workspaceFolder}",
-  "editor.rulers": [100],
-  "files.associations": { "*.sql": "sql" }
+  "editor.rulers": [
+    100
+  ],
+  "files.associations": {
+    "*.sql": "sql"
+  },
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/.ruff_cache": true,
+    ".venv": true
+  }
 }

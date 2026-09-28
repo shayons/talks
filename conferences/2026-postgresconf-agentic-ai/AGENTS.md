@@ -12,13 +12,14 @@ Talk material for a 50-minute session. `CLAUDE.md` imports this file; edit this 
 | `hybrid-lab/src/hybrid_lab/` | Python package: DB access, Bedrock calls, evaluation, FastAPI UI. |
 | `hybrid-search-plugin/` | Claude Code plugin; the skill is in `skills/postgres-hybrid-search/`. Downloadable agent skill that applies the pattern to any table. |
 | `deck/` | Marp deck (`deck.md`, black `theme.css`), `deck.pdf`, talking points, SQL patterns. |
-| root `*.py`, `static/` | The earlier "Coffee & queries" app. Kept as a fallback; do not extend it. |
+| `.local/` (ignored) | The PostgreSQL 18 cluster, the pg_textsearch build, backups, planning notes. |
 
 ## Commands
 
 ```bash
 cd hybrid-lab
 ./scripts/setup.sh                    # PG 18 cluster on :5433, pg_textsearch, fiqa database
+./scripts/postgres18.sh stop          # stop the cluster (start | stop | status)
 uv sync --extra local                 # Python 3.12+ environment (+ fastembed)
 uv run python py/1_load.py            # LAB_DATASET (default fiqa) into its database
 uv run python py/2_embed.py           # Cohere Embed v4 on Bedrock, then indexes
@@ -64,4 +65,3 @@ the lab cluster; the Python code always passes an explicit DSN.
   source lines reflow on the slide. Use `<br>` for a hard break. Build on macOS so the
   system font (SF Pro) renders; elsewhere it falls back to Helvetica Neue or Arial.
 - Never commit `.env`, `hybrid-lab/data/`, or anything under `.local/`.
-- Never run the coffee app's `schema.sql` against data you want to keep: it drops tables.
