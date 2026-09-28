@@ -75,10 +75,10 @@ pre {
 }
 pre code { background: transparent; padding: 0; color: var(--text); font-size: inherit; }
 
-/* Xcode's dark palette, trimmed to what SQL needs. */
-.hljs-keyword, .hljs-built_in, .hljs-type { color: #ff7ab2; font-weight: 600; }
-.hljs-string { color: #ff8170; }
-.hljs-number { color: #d9c97c; }
+/* SQL: lavender keywords, green strings, cyan numbers; names stay white. */
+.hljs-keyword, .hljs-built_in, .hljs-type { color: #c7a4ff; font-weight: 600; }
+.hljs-string { color: #30d158; }
+.hljs-number { color: #64d2ff; }
 .hljs-comment { color: #7f8c98; font-style: normal; }
 .hljs-function, .hljs-title, .hljs-name, .hljs-variable, .hljs-attr, .hljs-literal,
 .hljs-operator, .hljs-punctuation { color: var(--text); }
