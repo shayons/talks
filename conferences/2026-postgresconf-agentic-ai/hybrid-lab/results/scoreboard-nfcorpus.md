@@ -17,6 +17,7 @@ Latency is local laptop wall time per question; rerank rows include the Bedrock 
 | RRF · ts_rank_cd + Rerank | 38.1 | 29.6 | 920.0 | 6489.7 | 97 / 125 |
 | Embed v4 · 512 dims | 38.1 | 30.1 | 11.3 | 14.1 | 73 / 129 |
 | RRF · BM25 + Rerank | 37.9 | 30.2 | 980.1 | 6442.3 | 96 / 126 |
+| Tuned blend · Embed v4 256 dims | 37.5 | 27.5 | 7.7 | 10.6 | 86 / 134 |
 | Embed v4 ∪ BM25 + Rerank | 37.2 | 30.6 | 1162.7 | 5512.3 | 93 / 130 |
 | RRF · ts_rank_cd + Embed v4 | 36.3 | 29.6 | 20.9 | 34.1 | 77 / 139 |
 | RRF · BM25 + bge-small | 36.1 | 26.8 | 13.9 | 17.2 | 83 / 148 |

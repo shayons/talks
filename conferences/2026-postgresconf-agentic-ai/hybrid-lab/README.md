@@ -22,6 +22,8 @@ interval above / below zero. Full table: [`results/summary.md`](results/summary.
 | bge-small + BM25, tuned blend | **39.2** (+1.2 **↑**) | **74.2** (+2.1 **↑**) | **35.9** (+2.1 **↑**) | 19.8 (+0.2) * |
 | bge-small + BM25, equal-weight RRF | 34.9 (−3.1 ↓) | 73.7 (+1.7) | 36.1 (+2.3 **↑**) | 19.4 (−0.3) |
 | bge-small + `ts_rank_cd` (core PostgreSQL), tuned blend | 37.9 (−0.1) | 72.4 (+0.4) | 34.4 (+0.7) | 16.0 (−3.6 ↓) * |
+| Embed v4, first 256 dims | 49.3 | 72.1 | 34.7 | 16.5 |
+| Embed v4, first 256 dims + BM25, tuned blend | 49.9 (+0.5) | **75.5** (+3.5 **↑**) | **37.5** (+2.8 **↑**) | **18.4** (+1.9 **↑**) * |
 | **Embed v4** | 53.9 | 77.5 | 40.1 | 20.6 |
 | Embed v4 + BM25, tuned blend | 53.9 (0.0, chose w = 1) | 77.7 (+0.2) | 40.9 (+0.8 **↑**) | 19.8 (−0.8 ↓) * |
 | Embed v4 + BM25, equal-weight RRF | 41.3 (−12.5 ↓) | 74.6 (−2.9 ↓) | 39.0 (−1.1) | 19.4 (−1.2 ↓) |
@@ -45,6 +47,9 @@ interval above / below zero. Full table: [`results/summary.md`](results/summary.
   costs little but saves no HNSW space (one vector per 8 KB page either way); 512 and 256
   shrink the index 3× and 6× and lose 1.6 to 5.5 NDCG@10 on every dataset. `halfvec` and
   binary + rescore kept quality within noise ([`results/dimensions.md`](results/dimensions.md)).
+- **BM25 pays more on weaker vectors, including fewer dimensions.** Embed v4 cut to 256
+  dimensions plus BM25 (`sql/08g`) gained 1.9 to 3.5 NDCG@10 on three datasets and won back
+  46–64% of what truncation cost.
 - **Keyword search still earns its place** for exact identifiers ("Employer rollover from 403b
   to 401k?": BM25 #1, Embed v4 #26) and for "similar AND contains this word" (`sql/09`,
   `sql/11`).
@@ -86,6 +91,7 @@ uv run --extra local python py/2b_embed_local.py   # bge-small on this laptop (o
 uv run --extra local python py/5_tune_fusion.py     # blend weights, chosen on dev questions
 uv run python py/4_evaluate.py  # every arm on every test question -> results/
 uv run hybrid-lab               # UI at http://127.0.0.1:8018
+./scripts/preflight.sh          # later: start the database and UI, check everything
 ./scripts/postgres18.sh stop    # when you're done (start | stop | status)
 ```
 
@@ -134,6 +140,7 @@ view. Run a file with SQLTools (Cmd+E Cmd+E), or select one statement and run ju
 | `11_hybrid_function.sql` | `hybrid_search()`: the take-home function |
 | `12a_halfvec.sql`, `12b_binary.sql` | Half-precision and 1-bit indexes, measured |
 | `12c`, `12d`, `12e` | Embed v4's first 1024, 512, and 256 dimensions, through `subvector()` indexes |
+| `08g_hybrid_blend_256.sql` | The tuned blend with Embed v4's first 256 dimensions |
 | `demo_questions.sql` | The stage questions the UI lists, per dataset |
 
 Each arm file has a line `-- == ARM QUERY ==`. Statements above it are for exploring. The

@@ -89,8 +89,10 @@ def tune(vector_stage: str, setting: str, keyword_stage: str = "bm25") -> None:
     print(f"{setting} = {best:.2f}: {note}")
 
 
-# %% Cohere Embed v4 (sql/08c), the small local model (08e), and core PostgreSQL only (08f)
+# %% Cohere Embed v4 (sql/08c), its first 256 dimensions (08g), the small local model (08e),
+# and core PostgreSQL only (08f)
 tune("vector", "blend_vector_weight")
+tune("vector_256", "blend_vector_weight_256")
 local_ready = conn.execute("SELECT count(embedding_local) > 0 FROM docs").fetchone()[0]
 conn.rollback()
 if local_ready:

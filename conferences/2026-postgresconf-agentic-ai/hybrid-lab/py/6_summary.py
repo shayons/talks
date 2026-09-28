@@ -22,9 +22,11 @@ COMPARISONS = (  # (arm, baseline with the same embedding model)
     ("rrf_local", "vector_local"),
     ("blend_local", "vector_local"),
     ("blend_native_local", "vector_local"),
+    ("blend_256", "vector_256"),
 )
 SHOWN = ("bm25", "vector", "rrf_bm25", "blend_bm25", "vector_rerank",
-         "vector_local", "rrf_local", "blend_local", "blend_native_local")
+         "vector_local", "rrf_local", "blend_local", "blend_native_local",
+         "vector_256", "blend_256")
 
 
 def per_question(conn) -> dict[str, dict[str, float]]:

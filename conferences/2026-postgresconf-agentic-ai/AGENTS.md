@@ -18,6 +18,7 @@ Talk material for a 50-minute session. `CLAUDE.md` imports this file; edit this 
 
 ```bash
 cd hybrid-lab
+./scripts/preflight.sh [--open]       # morning of the talk: start DB + UI, check everything
 ./scripts/setup.sh                    # PG 18 cluster on :5433, pg_textsearch, fiqa database
 ./scripts/postgres18.sh stop          # stop the cluster (start | stop | status)
 uv sync --extra local                 # Python 3.12+ environment (+ fastembed)

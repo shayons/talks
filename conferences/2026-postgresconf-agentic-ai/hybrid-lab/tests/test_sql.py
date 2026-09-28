@@ -147,6 +147,7 @@ def test_hybrid_function_honors_required_terms(conn):
     [
         ("blend_bm25", "blend_vector_weight", "bm25", "vector"),
         ("blend_native_local", "blend_vector_weight_native_local", "keyword_or", "vector_local"),
+        ("blend_256", "blend_vector_weight_256", "bm25", "vector_256"),
     ],
 )
 def test_blend_matches_min_max_convex_combination(
