@@ -51,7 +51,7 @@ checked-in evaluation.
 </ol>
 <p class="missing">Never returned: <strong>How to end your membership</strong><br>No shared terms after stop-word removal.</p>
 </div>
-<p class="miss-note">Vector search (Embed v4) ranks the membership page first.</p>
+<p class="miss-note">BM25 never returns the membership page for this query.</p>
 </div>
 <div class="miss" data-marpit-fragment>
 <span class="eyebrow">Vector search (Embed v4) misses</span>

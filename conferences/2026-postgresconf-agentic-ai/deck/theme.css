@@ -202,10 +202,10 @@ section.dense p { margin: 0 0 0.4em; }
 
 /* ------ Slide 2: two mock search pages, each with its wrong results on top ------ */
 .miss-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin: 12px 0 16px; }
-.miss { display: flex; flex-direction: column; }
+.miss { display: flex; flex-direction: column; min-width: 0; }
 .miss .eyebrow { margin-bottom: 8px; }
 .window {
-  flex: 1; display: flex; flex-direction: column; background: var(--card); border-radius: 16px;
+  flex: 0 0 360px; height: 360px; display: flex; flex-direction: column; background: var(--card); border-radius: 16px;
   overflow: hidden; box-shadow: 0 0 0 1px var(--hairline);
 }
 .window-bar {
@@ -270,7 +270,7 @@ section.dense p { margin: 0 0 0.4em; }
   border-radius: 12px; font-size: 15px; line-height: 1.35; color: var(--text-2);
 }
 .missing strong { color: var(--green); font-size: 17px; }
-.miss-note { margin: 10px 2px 0; font-size: 19px; color: var(--text-2); }
+.miss-note { min-height: 2.9em; margin: 10px 2px 0; font-size: 19px; color: var(--text-2); }
 .miss-takeaway { margin: 0; font-size: 22px; transition: opacity 300ms ease 250ms; }
 section:has(.miss-grid > [data-bespoke-marp-fragment=inactive]) .miss-takeaway {
   opacity: 0; transition: none;
