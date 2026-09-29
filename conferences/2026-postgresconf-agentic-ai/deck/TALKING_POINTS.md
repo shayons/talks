@@ -160,9 +160,9 @@ and exact demo steps follow below. Keep slide 21 and storage details brief if ti
 2. **Two questions, two misses.** These are two small examples I constructed and ran through
    the lab. In the help center, “cancel my subscription” misses “end your membership”: after
    stop-word removal, there are no shared terms. Vector search finds it. [click] In the store,
-   vector search puts three AAA packs in the top five for “AA batteries.” BM25 gets the AA
-   packs first. If AA is mandatory, make it a filter. If words are ranking signals, measure
-   whether fusion helps.
+   Embed v4 ranks AA packs at #1 and #5 for “AA batteries,” with three AAA packs at #2–#4.
+   BM25 puts three AA packs in its first three spots. If AA is mandatory, make it a filter. If
+   words are ranking signals, measure whether fusion helps.
 3. **About me.** I'm Shayon, a Principal Worldwide PostgreSQL Specialist Solutions Architect
    at AWS. I help teams build on PostgreSQL, from relational applications to retrieval and
    agent workflows. Today we're focusing on search over your own data. The QR code goes to my
@@ -331,9 +331,9 @@ and exact demo steps follow below. Keep slide 21 and storage details brief if ti
    1.85, "Subscription plans and pricing" 1.32) and never the membership page. Embed v4 ranks it
    first (0.412, against 0.342 for "Pause your membership"); bge-small ranks it second, behind
    "Gift subscriptions" (0.694 vs 0.726). For "AA batteries" Embed v4 still puts the AA alkaline
-   24 pack first (0.551), then three AAA packs (0.529, 0.529, 0.519) above the other AA packs;
-   bge-small has two AAA packs in its top 5. BM25's top 5 is the four AA packs and the AA and
-   AAA charger; its first AAA pack is #7.
+   24 pack at #1 (0.551) and the AA lithium 8 pack at #5 (0.511), with three AAA packs at #2–#4
+   (0.529, 0.529, 0.519). bge-small has two AAA packs in its top five. BM25's top five contains
+   four AA packs and an AA/AAA charger; its first AAA-only pack is #7.
 3. **About me.** About 30 seconds.
 4. **How we'll measure.** 2,271 test questions. FiQA is the running example. The other three
    were picked by a rule written down before measuring: under 30,000 documents, and BM25

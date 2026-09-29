@@ -66,19 +66,19 @@ checked-in evaluation.
 <li><span class="thumb"><span class="cell aa"></span><span class="cell aa"></span></span><span class="hit"><b>AA lithium batteries, 8 pack</b></span><em class="ok">✓</em></li>
 </ol>
 </div>
-<p class="miss-note">Keyword search (BM25) puts AA packs at #1, #2 and #3.</p>
+<p class="miss-note">Embed v4 ranks AA packs at #1 and #5, with three AAA packs between them.</p>
 </div>
 </div>
 
-<p class="miss-takeaway"><strong>Two small constructed examples.</strong> Today: keyword and vector search in one
-PostgreSQL query, and how to check on your own questions whether combining them helps.</p>
+<p class="miss-takeaway"><strong>Two constructed examples.</strong><br>
+<strong>Today:</strong> See where each search method misses, then test whether combining them helps.</p>
 
 <!--
 Say: These are two small examples I constructed and ran through the lab. In the help center,
 “cancel my subscription” misses “end your membership”: after stop-word removal, there are no
-shared terms. Vector search finds it. [click] In the store, vector search puts three AAA packs
-in the top five for “AA batteries.” BM25 gets the AA packs first. If AA is mandatory, make it a
-filter. If words are ranking signals, measure whether fusion helps.
+shared terms. Vector search finds it. [click] In the store, Embed v4 ranks AA at #1 and #5,
+with three AAA packs at #2–#4. BM25 puts three AA packs in its first three spots. If AA is
+mandatory, make it a filter. If words are ranking signals, measure whether fusion helps.
 -->
 
 ---

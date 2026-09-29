@@ -1,31 +1,17 @@
-# talks
+# Talk materials
 
-Where I publish the source for talks I give — slides, runnable demo code, and the README I'd hand to anyone who wanted to reproduce them.
+Talk slides, runnable demonstrations, and benchmark results by **Shayon Sanyal**, Principal PostgreSQL Specialist Solutions Architect at AWS.
 
-By **Shayon Sanyal** · Principal PostgreSQL Specialist Solutions Architect at AWS · Lead, Agentic AI for Databases.
+## Featured talk
 
-## Talks
+**Hybrid Search in PostgreSQL: Combining Vector and Full-Text for Real-World Applications** — [Postgres Summit US 2026](https://2026.postgressummit.us/), New York City, September 30, 2026.
 
-| Date         | Venue                             | Title                                                            | Materials                                                                                      |
-| ------------ | --------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Sep 30, 2026 | **[Postgres Summit US 2026](https://2026.postgressummit.us/)** · New York City | [Hybrid Search in PostgreSQL: Combining Vector and Full-Text for Real-World Applications](https://postgresql.us/events/postgressummitus2026/schedule/session/2349-hybrid-search-in-postgresql-combining-vector-and-full-text-for-real-world-applications/) | [`conferences/2026-postgresconf-agentic-ai/`](conferences/2026-postgresconf-agentic-ai/) |
+Visit the [talk page](conferences/2026-postgresconf-agentic-ai/) for the demo, benchmark results, and Claude Code plugin. The [slide deck](conferences/2026-postgresconf-agentic-ai/deck/deck.pdf) is also available as a [web presentation](conferences/2026-postgresconf-agentic-ai/deck/deck.html) and [Marp source](conferences/2026-postgresconf-agentic-ai/deck/deck.md).
 
-Each folder is self-contained: README, Marp slide deck (source + built PDF), and the demo code. Where a talk has been recorded, the folder's README links to the video.
+## Rebuild the slides
 
-To rebuild a deck locally, `cd` into the talk's folder and run `./deck/build.sh`. Requires Node.js 18+ and [Marp](https://marp.app/).
-
-## Speaking
-
-If you're organizing a conference, meetup, or internal event and the topics here are a fit, I'm happy to talk. Reach out on LinkedIn with a short description and your date range — [linkedin.com/in/shayonsanyal](https://www.linkedin.com/in/shayonsanyal/).
-
-Topics I'm comfortable speaking on:
-
-- Aurora PostgreSQL — production deployments, migrations, performance, scaling
-- Agentic AI on Postgres — memory architectures, tool registries, MCP, grounding
-- pgvector and semantic search at production scale
-- Database-native AI patterns vs. framework-heavy alternatives
+From the talk directory, run `./deck/build.sh`. This uses Node.js 18 or later and Chrome or Chromium.
 
 ## Contact
 
-- LinkedIn · [linkedin.com/in/shayonsanyal](https://www.linkedin.com/in/shayonsanyal/)
-- GitHub · [@shayons](https://github.com/shayons)
+[LinkedIn](https://www.linkedin.com/in/shayonsanyal/) · [GitHub](https://github.com/shayons)
