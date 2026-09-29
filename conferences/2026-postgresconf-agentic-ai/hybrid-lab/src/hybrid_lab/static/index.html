@@ -18,6 +18,7 @@
       <button type="button" class="tab" data-view="search" aria-current="page">Search</button>
       <button type="button" class="tab" data-view="scoreboard">Scoreboard</button>
     </nav>
+    <button type="button" id="reset-demo" class="quiet" title="Restore FiQA, default methods and the first sample">Reset demo</button>
     <p class="versions" id="versions">Connecting to PostgreSQL…</p>
   </header>
 
@@ -41,6 +42,7 @@
           <div class="arm-group" id="arms-more"></div>
         </details>
       </fieldset>
+      <div id="blend-help" class="blend-help" hidden></div>
 
       <div id="status" class="status" role="status" aria-live="polite"></div>
 
@@ -48,8 +50,10 @@
         <header class="question-head">
           <p class="question-meta" id="question-meta"></p>
           <h2 class="question" id="question-text"></h2>
+          <p class="question-context" id="question-context" hidden></p>
           <div class="answers" id="answers"></div>
         </header>
+        <aside id="example-insight" class="example-insight" aria-labelledby="example-insight-title" hidden></aside>
         <div class="columns" id="columns"></div>
       </article>
     </section>
@@ -57,15 +61,16 @@
     <section id="view-scoreboard" class="view" hidden>
       <section class="summary" id="summary-section" hidden>
         <h2>Across datasets</h2>
-        <p>NDCG@10 on each dataset's test questions. The tuned blend's weight was chosen on
-          that dataset's separate tuning questions, never on these test questions.</p>
-        <div id="summary"></div>
+        <p>NDCG@10 on each dataset's test questions. Blend weights are chosen separately for
+          each model on development questions, then fixed for testing. SCIDOCS has no
+          development split and uses an untuned 50/50 blend.</p>
+        <div id="summary" role="region" aria-label="Results across datasets" tabindex="0"></div>
       </section>
       <header class="board-head">
         <h2 id="board-title">How each method did on this dataset</h2>
-        <p>NDCG@10 is 100 when every known answer is at the top of the list and 0 when none
-          is in the top 10. Recall@50 is the share of known answers anywhere in the top 50:
-          the most a reranker could ever surface.</p>
+        <p>NDCG@10 rewards relevant answers near the top: 100 is the ideal top 10 under the
+          known relevance judgments; 0 means no known answer appears. Recall@50 is the
+          percentage of known answers found in the top 50. Both are averaged over test questions.</p>
       </header>
       <div id="board" class="board"></div>
       <div class="swings">

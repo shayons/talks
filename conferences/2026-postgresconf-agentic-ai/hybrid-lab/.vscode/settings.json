@@ -6,8 +6,8 @@
       "server": "127.0.0.1",
       "port": 5433,
       "database": "fiqa",
-      "username": "coffee",
-      "password": "coffee",
+      "username": "postgres",
+      "password": "postgres",
       "previewLimit": 50
     }
   ],

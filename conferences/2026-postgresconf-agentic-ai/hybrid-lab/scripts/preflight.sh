@@ -54,6 +54,6 @@ cat <<EOF
 
 Ready. Next:
   - Deck: open ../deck/deck.html in Chrome (f fullscreen, p presenter view)
-  - VS Code: open this folder, SQLTools -> "hybrid-lab (fiqa)", Cmd+E Cmd+E runs a file
+  - VS Code: open the talk folder (..), SQLTools -> "hybrid-lab (fiqa)", Cmd+E Cmd+E runs a file
   - Stage links: $UI_URL/#d=nfcorpus&q=PLAIN-307  and  $UI_URL/#d=fiqa&q=9961
 EOF

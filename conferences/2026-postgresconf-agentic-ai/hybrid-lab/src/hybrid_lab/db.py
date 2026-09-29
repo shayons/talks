@@ -14,7 +14,7 @@ from psycopg_pool import ConnectionPool
 
 LAB_ROOT = Path(__file__).resolve().parents[2]
 SQL_DIR = LAB_ROOT / "sql"
-CLUSTER_DSN = "postgresql://coffee:coffee@127.0.0.1:5433"
+CLUSTER_DSN = "postgresql://postgres:postgres@127.0.0.1:5433"
 
 load_dotenv(LAB_ROOT / ".env")
 

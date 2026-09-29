@@ -144,9 +144,8 @@ section.bio { justify-content: center; padding: 48px 72px; }
 section.bio .bio-grid {
   display: grid; grid-template-columns: 340px 1fr; gap: 56px; align-items: center; width: 100%;
 }
-section.bio .bio-photo img {
-  width: 100%; max-width: 340px; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 24px;
-}
+section.bio .bio-photo p { margin: 0; }
+section.bio .bio-photo img { display: block; width: 340px; height: auto; border-radius: 24px; }
 section.bio h2 { font-size: 18px; color: var(--text-2); font-weight: 600; margin: 0 0 8px; }
 section.bio h1 { font-size: 56px; margin: 0 0 14px; }
 section.bio .bio-text strong { font-size: 22px; font-weight: 600; display: block; }
@@ -161,9 +160,15 @@ section.bio .bio-links img {
 
 /* ------ Takeaway ------ */
 section.takeaway { justify-content: center; }
-section.takeaway h2 { font-size: 20px; color: var(--text-2); font-weight: 600; margin-bottom: 20px; }
+section.takeaway h2 { font-size: 40px; margin-bottom: 36px; }
 section.takeaway h1 { font-size: 54px; line-height: 1.12; margin: 0 0 28px; }
 section.takeaway p { color: var(--text-2); font-size: 26px; max-width: 86%; line-height: 1.5; }
+section.takeaway ul { margin: 0 0 0 1.1em; max-width: 1040px; }
+section.takeaway li { color: var(--text-2); font-size: 26px; line-height: 1.4; margin-bottom: 26px; padding-left: 8px; }
+section.takeaway li:last-child { margin-bottom: 0; }
+section.takeaway li strong { font-size: 32px; line-height: 1.5; }
+section.takeaway li::marker { color: var(--orange); }
+section.limits li { margin-bottom: 22px; }
 
 /* ------ Thank you ------ */
 section.thanks { justify-content: center; text-align: center; }
@@ -185,7 +190,7 @@ section.thanks .thanks-contact .name { color: var(--text); font-weight: 600; }
   background: var(--card-2); color: var(--text); font: 500 0.5em var(--mono);
   letter-spacing: 0; vertical-align: middle; white-space: nowrap;
 }
-br + .file { margin: 8px 0 0; }
+br ~ .file { margin: 8px 0 0; }
 
 /* ------ Code-first slides ------ */
 section.code-first h2 { font-size: 34px; margin-bottom: 16px; }
@@ -195,15 +200,83 @@ section.dense h2 { font-size: 34px; margin-bottom: 14px; }
 section.dense pre { font-size: 18px; padding: 16px 20px; line-height: 1.4; margin: 10px 0; }
 section.dense p { margin: 0 0 0.4em; }
 
-/* ------ Evidence ------ */
-.journey-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 18px 0 28px; }
-.journey-grid > div { background: var(--card); border-radius: 22px; padding: 26px 28px; }
-.journey-grid h3 { margin-bottom: 12px; }
-.journey-grid p { font-size: 23px; margin: 0; }
-.journey-takeaway { transition: opacity 300ms ease 250ms; }
-section:has(.journey-grid > [data-bespoke-marp-fragment=inactive]) .journey-takeaway {
-  opacity: 0; transition-delay: 0ms;
+/* ------ Slide 2: two mock search pages, each with its wrong results on top ------ */
+.miss-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin: 12px 0 16px; }
+.miss { display: flex; flex-direction: column; }
+.miss .eyebrow { margin-bottom: 8px; }
+.window {
+  flex: 1; display: flex; flex-direction: column; background: var(--card); border-radius: 16px;
+  overflow: hidden; box-shadow: 0 0 0 1px var(--hairline);
 }
+.window-bar {
+  display: flex; align-items: center; gap: 6px; padding: 8px 14px;
+  background: var(--card-2); font: 500 13px var(--mono); color: var(--text-3);
+}
+/* macOS window buttons: decoration, not the deck's green = better / red = worse. */
+.window-bar i { width: 11px; height: 11px; border-radius: 50%; }
+.window-bar i:nth-child(1) { background: #ff5f57; }
+.window-bar i:nth-child(2) { background: #febc2e; }
+.window-bar i:nth-child(3) { background: #28c840; }
+.window-bar span { margin-left: 12px; }
+.searchbox {
+  position: relative; margin: 14px 18px 6px; padding: 8px 16px 8px 42px; border-radius: 12px;
+  background: var(--card-2); box-shadow: 0 0 0 1px var(--hairline);
+  font-size: 21px; font-weight: 500; color: var(--text);
+}
+.searchbox::before {
+  content: ""; position: absolute; left: 16px; top: 50%; width: 11px; height: 11px;
+  margin-top: -8px; border: 2px solid var(--text-2); border-radius: 50%;
+}
+.searchbox::after {
+  content: ""; position: absolute; left: 28px; top: 50%; width: 6px; height: 2px;
+  margin-top: 5px; background: var(--text-2); transform: rotate(45deg);
+}
+.results {
+  flex: 1; display: flex; flex-direction: column; justify-content: space-evenly;
+  list-style: none; margin: 0; padding: 0 18px 4px; counter-reset: rank;
+}
+.results li {
+  display: flex; align-items: center; gap: 12px; margin: 0; padding: 7px 0;
+  border-top: 1px solid var(--hairline); counter-increment: rank;
+}
+.results li:first-child { border-top: 0; }
+.results li::before {
+  content: counter(rank); width: 12px; font: 500 15px var(--mono); color: var(--text-3);
+}
+.results .hit { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.results b { font-size: 18px; font-weight: 600; line-height: 1.3; }
+.results small { font-size: 14px; color: var(--text-2); line-height: 1.3; }
+.results mark {
+  background: rgba(255, 255, 255, 0.16); color: #fff; border-radius: 4px; padding: 0 3px;
+}
+.results em {
+  font-style: normal; font-size: 13px; font-weight: 600; white-space: nowrap;
+  padding: 3px 10px; border-radius: 999px; color: var(--red); background: rgba(255, 69, 58, 0.16);
+}
+.results em.ok { color: var(--green); background: transparent; font-size: 18px; padding: 0 8px; }
+.thumb {
+  display: flex; align-items: flex-end; justify-content: center; gap: 3px;
+  width: 36px; height: 36px; padding-bottom: 5px; border-radius: 8px; background: var(--card-2);
+}
+.cell { position: relative; border-radius: 2px; background: #d8d8dc; }
+.cell::before {
+  content: ""; position: absolute; top: -2px; left: 30%; width: 40%; height: 2px;
+  background: inherit; border-radius: 1px 1px 0 0;
+}
+.cell.aa { width: 8px; height: 28px; }
+.cell.aaa { width: 6px; height: 25px; }
+.missing {
+  margin: 4px 18px 16px; padding: 9px 14px; border: 1.5px dashed rgba(48, 209, 88, 0.6);
+  border-radius: 12px; font-size: 15px; line-height: 1.35; color: var(--text-2);
+}
+.missing strong { color: var(--green); font-size: 17px; }
+.miss-note { margin: 10px 2px 0; font-size: 19px; color: var(--text-2); }
+.miss-takeaway { margin: 0; font-size: 22px; transition: opacity 300ms ease 250ms; }
+section:has(.miss-grid > [data-bespoke-marp-fragment=inactive]) .miss-takeaway {
+  opacity: 0; transition: none;
+}
+
+/* ------ Evidence ------ */
 .eyebrow { display: block; color: var(--text-2); font-size: 17px; font-weight: 600; margin-bottom: 12px; }
 .formula { color: var(--text); font-size: 34px; font-weight: 600; padding: 20px 0; text-align: center; }
 .caption { color: var(--text-2); font-size: 18px; margin: 16px 0 0; }
@@ -220,6 +293,15 @@ section:has(.journey-grid > [data-bespoke-marp-fragment=inactive]) .journey-take
 section.split-evidence h1 { font-size: 42px; margin-bottom: 18px; }
 section.measure .evidence-grid { grid-template-columns: 0.78fr 1.22fr; gap: 32px; }
 section.measure .evidence-grid p { font-size: 22px; }
+section dl.glossary {
+  display: grid; grid-template-columns: auto 1fr; gap: 4px 14px;
+  margin: 18px 4px 0; padding: 0; font-size: 16px; line-height: 1.3; color: var(--text-2);
+}
+section dl.glossary dt {
+  margin: 0; padding: 0; font-size: inherit; font-style: normal; font-weight: 600;
+  color: var(--text);
+}
+section dl.glossary dd { margin: 0; padding: 0; }
 section.split-evidence:has(.evidence-grid h1) > h2 {
   font-size: 20px; color: var(--text-2); font-weight: 600; letter-spacing: 0; margin-bottom: 0;
 }
@@ -256,13 +338,16 @@ section.gold h2 { font-size: 29px; letter-spacing: -0.025em; margin-bottom: 14px
 
 /* ------ Presenting from deck.html ------
    Marp's HTML player marks each click step inactive or active. The PDF has no player,
-   so it prints every step in its final state. */
-[data-bespoke-marp-fragment] { transition: opacity 300ms ease; }
+   so it prints every step in its final state. Only the change to active animates: the
+   player resets a slide's steps to inactive as the slide appears, and animating that
+   change would show the final state and then play it backwards. */
+[data-bespoke-marp-fragment=active] { transition: opacity 300ms ease; }
 [data-bespoke-marp-fragment=inactive] { opacity: 0; }
 
 /* ------ Slide: RRF, three ranked lists ------ */
 section.rrf h2 { margin-bottom: 4px; }
 section.rrf .formula { font-size: 26px; padding: 0 0 14px; }
+section.rrf .rrf-depth { font-size: 18px; margin: 0 0 10px; }
 .rrf-demo { position: relative; height: 412px; }
 .rrf-lane { position: absolute; top: 0; width: 340px; }
 .rrf-lane.bm25 { left: 0; }
@@ -289,11 +374,13 @@ section.rrf .formula { font-size: 26px; padding: 0 0 14px; }
 /* Moving pills sit exactly on their source rows, covering them, until the click sends them. */
 .rrf-demo .fly.top { background: var(--bg); }
 .rrf-step .score { transition: opacity 300ms ease 750ms; }
-.rrf-step[data-bespoke-marp-fragment=inactive] .score { opacity: 0; transition-delay: 0ms; }
+.rrf-step[data-bespoke-marp-fragment=inactive] .score { opacity: 0; transition: none; }
 .rrf-step[data-bespoke-marp-fragment] { opacity: 1; visibility: visible; }
-.rrf-step .fly { transition: transform 900ms cubic-bezier(0.3, 0.7, 0.2, 1); }
+.rrf-step[data-bespoke-marp-fragment=active] .fly {
+  transition: transform 900ms cubic-bezier(0.3, 0.7, 0.2, 1);
+}
 .rrf-step .later { transition: opacity 400ms ease 650ms; }
-.rrf-step[data-bespoke-marp-fragment=inactive] .later { opacity: 0; transition-delay: 0ms; }
+.rrf-step[data-bespoke-marp-fragment=inactive] .later { opacity: 0; transition: none; }
 .rrf-step[data-bespoke-marp-fragment=inactive] .from-bm25-4 { transform: translate(-796px, 90px); }
 .rrf-step[data-bespoke-marp-fragment=inactive] .from-vector-9 { transform: translate(-398px, 240px); }
 .rrf-step[data-bespoke-marp-fragment=inactive] .from-vector-1 { transform: translate(-398px, -240px); }

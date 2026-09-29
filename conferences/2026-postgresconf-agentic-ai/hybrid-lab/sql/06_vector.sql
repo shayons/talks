@@ -10,13 +10,14 @@
 -- Ask for 50 with the default and you silently get 40. Raise it to at least
 -- the LIMIT; higher values also improve recall at some cost in time.
 
-SHOW hnsw.ef_search;
-
 SELECT count(*) AS rows_returned_with_default_ef_search
   FROM (SELECT id
           FROM docs
          ORDER BY embedding <=> (SELECT embedding FROM active_query)
          LIMIT 50) nearest;
+
+-- After the query above has loaded pgvector in this session, the setting is visible:
+SHOW hnsw.ef_search;
 
 -- == ARM QUERY ==
 SET hnsw.ef_search = 100;

@@ -16,13 +16,13 @@ PGTS_VERSION="${PGTS_VERSION:-1.4.0}"
 LAB_DB="${LAB_DB:-fiqa}"
 # Ignore libpq variables from the caller's shell; every command below is explicit.
 unset PGUSER PGHOST PGDATABASE PGPORT PGSERVICE
-export PGPASSWORD="${LAB_PGPASSWORD:-coffee}"
+export PGPASSWORD="${LAB_PGPASSWORD:-postgres}"
 
 if [ -z "${PG18_BIN:-}" ]; then
   PG18_BIN="$(brew --prefix postgresql@18)/bin"
 fi
 PG_CONFIG="$PG18_BIN/pg_config"
-PSQL=("$PG18_BIN/psql" -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p "$LAB_PORT" -U coffee)
+PSQL=("$PG18_BIN/psql" -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p "$LAB_PORT" -U postgres)
 
 step() { printf '\n==> %s\n' "$*"; }
 fail() { printf 'error: %s\n' "$*" >&2; exit 1; }
@@ -95,9 +95,9 @@ fi
 
 step "Creating database $LAB_DB"
 if [ "$("${PSQL[@]}" -d postgres -Atc "SELECT 1 FROM pg_database WHERE datname = '$LAB_DB'")" != "1" ]; then
-  "$PG18_BIN/createdb" -h 127.0.0.1 -p "$LAB_PORT" -U coffee --template=template0 --encoding=UTF8 "$LAB_DB"
+  "$PG18_BIN/createdb" -h 127.0.0.1 -p "$LAB_PORT" -U postgres --template=template0 --encoding=UTF8 "$LAB_DB"
 fi
 "${PSQL[@]}" -d "$LAB_DB" -qc "CREATE EXTENSION IF NOT EXISTS vector; CREATE EXTENSION IF NOT EXISTS pg_textsearch;"
 "${PSQL[@]}" -d "$LAB_DB" -Atc "SELECT extname || ' ' || extversion FROM pg_extension WHERE extname IN ('vector','pg_textsearch') ORDER BY 1"
 echo
-echo "Ready: postgresql://coffee:coffee@127.0.0.1:$LAB_PORT/$LAB_DB"
+echo "Ready: postgresql://postgres:postgres@127.0.0.1:$LAB_PORT/$LAB_DB"

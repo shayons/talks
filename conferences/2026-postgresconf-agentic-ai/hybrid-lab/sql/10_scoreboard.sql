@@ -2,12 +2,13 @@
 --
 -- NDCG@10 (normalized discounted cumulative gain):
 --   DCG  = Σ relevance / log2(rank + 1) over the top 10 results
---   IDCG = the same sum for the best possible ordering of that question's answers
---   NDCG = DCG / IDCG, from 0 (no answer in the top 10) to 1 (all answers first).
+--   IDCG = the same sum for the best possible top 10 under the relevance judgments
+--   NDCG = DCG / IDCG, from 0 (no known answer in the top 10) to 1 (the ideal top 10).
 --   Averaged over every test question; a question with no results scores 0.
 --
 -- Recall@50: share of a question's relevant documents found anywhere in the top 50.
--- It is the ceiling for anything that only reorders those 50, like a reranker.
+-- A reranker cannot recover answers absent from its candidate pool. Candidate recall
+-- is not a numeric ceiling on NDCG@10, which also depends on rank and relevance grade.
 --
 -- py/4_evaluate.py fills runs and run_timings, then runs this file. Latency is
 -- measured on the client around each arm's SQL; rerank arms add the Bedrock call.

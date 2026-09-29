@@ -10,7 +10,7 @@ embedding (input type `search_query`).
 ## Match any word, not every word
 
 ```sql
--- websearch_to_tsquery / plainto_tsquery require ALL words: bad for questions.
+-- Plain terms default to AND; websearch_to_tsquery also supports OR, phrases and exclusions.
 SELECT id, ts_rank_cd(tsv, q) AS score
   FROM docs, CAST(replace(plainto_tsquery('english', $1)::text, ' & ', ' | ') AS tsquery) AS q
  WHERE tsv @@ q
@@ -36,10 +36,10 @@ SELECT id, -neg_score AS bm25
 
 Needs `shared_preload_libraries = 'pg_textsearch'`.
 
-## Vector candidates that really return 50
+## Give HNSW enough search effort for 50 candidates
 
 ```sql
-SET hnsw.ef_search = 100;                 -- default 40 caps an HNSW scan at 40 rows
+SET hnsw.ef_search = 100;                 -- default 40 limits a non-iterative HNSW scan
 SELECT id, embedding <=> $2 AS distance
   FROM docs
  WHERE embedding IS NOT NULL
@@ -84,7 +84,7 @@ SELECT coalesce(k.id, v.id) AS id,
  LIMIT 10;
 ```
 
-## A normalized blend, weight tuned on held-out questions
+## A normalized blend, weight tuned on development questions
 
 ```sql
 WITH keyword AS (
@@ -120,7 +120,7 @@ that are not in your test set (`hybrid-lab/py/5_tune_fusion.py`); in the lab it 
 ## Similar AND contains a required word
 
 ```sql
-SET hnsw.iterative_scan = relaxed_order;  -- pgvector 0.8+: keep walking until LIMIT fills
+SET hnsw.iterative_scan = relaxed_order;  -- pgvector 0.8+: continue within scan budgets
 WITH nearest AS MATERIALIZED (
   SELECT id, embedding <=> $2 AS distance
     FROM docs
@@ -132,8 +132,12 @@ SELECT * FROM nearest ORDER BY distance + 0;   -- relaxed order: re-sort the few
 ```
 
 Check the plan: a rare term may get GIN plus an exact sort instead, which is also correct.
+Iterative scans can reach tuple or memory budgets before filling the LIMIT.
 
 ## A function that carries its settings
+
+This wrapper demonstrates `ts_rank_cd` + RRF with optional filters. For the measured
+BM25/bge-small blend, see `hybrid-lab/sql/08e_hybrid_blend_local.sql`.
 
 ```sql
 CREATE FUNCTION hybrid_search(query_text text, query_embedding vector(1536),
@@ -179,8 +183,8 @@ SELECT h.doc_id,
 ```
 
 Boost a larger pool than you show, or a boost can't lift anything into view. Multiply after
-fusion so a boost scales relevance instead of replacing it. Not measured in the lab: BEIR has no
-dates or popularity.
+fusion to scale relevance, then cap and tune the factors: multiplication can still dominate
+the ranking. Not measured in the lab: these corpora have no dates or popularity.
 
 ## Expand results along relationships (recursive CTE)
 
@@ -192,7 +196,7 @@ WITH RECURSIVE related (doc_id, score, depth) AS (
   SELECT l.dst, r.score / 2, r.depth + 1          -- halve the score per hop
     FROM related r
     JOIN links l ON l.src = r.doc_id               -- citations, replies, related items
-   WHERE r.depth < 2                               -- the depth bound also stops cycles
+   WHERE r.depth < 2                               -- bounds traversal, does not detect cycles
 )
 SELECT doc_id, max(score) AS score
   FROM related
@@ -214,7 +218,7 @@ with synthetic metadata.
 | Full text | OR vs AND queries, match counts, `ts_rank_cd` cost on common terms, BM25 availability |
 | Embeddings | Model id per column, input types, re-embedding on text change, quota and throttling |
 | Functions | Inner plans with `auto_explain`; `plan_cache_mode` for optional filters |
-| Evaluation | Re-run the question set after every change; keep per-question wins and losses |
+| Evaluation | Tune on development questions; evaluate the final choice on held-out tests; inspect per-question wins and losses |
 
 ## Score it
 

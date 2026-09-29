@@ -18,7 +18,7 @@ from hybrid_lab.db import connect
 
 UI = "http://127.0.0.1:8018"
 DATASETS = ("fiqa", "scifact", "nfcorpus", "scidocs")
-STAGE_DATASETS = ("fiqa", "nfcorpus")
+STAGE_DATASETS = DATASETS
 VS_CODE_QUESTION = ("fiqa", "4641")
 
 DATASET_SQL = """

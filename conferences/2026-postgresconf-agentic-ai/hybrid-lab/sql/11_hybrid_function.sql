@@ -63,3 +63,11 @@ SELECT h.*, left(d.body, 100) AS preview
   FROM active_query q,
        hybrid_search(q.body, q.embedding) h
   JOIN docs d ON d.id = h.doc_id;
+
+-- The call on the slide, with 09_filtered_hybrid.sql's fixed question 988: five posts that
+-- are similar to the question and contain "mortgage".
+SELECT h.*, left(d.body, 60) AS preview
+  FROM queries q,
+       hybrid_search(q.body, q.embedding, match_count => 5, required_terms => 'mortgage') h
+  JOIN docs d ON d.id = h.doc_id
+ WHERE q.id = '988';

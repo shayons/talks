@@ -29,6 +29,7 @@ uv run --extra local python py/5_tune_fusion.py   # blend weights, dev questions
 ./scripts/evaluate_all.sh             # clean rebuild, tune, evaluate all datasets, summary, k sweep
 uv run python py/7_k_sweep.py         # RRF k sensitivity from stored runs -> results/k_sweep.md
 uv run python py/8_dimensions.py      # Embed v4 at 1536/1024/512/256 dims -> results/dimensions.md
+uv run --extra local python py/9_opener_examples.py   # slide 2 examples -> results/opener_examples.md
 uv run python py/4_evaluate.py        # every arm on the test questions -> results/scoreboard-<dataset>.md,
                                       # then sql/demo_questions.sql (FiQA: SQL arms ~25 min;
                                       # each rerank arm calls Bedrock once per question)
@@ -69,4 +70,7 @@ the lab cluster; the Python code always passes an explicit DSN.
   system font (SF Pro) renders; elsewhere it falls back to Helvetica Neue or Arial.
 - Click steps are elements with `data-marpit-fragment` (Marp's HTML player reveals them in
   document order). Style them so the default state is the final one: the PDF has no player.
+- VS Code settings exist twice: `.vscode/settings.json` for presenting from the talk folder
+  (local only: the talks repo ignores `.vscode/`), `hybrid-lab/.vscode/settings.json` for
+  opening the lab on its own. Change the SQLTools connection and Python paths in both.
 - Never commit `.env`, `hybrid-lab/data/`, or anything under `.local/`.

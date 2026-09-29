@@ -51,9 +51,9 @@ mkdir -p "$TALK_ROOT/.local"
 if [ ! -f "$PGDATA_DIR/PG_VERSION" ]; then
   PASSWORD_FILE="$(mktemp "$TALK_ROOT/.local/initdb-password.XXXXXX")"
   trap 'rm -f "$PASSWORD_FILE"' EXIT
-  # Public lab credentials (coffee/coffee), reachable from loopback only.
-  printf '%s\n' coffee > "$PASSWORD_FILE"
-  "$PG18_BIN/initdb" -D "$PGDATA_DIR" --username=coffee \
+  # Public lab credentials (postgres/postgres), reachable from loopback only.
+  printf '%s\n' postgres > "$PASSWORD_FILE"
+  "$PG18_BIN/initdb" -D "$PGDATA_DIR" --username=postgres \
     --encoding=UTF8 --locale="$LOCALE" --auth-local=trust --auth-host=scram-sha-256 \
     --pwfile="$PASSWORD_FILE"
   rm -f "$PASSWORD_FILE"

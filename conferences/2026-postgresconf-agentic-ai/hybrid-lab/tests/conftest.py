@@ -20,7 +20,7 @@ from pgvector.psycopg import register_vector
 
 from hybrid_lab.db import run_script, sql_text
 
-ADMIN_DSN = os.getenv("TEST_ADMIN_URL", "postgresql://coffee:coffee@127.0.0.1:5433/postgres")
+ADMIN_DSN = os.getenv("TEST_ADMIN_URL", "postgresql://postgres:postgres@127.0.0.1:5433/postgres")
 TEST_DB = "fiqa_test"
 DIMS = 1536
 LOCAL_DIMS = 384

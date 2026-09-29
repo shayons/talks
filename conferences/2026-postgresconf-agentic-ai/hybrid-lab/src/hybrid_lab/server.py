@@ -106,6 +106,31 @@ SUMMARY_STAGES = (
     "vector_local", "rrf_local", "blend_local",
 )
 
+BLEND_SETTINGS = {
+    "blend_bm25": "blend_vector_weight",
+    "blend_local": "blend_vector_weight_local",
+    "blend_native_local": "blend_vector_weight_native_local",
+    "blend_256": "blend_vector_weight_256",
+}
+
+
+def blend_info(stage: str, settings: dict) -> dict | None:
+    """Describe the stored mixing weight, matching the SQL's 50/50 fallback."""
+    key = BLEND_SETTINGS.get(stage)
+    if key is None:
+        return None
+    return {
+        "vector_weight": float(settings.get(key, 0.5)),
+        "tuned": key in settings,
+        "keyword": "ts_rank_cd" if stage == "blend_native_local" else "BM25",
+    }
+
+
+def arm_label(stage: str, name: str) -> str:
+    """SCIDOCS has no dev split: its blends use a fixed weight, not a tuned one."""
+    label = BY_STAGE[stage].label
+    return label.replace("Tuned blend", "Untuned 50/50 blend") if name == "scidocs" else label
+
 
 def _unavailable_reason(arm, has_bm25: bool, has_local: bool) -> str | None:
     if arm.needs_bm25 and not has_bm25:
@@ -162,18 +187,20 @@ def arms(request: Request, dataset: str | None = None) -> list[dict]:
     with pool_for(request, dataset).connection() as conn:
         has_bm25 = bm25_available(conn)
         has_local = local_available(conn)
+        settings = dict(conn.execute("SELECT name, value FROM fusion_settings").fetchall())
     name = dataset or next(iter(request.app.state.pools))
     defaults = DEFAULT_ARMS.get(name, DEFAULT_ARMS["*"])
     return [
         {
             "stage": arm.stage,
-            "label": arm.label,
+            "label": arm_label(arm.stage, name),
             "sql_file": source_file(arm),
             "rerank_of": list(arm.rerank_of),
             "default_on": arm.stage in defaults,
             "pitfall": arm.pitfall,
             "available": (has_bm25 or not arm.needs_bm25) and (has_local or not arm.local),
             "unavailable_reason": _unavailable_reason(arm, has_bm25, has_local),
+            "blend": blend_info(arm.stage, settings),
         }
         for arm in ARMS
     ]
@@ -212,6 +239,9 @@ def run_search(request: Request, body: SearchRequest) -> dict:
         except LookupError as exc:
             raise HTTPException(404, str(exc)) from exc
         cards = search.run_arms(conn, question, body.arms)
+        name = body.dataset or next(iter(request.app.state.pools))
+        for card in cards:
+            card["label"] = arm_label(card["stage"], name)
     return {
         "question": {"id": question.id, "body": question.body, "judged": question.judged,
                      "answers": sorted(question.relevance, key=lambda d: (len(d), d))},
@@ -246,7 +276,8 @@ def scoreboard(request: Request, dataset: str | None = None) -> dict:
         names = [column.name for column in cur.description]
         rows = [dict(zip(names, row, strict=True)) for row in cur.fetchall()]
         swings = conn.execute(SWINGS_SQL).fetchall()
-    labels = {arm.stage: arm.label for arm in ARMS}
+    name = dataset or next(iter(request.app.state.pools))
+    labels = {arm.stage: arm_label(arm.stage, name) for arm in ARMS}
     for row in rows:
         row["label"] = labels.get(row["stage"], row["stage"])
     return {

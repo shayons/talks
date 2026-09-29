@@ -23,7 +23,7 @@ for row in conn.execute(
 conn.rollback()
 
 # %% A judged FiQA test question (change the id to any row printed above)
-questions.use(conn, "8")
+questions.use(conn, "4641")
 print(questions.active(conn))
 
 # %% Your own question (unjudged)
